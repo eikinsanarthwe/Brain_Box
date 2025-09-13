@@ -1,0 +1,94 @@
+{% load static %}
+
+<div class="status-container d-flex align-items-center gap-2 mb-2">
+    <!-- Assignment Status Badge -->
+    <span class="badge 
+        {% if item.status == 'published' %}bg-success
+        {% elif item.status == 'draft' %}bg-warning
+        {% else %}bg-secondary{% endif %}">
+        <i class="fas 
+            {% if item.status == 'published' %}fa-check-circle
+            {% elif item.status == 'draft' %}fa-pencil-alt
+            {% else %}fa-archive{% endif %} me-1"></i>
+        {{ item.get_status_display }}
+    </span>
+
+    <!-- Due Date Indicator -->
+    {% if item.due_date %}
+        {% with days_remaining=item.days_remaining %}
+            <span class="badge 
+                {% if days_remaining < 0 %}bg-danger
+                {% elif days_remaining < 3 %}bg-warning
+                {% else %}bg-primary{% endif %}">
+                <i class="fas fa-clock me-1"></i>
+                {% if days_remaining < 0 %}
+                    Overdue by {{ days_remaining_abs }} day{{ days_remaining_abs|pluralize }}
+                {% else %}
+                    Due in {{ days_remaining }} day{{ days_remaining|pluralize }}
+                {% endif %}
+            </span>
+        {% endwith %}
+    {% endif %}
+
+    <!-- Submission Status -->
+    {% if item.submission_status %}
+        <span class="badge bg-info">
+            <i class="fas fa-paper-plane me-1"></i>
+            {{ item.submission_status }} submitted
+        </span>
+    {% endif %}
+
+    <!-- Grading Progress -->
+    {% if item.grading_status %}
+        <span class="badge 
+            {% if item.grading_status == '0/0' %}
+                bg-secondary
+            {% elif item.grading_status|slice:":2" == "0/" %}
+                bg-danger
+            {% else %}
+                bg-success
+            {% endif %}">
+            <i class="fas fa-check-circle me-1"></i>
+            {{ item.grading_status }} graded
+        </span>
+    {% endif %}
+</div>
+
+<!-- Progress Bars -->
+{% if item.submission_status %}
+<div class="progress-container mt-2">
+    
+    <!-- Submission Progress -->
+    <div class="d-flex justify-content-between small mb-1">
+        <span>Submissions</span>
+        <span>{{ item.submission_status }}</span>
+    </div>
+    {% widthratio item.submission_status|slice:":1" item.submission_status|slice:"2:" 100 as submission_width %}
+    <div class="progress mb-3" style="height: 8px;">
+        <div class="progress-bar 
+            {% if item.submission_status == item.grading_status %}bg-success
+            {% elif item.submission_status|slice:":1" == "0" %}bg-danger
+            {% else %}bg-info{% endif %}" 
+            role="progressbar" 
+            style="width: {{ submission_width }}%;">
+        </div>
+    </div>
+
+    <!-- Grading Progress -->
+    <div class="d-flex justify-content-between small mb-1">
+        <span>Grading</span>
+        <span>{{ item.grading_status }}</span>
+    </div>
+    {% widthratio item.grading_status|slice:":1" item.grading_status|slice:"2:" 100 as grading_width %}
+    <div class="progress" style="height: 8px;">
+        <div class="progress-bar 
+            {% if item.grading_status|slice:":1" == item.grading_status|slice:"2:" %}bg-success
+            {% elif item.grading_status|slice:":1" == "0" %}bg-danger
+            {% else %}bg-info{% endif %}" 
+            role="progressbar" 
+            style="width: {{ grading_width }}%;">
+        </div>
+    </div>
+
+</div>
+{% endif %}

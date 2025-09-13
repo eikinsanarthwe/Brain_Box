@@ -1,0 +1,41 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="content">
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-user-graduate me-2"></i>
+                {% if form.instance.id %}Edit{% else %}Add New{% endif %} Student
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">User</label>
+                        {{ form.user }}
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Enrollment ID</label>
+                        {{ form.enrollment_id }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Course</label>
+                        {{ form.course }}
+                    </div>
+                    <div class="col-12 text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> Save
+                        </button>
+                        <a href="{% url 'dashboard:student_list' %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

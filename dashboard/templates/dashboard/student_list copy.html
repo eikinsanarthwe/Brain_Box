@@ -1,0 +1,58 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="card shadow mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="m-0 font-weight-bold text-primary">
+                <i class="fas fa-users me-2"></i> Students Management
+            </h5>
+            <a href="{% url 'dashboard:student_create' %}" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus me-1"></i> Add Student
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" width="100%" cellspacing="0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Enrollment ID</th>
+                            <th>Course</th>
+                            <th class="text-start">Actions</th>  <!-- Changed from text-end to text-start -->
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>{{ student.user.get_full_name|default:student.user.username }}</td>
+                            <td>{{ student.enrollment_id }}</td>
+                            <td>{{ student.course }}</td>
+                            <td class="text-start">  <!-- Changed from text-end to text-start -->
+                                <a href="{% url 'dashboard:edit_student' student.id %}" 
+                                   class="btn btn-sm btn-outline-primary"
+                                   title="Edit">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <a href="{% url 'dashboard:delete_student' student.id %}" 
+                                   class="btn btn-sm btn-outline-danger"
+                                   title="Delete">
+                                    <i class="fas fa-trash"></i> Delete
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-4">
+                                No students found
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

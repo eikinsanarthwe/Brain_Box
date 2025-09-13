@@ -1,0 +1,194 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BrainBox - Sign Up</title>
+  <style>
+    /* Reuse login styles */
+    body {
+      background: #f4f2f7ff;
+      color: #3b3b3bff;
+      font-size:1.4 rem;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      display: flex;
+      max-width: 1000px;
+      width: 90%;
+      background: linear-gradient(to right, #bdc5ccff, #3c7a92ff);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+      margin: 20px;
+    }
+
+    .left, .right {
+      flex: 1;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .left h1 {
+      font-size: 2.2rem;
+      margin-bottom: 20px;
+      color: #4b4a4aff;
+    }
+
+    .left p {
+      font-size: 1.25rem;
+      opacity: 0.9;
+    }
+
+    .card {
+      background: #fff;
+      padding: 40px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .card h2 {
+      font-size: 1.8rem;
+      margin-bottom: 5px;
+      color: #959a9aff;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #4c4b4bff;
+      margin-bottom: 25px;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+
+    label {
+      font-size: 0.9rem;
+      color: #615e5eff;
+    }
+
+    input {
+      padding: 14px;
+      border-radius: 6px;
+      border: 1px solid #d2d6d4ff;
+      background: #cececeff;
+      color: #fff;
+      font-size: 1rem;
+    }
+
+    input:focus {
+      border-color: #acadacff;
+    }
+
+    .error-message {
+      color: #ff6b6b;
+      font-size: 0.85rem;
+    }
+
+    button {
+      background: #d5d5d5ff;
+      color: #6b6a6aff;
+      padding: 14px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #fcfcfcff;
+    }
+
+    .auth-links {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.9rem;
+    }
+
+    .auth-links a {
+      color: #7e8080ff;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Left Section -->
+    <div class="left">
+      <h1>Join BrainBox Today</h1>
+      <p>
+        Create your student account and start exploring personalized courses,
+        progress tracking, and expert-led content.
+      </p>
+    </div>
+
+    <!-- Right Section -->
+    <div class="right">
+      <div class="card">
+        <h2>Sign Up</h2>
+        <p class="subtitle">Fill in your details to create an account</p>
+
+        {% if form.errors %}
+        <div class="error-message">
+          Please correct the errors below.
+        </div>
+        {% endif %}
+
+        <form method="POST">
+  {% csrf_token %}
+  <div class="form-group">
+    <label for="id_username">Username</label>
+    {{ form.username }}
+  </div>
+
+  <div class="form-group">
+    <label for="id_email">Email</label>
+    {{ form.email }}
+  </div>
+
+  <div class="form-group">
+    <label for="id_password">Password</label>
+    {{ form.password }}
+  </div>
+  <div class="form-group">
+
+  <button type="submit">Create Account</button></div>
+</form>
+
+        <div class="auth-links">
+          Already have an account? <a href="{% url 'login' %}">Log in here</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,310 @@
+{% extends "teacher_portal/base.html" %}
+{% load static %}
+
+{% block title %}Teacher Dashboard | E-Learning Portal{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'teacher_portal/css/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'teacher_portal/css/_status_indicators.css' %}">
+<link rel="stylesheet" href="{% static 'teacher_portal/css/sidebar.css' %}">
+<link rel="stylesheet" href="{% static 'teacher_portal/css/components.css' %}">
+<link rel="stylesheet" href="{% static 'teacher_portal/css/core.css' %}">
+<link rel="stylesheet" href="{% static 'teacher_portal/css/forms.css' %}">
+<link rel="stylesheet" href="{% static 'teacher_portal/css/styles.css' %}">
+<link rel="stylesheet" href="{% static 'teacher_portal/css/tables.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="main-content">
+    <!-- Header -->
+    <div class="header">
+        <div class="menu-toggle"><i class="fas fa-bars"></i></div>
+        <h1>Dashboard Overview</h1>
+        <div class="user-actions">
+            <!-- Notifications -->
+            <div class="notification-icon dropdown">
+                <i class="fas fa-bell"></i>
+                {% if notification_count > 0 %}
+                <span class="notification-count">{{ notification_count }}</span>
+                {% endif %}
+                <div class="dropdown-content notification-dropdown">
+                    {% for notification in notifications %}
+                    <div class="dropdown-item">
+                        {{ notification.message }}
+                        <small class="text-muted">{{ notification.created_at|timesince }} ago</small>
+                    </div>
+                    {% empty %}
+                    <div class="dropdown-item">No new notifications</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- User Profile -->
+            <div class="user-profile dropdown">
+                {% if request.user.profile.image %}
+                    <img src="{{ request.user.profile.image.url }}" alt="User Profile">
+                {% else %}
+                    <img src="{% static 'teacher_portal/images/default_profile.png' %}" alt="User Profile">
+                {% endif %}
+                <span class="name">{{ request.user.get_full_name|default:request.user.username }}</span>
+                <i class="fas fa-chevron-down"></i>
+                <div class="dropdown-content">
+                    <a href="{% url 'profile' %}" class="dropdown-item"><i class="fas fa-user"></i> Profile</a>
+                    <a href="{% url 'teacher_settings' %}" class="dropdown-item"><i class="fas fa-cog"></i> Settings</a>
+                    <div class="dropdown-divider"></div>
+                    <a href="{% url 'logout' %}" class="dropdown-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Widgets -->
+    <div class="dashboard-widgets">
+        <a href="{% url 'course_list' %}" class="widget courses">
+            <div class="widget-header">
+                <h3 class="widget-title">My Courses</h3>
+                <div class="widget-icon"><i class="fas fa-book-open"></i></div>
+            </div>
+            <div class="widget-value">{{ course_count }}</div>
+            <p class="widget-description">Active courses</p>
+        </a>
+
+        <a href="{% url 'student_list' %}" class="widget students">
+            <div class="widget-header">
+                <h3 class="widget-title">Students</h3>
+                <div class="widget-icon"><i class="fas fa-users"></i></div>
+            </div>
+            <div class="widget-value">{{ student_count }}</div>
+            <p class="widget-description">Total enrolled</p>
+        </a>
+
+        <a href="{% url 'assignment_list' %}" class="widget assignments">
+            <div class="widget-header">
+                <h3 class="widget-title">Assignments</h3>
+                <div class="widget-icon"><i class="fas fa-tasks"></i></div>
+            </div>
+            <div class="widget-value">{{ total_assignments }}</div>
+            <p class="widget-description">Total created</p>
+        </a>
+
+        <a href="{% url 'assignment_list' %}?status=ungraded" class="widget grading">
+            <div class="widget-header">
+                <h3 class="widget-title">Grading</h3>
+                <div class="widget-icon"><i class="fas fa-check-circle"></i></div>
+            </div>
+            <div class="widget-value">{{ assignments_to_grade }}</div>
+            <p class="widget-description">To be graded</p>
+        </a>
+    </div>
+
+    <!-- Quick Actions -->
+   <!-- Replace the quick actions section with this more organized version -->
+<div class="quick-actions">
+    <a href="{% url 'course_create' %}" class="action-btn btn-primary">
+        <i class="fas fa-plus-circle"></i>
+        <span>New Course</span>
+    </a>
+    <a href="{% url 'assignment_add' %}" class="action-btn btn-secondary">
+        <i class="fas fa-tasks"></i>
+        <span>New Assignment</span>
+    </a>
+    <a href="{% url 'student_create' %}" class="action-btn btn-success">
+        <i class="fas fa-user-plus"></i>
+        <span>Add Student</span>
+    </a>
+</div>
+
+<!-- Enhanced course cards section -->
+<div class="dashboard-section">
+    <div class="section-header">
+        <h2 class="section-title">My Courses</h2>
+        <a href="{% url 'course_list' %}" class="view-all">View All <i class="fas fa-chevron-right"></i></a>
+    </div>
+    {% if teacher_courses %}
+    <div class="course-grid">
+        {% for course in teacher_courses %}
+        <div class="course-card">
+            <div class="course-header">
+                <h3><a href="{% url 'course_detail' course.id %}">{{ course.title }}</a></h3>
+                <span class="course-code">{{ course.code }}</span>
+            </div>
+            <p class="course-description">{{ course.description|truncatechars:120 }}</p>
+            <div class="course-meta">
+                <div class="meta-item">
+                    <i class="fas fa-users"></i>
+                    <span>{{ course.students.count }} Student{{ course.students.count|pluralize }}</span>
+                </div>
+                <div class="meta-item">
+                    <i class="fas fa-tasks"></i>
+                    <span>{{ course.assignments.count }} Assignment{{ course.assignments.count|pluralize }}</span>
+                </div>
+            </div>
+            <div class="course-footer">
+                <a href="{% url 'course_detail' course.id %}" class="btn btn-outline-primary">View Course</a>
+                <span class="created-date">
+                    <i class="far fa-calendar-alt"></i> {{ course.created_at|date:"M d, Y" }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-book-open"></i>
+        <h3>No Courses Found</h3>
+        <p>Get started by creating your first course</p>
+        <a href="{% url 'course_create' %}" class="btn btn-primary">Create Course</a>
+    </div>
+    {% endif %}
+</div>
+
+    <!-- Recent Courses -->
+    <div class="dashboard-section">
+        <div class="section-header">
+            <h2 class="section-title">My Courses</h2>
+            <a href="{% url 'course_list' %}" class="view-all">View All</a>
+        </div>
+        {% if teacher_courses %}
+        <div class="course-grid">
+            {% for course in teacher_courses %}
+            <div class="course-card">
+                <div class="course-header">
+                    <h3><a href="{% url 'course_detail' course.id %}">{{ course.title }}</a></h3>
+                    <span class="course-code">{{ course.code }}</span>
+                </div>
+                <p class="course-description">{{ course.description|truncatechars:100 }}</p>
+                <div class="course-stats">
+                    <span><i class="fas fa-users"></i> {{ course.students.count }} Students</span>
+                    <span><i class="fas fa-tasks"></i> {{ course.assignments.count }} Assignments</span>
+                </div>
+                <div class="course-footer">
+                    <a href="{% url 'course_detail' course.id %}" class="btn btn-sm btn-primary">View Course</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-book"></i>
+            <p>No courses found</p>
+            <a href="{% url 'course_create' %}" class="btn btn-primary">Create Your First Course</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Activity and Upcoming Deadlines Side by Side -->
+    <div class="row-section">
+        <!-- Recent Activity -->
+        <div class="col-section">
+            <div class="section-header">
+                <h2 class="section-title">Recent Activity</h2>
+                <a href="#" class="view-all">View All</a>
+            </div>
+            {% if recent_activities %}
+            <div class="activity-feed">
+                {% for activity in recent_activities %}
+                <div class="activity-item">
+                    <div class="activity-icon">
+                        <i class="fas fa-{% if activity.action == 'course_create' or activity.action == 'course_update' %}book
+                                      {% elif activity.action == 'assignment_create' %}tasks
+                                      {% elif activity.action == 'grade_submit' %}check-circle
+                                      {% elif activity.action == 'student_add' %}user-plus
+                                      {% else %}circle{% endif %}"></i>
+                    </div>
+                    <div class="activity-content">
+                        <h4>{{ activity.get_action_display }}</h4>
+                        <p>{{ activity.object_name }}</p>
+                        <small class="text-muted">
+                            <i class="far fa-clock"></i> {{ activity.timestamp|timesince }} ago
+                        </small>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="far fa-calendar-alt"></i>
+                <p>No recent activities found</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Upcoming Deadlines -->
+        <div class="col-section">
+            <div class="section-header">
+                <h2 class="section-title">Upcoming Deadlines</h2>
+                <a href="{% url 'assignment_list' %}" class="view-all">View All</a>
+            </div>
+            {% if upcoming_deadlines %}
+            <div class="deadline-list">
+                {% for assignment in upcoming_deadlines %}
+                <div class="deadline-item">
+                    <div class="deadline-icon">
+                        <i class="fas fa-exclamation-circle {% if assignment.days_remaining < 3 %}text-danger{% else %}text-warning{% endif %}"></i>
+                    </div>
+                    <div class="deadline-content">
+                        <h4>
+                            <a href="{% url 'assignment_detail' assignment.id %}">
+                                {{ assignment.title }}
+                            </a>
+                        </h4>
+                        <p>{{ assignment.course.title }}</p>
+                        <div class="deadline-meta">
+                            <span class="badge {% if assignment.days_remaining < 3 %}bg-danger{% elif assignment.days_remaining < 7 %}bg-warning{% else %}bg-primary{% endif %}">
+                                Due in {{ assignment.days_remaining }} day{{ assignment.days_remaining|pluralize }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="far fa-check-circle"></i>
+                <p>No upcoming deadlines</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Toggle sidebar
+    const menuToggle = document.querySelector('.menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    if (menuToggle && sidebar) {
+        menuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            menuToggle.classList.toggle('active');
+        });
+    }
+
+    // Make widgets clickable
+    document.querySelectorAll('.widget').forEach(widget => {
+        widget.addEventListener('click', function(e) {
+            if (e.target.tagName !== 'A' && e.target.tagName !== 'BUTTON') {
+                window.location = this.getAttribute('href');
+            }
+        });
+    });
+
+    // Add hover effects to course cards
+    document.querySelectorAll('.course-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+            this.style.boxShadow = '0 10px 20px rgba(0,0,0,0.1)';
+        });
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = '';
+            this.style.boxShadow = '';
+        });
+    });
+
+    // Initialize tooltips
+    $('[data-toggle="tooltip"]').tooltip();
+});
+</script>
+{% endblock %}

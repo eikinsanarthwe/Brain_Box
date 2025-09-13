@@ -1,0 +1,308 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrainBox - Login</title>
+  <style>
+    /* ===== Base Styles ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: #ffffffff;
+      color: #474646ff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      line-height: 1.6;
+    }
+
+    /* ===== Container Styles ===== */
+    .container {
+      display: flex;
+      max-width: 1000px;
+      width: 90%;
+      background: linear-gradient(to right, #9fa6b2ff, #2183a9ff);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+      margin: 20px;
+    }
+
+    /* ===== Left Section ===== */
+    .left {
+      flex: 1;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .left h1 {
+      font-size: 2.2rem;
+      margin-bottom: 20px;
+      color: #484a4fff;
+    }
+
+    .left p {
+      margin-bottom: 25px;
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+
+    .left ul {
+      list-style: none;
+      margin-top: 15px;
+
+    }
+
+    .left ul li {
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+    }
+
+    /* ===== Right Section ===== */
+    .right {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.15);
+      padding: 30px;
+    }
+
+    .card {
+      background: transparent;;
+      padding: 40px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .card h2 {
+      font-size: 1.8rem;
+      margin-bottom: 5px;
+      color: #f4f5f7ff;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #aaa;
+      margin-bottom: 25px;
+    }
+
+    /* ===== Form Styles ===== */
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-group label {
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+
+    input {
+      padding: 14px;
+      border-radius: 6px;
+      border: 1px solid #214780ff;
+      outline: none;
+      background: #cdcfd6ff;
+      color: #706e6eff;
+      font-size: 1rem;
+      transition: border 0.3s;
+    }
+
+    input:focus {
+      border-color: #5d9ef4ff;
+    }
+
+    input::placeholder {
+      color: #bbb;
+    }
+
+    .error-message {
+      color: #ff6b6b;
+      font-size: 0.85rem;
+      margin-top: -10px;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+    }
+
+    .remember-forgot {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 5px 0 15px;
+      font-size: 0.9rem;
+    }
+
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .forgot-password a {
+      color: #dce1eeff;
+      text-decoration: none;
+    }
+
+    button {
+      background: #667facff;
+      color: #fff;
+      padding: 14px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #3f4d82ff;
+    }
+
+    .auth-links {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.9rem;
+    }
+
+    .auth-links a {
+      color: #bad0dfff;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    /* ===== Responsive Styles ===== */
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+
+      .left, .right {
+        padding: 30px;
+      }
+
+      .left {
+        text-align: center;
+      }
+
+      .left ul {
+        align-items: flex-start;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 30px 20px;
+      }
+
+      .left h1 {
+        font-size: 1.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Left Section -->
+    <div class="left">
+      <h1>Welcome Back to BrainBox</h1>
+      <p><b>
+        Continue your learning journey with personalized courses, progress tracking,
+        and expert-led content tailored just for you.
+      </p>
+      <ul >
+        <li> * Access your personalized course library</li>
+        <li> * Track your learning progress</li>
+        <li> * Unlock achievements and certificates</li></b>
+      </ul>
+    </div>
+
+    <!-- Right Section -->
+    <div class="right">
+      <div class="card">
+        <h2>Login to Your Account</h2>
+        <p class="subtitle">Enter your credentials to continue</p>
+
+        {% if form.errors %}
+        <div class="error-message show">
+          Invalid username or password. Please try again.
+        </div>
+        {% endif %}
+
+  <form method="POST" action="{% url 'login' %}">
+          {% csrf_token %}
+
+          <div class="form-group">
+            <label for="username">Username</label>
+            <input
+              type="text"
+              id="username"
+              name="username"
+              placeholder="Enter your username"
+              required
+              autofocus
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <input
+              type="password"
+              id="password"
+              name="password"
+              placeholder="Enter your password"
+              required
+            >
+          </div>
+
+          <div class="remember-forgot">
+            <div class="remember-me">
+              <input type="checkbox" id="remember" name="remember">
+              <label for="remember">Remember me</label>
+            </div>
+            <div class="forgot-password">
+              <a href="{% url 'password_reset' %}">Forgot password?</a>
+            </div>
+          </div>
+
+          <button type="submit">Log In</button>
+
+          <input type="hidden" name="next" value="{{ next }}">
+        </form>
+
+        <div class="auth-links">
+          Don't have an account? <a href="{% url 'signup' %}">Sign up here</a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</body>
+</html>

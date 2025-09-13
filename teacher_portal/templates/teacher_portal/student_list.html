@@ -1,0 +1,67 @@
+{% extends "teacher_portal/base.html" %}
+
+{% load static %}
+{% block extra_css %}
+    <!-- Table CSS -->
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/_status_indicators.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/components.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/core.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/forms.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/tables.css' %}">
+    
+    <style>
+        .student-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+        .enrollment-badge {
+            font-size: 0.75rem;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<h2>Student List</h2>
+
+<table class="styled-table table student-table table-striped table-hover">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Courses Enrolled</th>
+            <th>Assignments Submitted</th>
+            <th>Graded Assignments</th>
+            {% if can_manage %}
+            <th>Actions</th>
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for student in students %}
+        <tr>
+            <td>{{ student.user.first_name }} {{ student.user.last_name }}</td>
+            <td>{{ student.user.email }}</td>
+            <td>
+                <span class="badge bg-primary enrollment-badge">{{ student.course_count }}</span>
+            </td>
+            <td>{{ student.assignment_count }}</td>
+            <td>{{ student.graded_count }}</td>
+            {% if can_manage %}
+            <td>
+                <a href="{% url 'student_detail' student.id %}" class="btn btn-sm btn-primary">View</a>
+            </td>
+            {% endif %}
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6" style="text-align: center;">No students found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

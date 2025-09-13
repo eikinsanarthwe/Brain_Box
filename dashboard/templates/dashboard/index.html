@@ -1,0 +1,348 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    /* Dashboard Styles */
+    /* Stats Cards */
+    .card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transition: all 0.3s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .icon-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    /* Quick Actions */
+    .quick-actions-card {
+        background: #f8f9fa;
+        border: 1px dashed #dee2e6;
+        border-radius: 10px;
+    }
+
+    .btn-action {
+        min-width: 180px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.75rem 1.5rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Course Cards */
+    .course-card {
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        padding: 1.25rem;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.3s ease;
+    }
+
+    .course-card:hover {
+        border-color: #4A6CF7;
+        box-shadow: 0 5px 15px rgba(74, 108, 247, 0.1);
+    }
+
+    .course-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .course-header h6 {
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+
+    .course-meta {
+        margin: 1rem 0;
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+
+    .course-meta span {
+        margin-right: 1rem;
+        display: inline-block;
+    }
+
+    .course-footer {
+        margin-top: auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .btn-action {
+            width: 100%;
+        }
+
+        .course-card {
+            margin-bottom: 1.5rem;
+        }
+    }
+
+    /* Additional Utility Classes */
+    .card-link {
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .card-link:hover {
+        text-decoration: none;
+    }
+
+    .text-uppercase {
+        text-transform: uppercase;
+    }
+
+    .mb-0 {
+        margin-bottom: 0 !important;
+    }
+
+    .mb-2 {
+        margin-bottom: 0.5rem !important;
+    }
+
+    .mb-4 {
+        margin-bottom: 1.5rem !important;
+    }
+
+    .mt-4 {
+        margin-top: 1.5rem !important;
+    }
+
+    .me-1 {
+        margin-right: 0.25rem !important;
+    }
+
+    .me-2 {
+        margin-right: 0.5rem !important;
+    }
+
+    .ms-2 {
+        margin-left: 0.5rem !important;
+    }
+
+    .py-3 {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+    }
+
+    .gap-3 {
+        gap: 1rem !important;
+    }
+
+    /* Color Classes */
+    .bg-primary {
+        background-color: #4A6CF7 !important;
+    }
+
+    .bg-success {
+        background-color: #28a745 !important;
+    }
+
+    .bg-warning {
+        background-color: #ffc107 !important;
+    }
+
+    .bg-danger {
+        background-color: #dc3545 !important;
+    }
+
+    .bg-info {
+        background-color: #17a2b8 !important;
+    }
+
+    .text-white {
+        color: white !important;
+    }
+
+    .text-muted {
+        color: #6c757d !important;
+    }
+
+    /* Badge Styles */
+    .badge {
+        font-weight: 500;
+        padding: 0.35em 0.65em;
+        font-size: 0.75em;
+    }
+
+    /* Alert Styles */
+    .alert {
+        border-radius: 8px;
+        padding: 0.75rem 1.25rem;
+    }
+
+    .alert-info {
+        background-color: #e7f5ff;
+        border-color: #d0ebff;
+        color: #1864ab;
+    }
+
+    /* Flex Utilities */
+    .d-flex {
+        display: flex !important;
+    }
+
+    .flex-wrap {
+        flex-wrap: wrap !important;
+    }
+
+    .justify-content-between {
+        justify-content: space-between !important;
+    }
+
+    .justify-content-center {
+        justify-content: center !important;
+    }
+
+    .align-items-center {
+        align-items: center !important;
+    }
+
+    .flex-column {
+        flex-direction: column !important;
+    }
+
+    .flex-grow-1 {
+        flex-grow: 1 !important;
+    }
+
+    .flex-shrink-0 {
+        flex-shrink: 0 !important;
+    }
+</style>
+
+<div class="content">
+    <!-- Stats Cards Row -->
+    <div class="row g-4 mb-4">
+        <!-- Teachers Card -->
+        <div class="col-xl-3 col-md-6">
+            <a href="{% url 'dashboard:teacher_list' %}" class="card-link">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase text-muted mb-2">Teachers</h6>
+                                <h2 class="mb-0">{{ teacher_count }}</h2>
+                            </div>
+                            <div class="icon-circle bg-warning text-white">
+                                <i class="fas fa-user-tie"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Students Card -->
+        <div class="col-xl-3 col-md-6">
+            <a href="{% url 'dashboard:student_list' %}" class="card-link">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase text-muted mb-2">Students</h6>
+                                <h2 class="mb-0">{{ student_count }}</h2>
+                            </div>
+                            <div class="icon-circle bg-success text-white">
+                                <i class="fas fa-users"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Courses Card -->
+        <div class="col-xl-3 col-md-6">
+            <a href="{% url 'dashboard:course_list' %}" class="card-link">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase text-muted mb-2">Courses</h6>
+                                <h2 class="mb-0">{{ course_count }}</h2>
+                            </div>
+                            <div class="icon-circle bg-primary text-white">
+                                <i class="fas fa-book"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Admins Card -->
+        <div class="col-xl-3 col-md-6">
+            <a href="{% url 'dashboard:admin_list' %}" class="card-link">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase text-muted mb-2">Admins</h6>
+                                <h2 class="mb-0">{{ admin_count }}</h2>
+                            </div>
+                            <div class="icon-circle bg-danger text-white">
+                                <i class="fas fa-user-shield"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Actions Row -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card quick-actions-card">
+                <div class="card-body py-3">
+                    <div class="d-flex flex-wrap justify-content-center gap-3">
+                        <a href="{% url 'dashboard:course_create' %}" class="btn btn-primary btn-action">
+                            <i class="fas fa-plus-circle me-2"></i> New Course
+                        </a>
+                        <a href="{% url 'dashboard:teacher_create' %}" class="btn btn-success btn-action">
+                            <i class="fas fa-user-tie me-2"></i> Add Teacher
+                        </a>
+                        <a href="{% url 'dashboard:student_create' %}" class="btn btn-info btn-action">
+                            <i class="fas fa-user-plus me-2"></i> Add Student
+                        </a>
+                        <a href="{% url 'dashboard:create_admin' %}" class="btn btn-warning btn-action">
+                            <i class="fas fa-user-shield me-2"></i> Add Admin
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "teacher_portal/base.html" %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Add Student to {{ course.title }}</h2>
+
+    <!-- Debug info (remove after testing) -->
+    <div class="alert alert-info">
+        Total students in system: {{ Student.objects.count }}<br>
+        Students available: {{ students|length }}
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label for="student_id" class="form-label">Select Student:</label>
+            <select name="student_id" id="student_id" class="form-select" required>
+                <option value="" selected disabled>-- Select a student --</option>
+                {% for student in students %}
+                    <option value="{{ student.id }}">
+                        {{ student.user.get_full_name|default:student.user.username }} 
+                        (ID: {{ student.id }})
+                    </option>
+                {% empty %}
+                    <option disabled>No available students found in database</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Student</button>
+    </form>
+
+    <a href="{% url 'course_detail' course.id %}" class="btn btn-secondary mt-3">
+        Back to Course
+    </a>
+</div>
+{% endblock %}

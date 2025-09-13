@@ -1,0 +1,145 @@
+{% extends "teacher_portal/base.html" %}
+
+{% block extra_css %}
+    <!-- Form CSS -->
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/_status_indicators.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/components.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/core.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/forms.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/tables.css' %}">
+        .rubric-container {
+            border: 1px solid var(--gray-200);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+        }
+        .grade-preview {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+        .feedback-textarea {
+            min-height: 200px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <div class="d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">Grade Submission</h4>
+                <span class="badge bg-light text-primary">
+                    {{ submission.assignment.course.code }}
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-user-graduate me-2"></i> {{ submission.student.user.get_full_name }}</h5>
+                    <p class="text-muted">{{ submission.student.user.email }}</p>
+                </div>
+                <div class="col-md-6">
+                    <h5><i class="fas fa-tasks me-2"></i> {{ submission.assignment.title }}</h5>
+                    <p class="text-muted">
+                        Due: {{ submission.assignment.due_date|date:"M d, Y" }}
+                        {% if submission.late_submission %}
+                        <span class="badge bg-danger ms-2">Late Submission</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            {% if submission.file %}
+            <div class="alert alert-info d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-file me-2"></i>
+                    <strong>Submitted File:</strong> 
+                    {{ submission.file.name|slice:"20:" }}
+                </div>
+                <a href="{{ submission.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                    <i class="fas fa-download"></i> Download
+                </a>
+            </div>
+            {% endif %}
+
+            <!-- Grading Form -->
+            <div class="form-container mt-4">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <!-- Grade Input -->
+                    <div class="form-group mb-4">
+                        <label class="form-label fw-bold">Grade</label>
+                        <div class="input-group" style="max-width: 200px;">
+                            {{ form.grade|add_class:"form-control" }}
+                            <span class="input-group-text">/ {{ submission.assignment.total_points }}</span>
+                        </div>
+                        {% if form.grade.errors %}
+                            <div class="invalid-feedback d-block">{{ form.grade.errors }}</div>
+                        {% endif %}
+                        <small class="text-muted">Enter value between 0 and {{ submission.assignment.total_points }}</small>
+                    </div>
+
+                    <!-- Feedback Input -->
+                    <div class="form-group mb-4">
+                        <label class="form-label fw-bold">Feedback</label>
+                        {{ form.feedback|add_class:"form-control feedback-textarea" }}
+                        <div class="form-text">
+                            <i class="fas fa-info-circle"></i> Markdown formatting supported. 
+                            <a href="#" data-bs-toggle="modal" data-bs-target="#markdownHelp">View formatting guide</a>
+                        </div>
+                        {% if form.feedback.errors %}
+                            <div class="invalid-feedback d-block">{{ form.feedback.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="form-actions d-flex justify-content-between mt-4">
+                        <a href="{% url 'assignment_detail' submission.assignment.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Assignment
+                        </a>
+                        <div>
+                            <button type="reset" class="btn btn-warning me-2">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Grade
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Markdown Help Modal -->
+<div class="modal fade" id="markdownHelp" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Markdown Formatting Guide</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-sm">
+                    <tr><td>**bold**</td><td><strong>bold text</strong></td></tr>
+                    <tr><td>*italic*</td><td><em>italic text</em></td></tr>
+                    <tr><td>`code`</td><td><code>code snippet</code></td></tr>
+                    <tr><td>1. Item</td><td>Numbered list</td></tr>
+                    <tr><td>- Item</td><td>Bulleted list</td></tr>
+                    <tr><td>[text](url)</td><td><a href="#">hyperlink</a></td></tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

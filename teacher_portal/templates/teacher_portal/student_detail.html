@@ -1,0 +1,43 @@
+{% extends "teacher_portal/base.html" %}
+
+{% block content %}
+<h2>Student: {{ student.user.get_full_name }}</h2>
+<p>Email: {{ student.user.email }}</p>
+
+<h3>Enrolled Courses</h3>
+<table border="1">
+    <tr>
+        <th>Course</th>
+        <th>Action</th>
+    </tr>
+    {% for course in enrolled_courses %}
+        <tr>
+            <td>{{ course.title }}</td>
+            <td>
+                <a href="{% url 'remove_student_from_course' student.id course.id %}">Remove</a>
+            </td>
+        </tr>
+    {% empty %}
+        <tr><td colspan="2">No courses enrolled.</td></tr>
+    {% endfor %}
+</table>
+
+<h3>Add to Course</h3>
+{% if available_courses %}
+    <form method="post" action="{% url 'add_student_to_course' student.id %}">
+        {% csrf_token %}
+        <select name="course_id">
+            {% for course in available_courses %}
+                <option value="{{ course.id }}">{{ course.title }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">Add</button>
+    </form>
+{% else %}
+    <p>No available courses to add.</p>
+{% endif %}
+
+<p><a href="{% url 'student_list' %}">⬅ Back to Students</a></p>
+{% endblock %}
+<p><a href="{% url 'add_course_to_student' student.id %}">➕ Add Course</a></p>
+

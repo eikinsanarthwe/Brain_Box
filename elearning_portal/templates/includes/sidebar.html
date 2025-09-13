@@ -1,0 +1,50 @@
+<div class="col-md-2 sidebar d-flex flex-column">
+    <!-- Brand Logo -->
+    <a class="sidebar-brand" href="{% url 'dashboard:dashboard' %}">
+        <i class="fas fa-brain me-2"></i>Brain Box
+    </a>
+    
+    <div class="sidebar-divider"></div>
+    
+    <!-- Dashboard -->
+    <a href="{% url 'dashboard:dashboard' %}" class="{% if request.path == '/' %}active{% endif %}">
+        <i class="fas fa-tachometer-alt"></i> Dashboard
+    </a>
+    
+    <!-- Courses -->
+    <a href="{% url 'dashboard:course_list' %}" class="{% if 'courses/' in request.path %}active{% endif %}">
+        <i class="fas fa-book"></i> Courses
+    </a>
+    
+    <!-- Students -->
+    <a href="{% url 'dashboard:student_list' %}" class="{% if 'students/' in request.path %}active{% endif %}">
+        <i class="fas fa-users"></i> Students
+    </a>
+    
+    <!-- Teachers -->
+    <a href="{% url 'dashboard:teacher_list' %}" class="{% if 'teachers/' in request.path %}active{% endif %}">
+        <i class="fas fa-user-tie"></i> Teachers
+    </a>
+    
+    <!-- Assignments -->
+    <a href="{% url 'dashboard:assignment_list' %}" class="{% if 'assignments/' in request.path %}active{% endif %}">
+        <i class="fas fa-tasks"></i> Assignments
+    </a>
+    
+    <!-- Reports -->
+    <a href="#">
+        <i class="fas fa-chart-line"></i> Reports
+    </a>
+    
+    <div class="sidebar-divider"></div>
+    
+    <!-- Settings -->
+    <a href="#">
+        <i class="fas fa-cog"></i> Settings
+    </a>
+    
+    <!-- Logout -->
+    <a href="#">
+        <i class="fas fa-sign-out-alt"></i> Logout
+    </a>
+</div>

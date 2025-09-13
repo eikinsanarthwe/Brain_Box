@@ -1,0 +1,60 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="card shadow">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h2 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-tasks me-2"></i>Assignment Management
+        </h2>
+        <a href="{% url 'dashboard:assignment_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-1"></i> Add Assignment
+        </a>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover">
+                <thead class="bg-light">
+                    <tr>
+                        <th>Title</th>
+                        <th>Course</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assignment in assignments %}
+                    <tr>
+                        <td>{{ assignment.title }}</td>
+                        <td>{{ assignment.course.code }}</td>
+                        <td>{{ assignment.due_date|date:"M d, Y" }}</td>
+                        <td>
+                            <span class="badge 
+                                {% if assignment.status == 'published' %}bg-success
+                                {% elif assignment.status == 'draft' %}bg-secondary
+                                {% else %}bg-warning{% endif %}">
+                                {{ assignment.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'dashboard:edit_assignment' assignment.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a href="{% url 'dashboard:delete_assignment' assignment.id %}" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-trash"></i> Delete
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">
+                            No assignments found
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

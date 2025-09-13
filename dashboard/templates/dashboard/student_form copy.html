@@ -1,0 +1,108 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h5 class="m-0 font-weight-bold text-primary mb-0">
+                <i class="fas {% if form.instance.id %}fa-user-edit{% else %}fa-user-plus{% endif %} me-2"></i>
+                {% if form.instance.id %}Edit{% else %}Add New{% endif %} Student
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.username.id_for_label }}" class="form-label">Username*</label>
+                            {{ form.username }}
+                            {% if form.username.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.username.errors|striptags }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="password" class="form-label">Password*</label>
+                            <input type="password" name="password" id="password" class="form-control"
+                                   placeholder="Enter password" required>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.enrollment_id.id_for_label }}" class="form-label">Enrollment ID*</label>
+                            {{ form.enrollment_id }}
+                            {% if form.enrollment_id.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.enrollment_id.errors|striptags }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.course.id_for_label }}" class="form-label">Course*</label>
+                            {{ form.course }}
+                            {% if form.course.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.course.errors|striptags }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.semester.id_for_label }}" class="form-label">Semester*</label>
+                            {{ form.semester }}
+                            {% if form.semester.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.semester.errors|striptags }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-end mt-4">
+                    <button type="submit" name="_save" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> Save
+                    </button>
+                    <button type="submit" name="_addanother" class="btn btn-outline-primary ms-2">
+                        <i class="fas fa-plus me-1"></i> Save and add another
+                    </button>
+                    <button type="submit" name="_continue" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-edit me-1"></i> Save and continue editing
+                    </button>
+                    <a href="{% url 'dashboard:student_list' %}" class="btn btn-outline-secondary ms-2">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('.needs-validation')
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})
+</script>
+{% endblock %}

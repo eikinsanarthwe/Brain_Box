@@ -1,0 +1,150 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="description" content="Teacher Portal for managing courses and assignments">
+    <meta name="author" content="E-Learning Portal">
+    
+    <title>{% block title %}Teacher Portal{% endblock %}</title>
+    
+    <!-- Preconnect to external resources -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    
+    <!-- Font Awesome (CDN with local fallback) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <noscript>
+        <link rel="stylesheet" href="{% static 'teacher_portal/vendor/fontawesome/css/all.min.css' %}">
+    </noscript>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800;900&display=swap" 
+          rel="stylesheet">
+    
+    <!-- Core CSS -->
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/_status_indicators.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/components.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/core.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/forms.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/styles.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/tables.css' %}">
+    <link rel="stylesheet" href="{% static 'teacher_portal/css/charts.css' %}">
+
+    
+    <!-- Block for page-specific CSS -->
+    {% block extra_css %}{% endblock %}
+    
+    <!-- Favicon -->
+    <link rel="icon" href="{% static 'teacher_portal/img/favicon.ico' %}" type="image/x-icon">
+    <link rel="apple-touch-icon" href="{% static 'teacher_portal/img/apple-touch-icon.png' %}">
+    
+    <!-- Theme Color (for mobile browsers) -->
+    <meta name="theme-color" content="#4A6CF7">
+    
+    <!-- Critical CSS (render-blocking styles) -->
+    <style>
+        /* Ensure layout stability while CSS loads */
+        body {
+            margin: 0;
+            font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 
+                         'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 
+                         sans-serif;
+            background-color: #F8FAFC;
+            color: #1E293B;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        
+        /* Mobile menu toggle - hidden by default */
+        .menu-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 1100;
+            width: 2.5rem;
+            height: 2.5rem;
+            background-color: #4A6CF7;
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            font-size: 1.25rem;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        /* Prevent FOUC (Flash of Unstyled Content) */
+        .js-loading {
+            opacity: 0;
+            visibility: hidden;
+        }
+    </style>
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="{% static 'teacher_portal/css/core.css' %}" as="style">
+    <link rel="preload" href="{% static 'teacher_portal/js/main.js' %}" as="script">
+</head>
+
+<body class="js-loading">
+    <!-- Mobile Menu Toggle -->
+    <button class="menu-toggle" aria-label="Toggle menu">☰</button>
+    
+  
+     <!-- Sidebar Navigation -->
+<div class="sidebar">
+    <div class="sidebar-header">
+        <a href="{% url 'teacher_dashboard' %}" class="sidebar-brand">
+            <i class="fas fa-chalkboard-teacher"></i> Teacher Portal
+        </a>
+    </div>
+    <ul class="sidebar-menu">
+        <li class="nav-item">
+            <a href="{% url 'teacher_dashboard' %}" class="nav-link"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+        </li>
+        <li class="nav-item">
+            <a href="{% url 'course_list' %}" class="nav-link"><i class="fas fa-book"></i> Courses</a>
+        </li>
+        <li class="nav-item">
+            <a href="{% url 'student_list' %}" class="nav-link"><i class="fas fa-users"></i> Students</a>
+        </li>
+        <li class="nav-item">
+            <a href="{% url 'assignment_list' %}" class="nav-link"><i class="fas fa-tasks"></i> Assignments</a>
+        </li>
+        <li class="nav-item">
+            <a href="{% url 'gradebook' %}" class="nav-link"><i class="fas fa-chart-bar"></i> Grades</a>
+        </li>
+        <li class="nav-item">
+            <a href="{% url 'teacher_settings' %}" class="nav-link"><i class="fas fa-cog"></i> Settings</a>
+        </li>
+        <li class="nav-item">
+            <a href="{% url 'profile' %}" class="nav-link"><i class="fas fa-user"></i> Profile</a>
+        </li>
+        <li class="nav-item">
+            <a href="{% url 'logout' %}" class="nav-link"><i class="fas fa-sign-out-alt"></i> Logout</a>
+        </li>
+    </ul>
+</div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Remove FOUC prevention class when JS loads
+        document.body.classList.remove('js-loading');
+    </script>
+    <script src="{% static 'teacher_portal/js/scripts.js' %}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

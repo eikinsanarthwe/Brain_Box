@@ -1,0 +1,24 @@
+{% extends "teacher_portal/base.html" %}
+{% block content %}
+<h2>Manage Courses for {{ student.user.get_full_name }}</h2>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+        {% for course in courses %}
+            <div>
+                <label>
+                    <input type="checkbox" name="courses" value="{{ course.id }}"
+                           {% if course.id in selected_courses %}checked{% endif %}>
+                    {{ course.title }}
+                </label>
+            </div>
+        {% empty %}
+            <p>No courses available.</p>
+        {% endfor %}
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a href="{% url 'student_list' %}" class="btn btn-secondary">Cancel</a>
+</form>
+{% endblock %}

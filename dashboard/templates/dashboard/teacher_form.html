@@ -1,0 +1,95 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="card shadow">
+    <div class="card-header py-3">
+        <h2 class="m-0 font-weight-bold text-primary">
+            <i class="fas fa-user-tie me-2"></i>
+            {% if form.instance.id %}Edit{% else %}Add{% endif %} Teacher
+        </h2>
+    </div>
+    <div class="card-body">
+        <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+
+            <div class="mb-4">
+                {% for field in form %}
+                <div class="form-group mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label fw-bold">
+                        {{ field.label }}
+                        {% if field.field.required %}<span class="text-danger">*</span>{% endif %}
+                    </label>
+                    {{ field }}
+                    {% if field.errors %}
+                    <div class="invalid-feedback d-block">
+                        {{ field.errors|striptags }}
+                    </div>
+                    {% endif %}
+                    {% if field.help_text %}
+                    <small class="form-text text-muted">{{ field.help_text }}</small>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="mt-4 text-end">
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="fas fa-save me-2"></i> Save
+                </button>
+                <button type="submit" name="_addanother" class="btn btn-secondary px-4 ms-2">
+                    <i class="fas fa-plus-circle me-2"></i> Save and add another
+                </button>
+                <button type="submit" name="_continue" class="btn btn-info px-4 ms-2">
+                    <i class="fas fa-edit me-2"></i> Save and continue editing
+                </button>
+                <a href="{% url 'dashboard:teacher_list' %}" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-times me-1"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const forms = document.querySelectorAll('.needs-validation')
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+
+    // Add Bootstrap validation classes to dynamically added fields
+    const inputs = document.querySelectorAll('input, select, textarea')
+    inputs.forEach(input => {
+        input.classList.add('form-control')
+        if (input.type === 'checkbox' || input.type === 'radio') {
+            input.classList.remove('form-control')
+            input.classList.add('form-check-input')
+        }
+    })
+})
+</script>
+
+<style>
+.form-control:focus {
+    border-color: #4e73df;
+    box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+}
+.invalid-feedback {
+    display: none;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #dc3545;
+}
+.was-validated .form-control:invalid ~ .invalid-feedback,
+.was-validated .form-control:invalid ~ .invalid-tooltip {
+    display: block;
+}
+</style>
+{% endblock %}
