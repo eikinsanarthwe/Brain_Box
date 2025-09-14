@@ -36,6 +36,9 @@ class Course(models.Model):
     code = models.CharField(max_length=20, unique=True)
     description = models.TextField(blank=True)
     teachers = models.ManyToManyField(Teacher)
+    credit = models.IntegerField(default=3)  # Add this field
+    created_at = models.DateTimeField(auto_now_add=True)
+    # Add this field
 
     def __str__(self):
         return f"{self.code} - {self.name}"
@@ -92,3 +95,25 @@ class Submission(models.Model):
 
     def __str__(self):
         return f"{self.student}'s submission for {self.assignment}"
+    
+
+# -----------------------------
+# Course Material Model
+# -----------------------------
+class CourseMaterial(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='materials')  # Note the related_name
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    file = models.FileField(upload_to='course_materials/%Y/%m/%d/')
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        limit_choices_to={'role': 'teacher'},
+        on_delete=models.CASCADE
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.title} - {self.course.code}"
+    
+    class Meta:
+        ordering = ['-uploaded_at']

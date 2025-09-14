@@ -52,4 +52,9 @@ urlpatterns = [
     # Add these URLs to your existing urlpatterns list:
 path('teacher/courses/<int:course_id>/', views.teacher_course_detail, name='teacher_course_detail'),
 path('teacher/courses/<int:course_id>/remove-student/<int:student_id>/', views.remove_student_from_course, name='remove_student_from_course'),
-]
+
+# Course Materials URLs
+path('teacher/courses/<int:course_id>/materials/', views.teacher_course_materials, name='teacher_course_materials'),
+path('teacher/courses/<int:course_id>/materials/add/', views.add_course_material, name='add_course_material'),
+path('teacher/courses/materials/<int:material_id>/delete/', views.delete_course_material, name='delete_course_material'),
+path('student/courses/<int:course_id>/materials/', views.student_course_materials, name='student_course_materials'),]

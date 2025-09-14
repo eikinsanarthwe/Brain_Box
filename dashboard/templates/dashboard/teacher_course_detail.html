@@ -35,6 +35,64 @@
         </div>
     </div>
 
+    <!-- Course Materials Card -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">Course Materials ({{ course.materials.count }})</h6>
+            <a href="{% url 'dashboard:teacher_course_materials' course.id %}" class="btn btn-sm btn-info me-2">
+                <i class="fas fa-file-alt me-1"></i>Manage Materials
+            </a>
+            <a href="{% url 'dashboard:add_course_material' course.id %}" class="btn btn-sm btn-primary">
+                <i class="fas fa-plus me-1"></i>Add Material
+            </a>
+        </div>
+        <div class="card-body">
+            {% if course.materials.all %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Description</th>
+                            <th>Uploaded</th>
+                            <th>File</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for material in course.materials.all|slice:":3" %}
+                        <tr>
+                            <td>{{ material.title }}</td>
+                            <td>{{ material.description|truncatewords:5|default:"No description" }}</td>
+                            <td>{{ material.uploaded_at|date:"M d, Y" }}</td>
+                            <td>
+                                <a href="{{ material.file.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                    <i class="fas fa-download me-1"></i>Download
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% if course.materials.count > 3 %}
+                <div class="text-center mt-3">
+                    <a href="{% url 'dashboard:teacher_course_materials' course.id %}" class="btn btn-sm btn-outline-secondary">
+                        View All {{ course.materials.count }} Materials
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-file-alt fa-2x text-muted mb-3"></i>
+                <p class="text-muted">No course materials uploaded yet.</p>
+                <a href="{% url 'dashboard:add_course_material' course.id %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Add Your First Material
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
     <!-- Students Card -->
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex justify-content-between align-items-center">

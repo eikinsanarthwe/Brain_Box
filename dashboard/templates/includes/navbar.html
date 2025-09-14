@@ -1,13 +1,58 @@
 <nav class="navbar navbar-expand-lg mb-4">
-    <div class="container-fluid">
-        <button class="btn btn-link d-md-none" id="sidebarToggle">
-            <i class="fas fa-bars"></i>
-        </button>
-        <span class="navbar-brand fw-bold">Dashboard Overview</span>
-        <div class="d-flex align-items-center">
-            <span class="mode-indicator">
-                <i class="fas fa-user-shield me-1"></i> Admin Mode
-            </span>
-        </div>
+  <div class="container-fluid">
+    <!-- Sidebar Toggle (visible only on mobile) -->
+    <button class="btn btn-link d-md-none" id="sidebarToggle">
+      <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Left Side: Portal Name + Mode -->
+    <div class="d-flex align-items-center">
+      {% if user.role == 'admin' %}
+      <span class="navbar-brand fw-bold">Admin Portal</span>
+      <span class="mode-indicator">
+        <i class="fas fa-user-shield me-1"></i> Admin Mode
+      </span>
+      {% elif user.role == 'teacher' %}
+      <span class="navbar-brand fw-bold">Teacher Portal</span>
+      <span class="mode-indicator">
+        <i class="fas fa-user-tie me-1"></i> Teacher Mode
+      </span>
+      {% endif %}
     </div>
+
+    <!-- Right Side: User Profile Dropdown -->
+    <div class="dropdown ms-auto">
+      <button
+        class="btn dropdown-toggle"
+        type="button"
+        id="userDropdown"
+        data-bs-toggle="dropdown"
+        aria-expanded="false"
+      >
+        <i class="fas fa-user-circle me-1"></i>
+        {{ request.user.get_full_name|default:request.user.username }}
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+        <li>
+          <a class="dropdown-item" href="#">
+            <i class="fas fa-user me-2"></i> Profile
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" href="#">
+            <i class="fas fa-cog me-2"></i> Settings
+          </a>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <form method="post" action="{% url 'logout' %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="dropdown-item">
+              <i class="fas fa-sign-out-alt me-2"></i> Logout
+            </button>
+          </form>
+        </li>
+      </ul>
+    </div>
+  </div>
 </nav>

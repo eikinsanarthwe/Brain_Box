@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django import forms
 from .models import Teacher, Student, Course, Assignment, Submission
+from .models import CourseMaterial
 
 User = get_user_model()
 
@@ -183,3 +184,10 @@ class SubmissionAdmin(admin.ModelAdmin):
             'Late' if obj.is_late else 'On Time'
         )
     is_late_badge.short_description = 'Status'
+
+
+@admin.register(CourseMaterial)
+class CourseMaterialAdmin(admin.ModelAdmin):
+    list_display = ['title', 'course', 'uploaded_by', 'uploaded_at']
+    list_filter = ['course', 'uploaded_at']
+    search_fields = ['title', 'course__code', 'course__name']

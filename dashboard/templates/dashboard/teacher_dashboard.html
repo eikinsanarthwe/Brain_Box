@@ -7,6 +7,7 @@
         border-radius: 10px;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         transition: all 0.3s ease;
+        border: none;
     }
     .stats-card:hover {
         transform: translateY(-5px);
@@ -21,129 +22,188 @@
         justify-content: center;
         font-size: 1.25rem;
     }
-    .recent-item {
-        border-left: 3px solid transparent;
-        transition: all 0.2s;
+    .course-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+        border: none;
     }
-    .recent-item:hover {
-        border-left-color: #4e73df;
-        background-color: #f8f9fc;
+    .course-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    }
+    .quick-action-btn {
+        border-radius: 8px;
+        padding: 12px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    .quick-action-btn:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.15);
     }
 </style>
-
-<!-- Debug Info (you can remove this later) -->
-<div class="alert alert-info mb-4">
-    <strong>Debug Info:</strong><br>
-    User: {{ request.user }}<br>
-    Teacher Profile: {{ teacher.user.get_full_name|default:teacher.user.username }}<br>
-    Courses: {{ courses.count }}<br>
-    Assignments: {{ assignments.count }}<br>
-</div>
 
 <div class="content">
     <!-- Welcome Header -->
     <div class="d-sm-flex align-items-center justify-content-between mb-4">
         <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-tachometer-alt me-2"></i>Teacher Dashboard
+            <i class="fas fa-tachometer-alt me-2"></i>Dashboard
         </h1>
-        <span class="mode-indicator">
-            <i class="fas fa-user-tie me-1"></i> Teacher Mode
-        </span>
     </div>
 
     <!-- Stats Cards Row -->
     <div class="row g-4 mb-4">
         <!-- Courses Card -->
         <div class="col-xl-3 col-md-6">
-            <div class="card stats-card h-100">
+            <div class="card stats-card h-100 bg-primary text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase text-muted mb-2">My Courses</h6>
+                            <h6 class="text-uppercase mb-2">My COURSES</h6>
                             <h2 class="mb-0">{{ courses.count }}</h2>
+                            <small>Active courses</small>
                         </div>
-                        <div class="icon-circle bg-primary text-white">
+                        <div class="icon-circle bg-white text-primary">
                             <i class="fas fa-book"></i>
                         </div>
                     </div>
-                </div>
-                <div class="card-footer bg-transparent">
-                    <a href="{% url 'dashboard:teacher_courses' %}" class="text-decoration-none small">
-                        View All <i class="fas fa-arrow-right ms-1"></i>
-                    </a>
                 </div>
             </div>
         </div>
 
         <!-- Students Card -->
         <div class="col-xl-3 col-md-6">
-            <div class="card stats-card h-100">
+            <div class="card stats-card h-100 bg-success text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase text-muted mb-2">Total Students</h6>
+                            <h6 class="text-uppercase mb-2">STUDENTS</h6>
                             <h2 class="mb-0">{{ total_students }}</h2>
+                            <small>Total enrolled</small>
                         </div>
-                        <div class="icon-circle bg-success text-white">
+                        <div class="icon-circle bg-white text-success">
                             <i class="fas fa-users"></i>
                         </div>
                     </div>
-                </div>
-                <div class="card-footer bg-transparent">
-                    <a href="{% url 'dashboard:teacher_students' %}" class="text-decoration-none small">
-                        View Students <i class="fas fa-arrow-right ms-1"></i>
-                    </a>
                 </div>
             </div>
         </div>
 
         <!-- Assignments Card -->
         <div class="col-xl-3 col-md-6">
-            <div class="card stats-card h-100">
+            <div class="card stats-card h-100 bg-info text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase text-muted mb-2">Assignments</h6>
+                            <h6 class="text-uppercase mb-2">ASSIGNMENTS</h6>
                             <h2 class="mb-0">{{ assignments.count }}</h2>
+                            <small>Total created</small>
                         </div>
-                        <div class="icon-circle bg-info text-white">
+                        <div class="icon-circle bg-white text-info">
                             <i class="fas fa-tasks"></i>
                         </div>
                     </div>
-                </div>
-                <div class="card-footer bg-transparent">
-                    <a href="{% url 'dashboard:teacher_assignments' %}" class="text-decoration-none small">
-                        View All <i class="fas fa-arrow-right ms-1"></i>
-                    </a>
                 </div>
             </div>
         </div>
 
         <!-- Pending Grading Card -->
         <div class="col-xl-3 col-md-6">
-            <div class="card stats-card h-100">
+            <div class="card stats-card h-100 bg-warning text-white">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h6 class="text-uppercase text-muted mb-2">Pending Grading</h6>
+                            <h6 class="text-uppercase mb-2">GRADING</h6>
                             <h2 class="mb-0">{{ pending_grading }}</h2>
+                            <small>To be graded</small>
                         </div>
-                        <div class="icon-circle bg-warning text-white">
+                        <div class="icon-circle bg-white text-warning">
                             <i class="fas fa-clipboard-check"></i>
                         </div>
                     </div>
                 </div>
-                <div class="card-footer bg-transparent">
-                    <a href="{% url 'dashboard:teacher_assignments' %}" class="text-decoration-none small">
-                        Grade Now <i class="fas fa-arrow-right ms-1"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions Row -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <a href="{% url 'dashboard:teacher_course_create' %}" class="btn btn-primary quick-action-btn">
+                                <i class="fas fa-plus-circle fa-2x mb-2"></i><br>
+                                New Course
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3 mb-md-0">
+                            <a href="{% url 'dashboard:teacher_assignment_create' %}" class="btn btn-success quick-action-btn">
+                                <i class="fas fa-tasks fa-2x mb-2"></i><br>
+                                New Assignment
+                            </a>
+                        </div>
+                        <div class="col-md-4">
+                            <a href="{% url 'dashboard:teacher_student_create' %}" class="btn btn-info quick-action-btn">
+                                <i class="fas fa-user-plus fa-2x mb-2"></i><br>
+                                New Student
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- My Courses Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-book me-2"></i>My Courses
+                    </h6>
+                    <a href="{% url 'dashboard:teacher_courses' %}" class="btn btn-sm btn-primary">
+                        View All
                     </a>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for course in courses|slice:":4" %}
+                        <div class="col-md-6 col-lg-3 mb-4">
+                            <div class="card course-card">
+                                <div class="card-body">
+                                    <h5 class="card-title">{{ course.name }}</h5>
+                                    <p class="card-text text-muted mb-1">{{ course.code }}</p>
+                                    <p class="card-text mb-1">credit {{ course.credit|default:"3" }}</p>
+                                    <div class="d-flex justify-content-between align-items-center mt-3">
+                                        <a href="{% url 'dashboard:teacher_course_detail' course.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                                        <small class="text-muted">{{ course.created_at|date:"M d, Y" }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-12 text-center py-4">
+                            <i class="fas fa-book fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No courses found</p>
+                            <a href="{% url 'dashboard:teacher_course_create' %}" class="btn btn-primary">
+                                Create Your First Course
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
     <!-- Recent Activity Row -->
-    <div class="row mb-4">
+    <div class="row">
         <div class="col-lg-8">
             <!-- Recent Submissions -->
             <div class="card shadow h-100">

@@ -2,8 +2,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import logout, get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import Teacher, Student, Course, Assignment, Submission
-from .forms import TeacherForm, StudentForm, CourseForm, AssignmentForm, AdminCreationForm, AdminChangeForm,TeacherStudentForm,TeacherCourseForm
+from .models import Teacher, Student, Course, Assignment, Submission, CourseMaterial
+from .forms import TeacherForm, StudentForm, CourseForm, AssignmentForm, AdminCreationForm, AdminChangeForm,TeacherStudentForm,TeacherCourseForm, CourseMaterialForm
 from django.db.models import Count, Avg
 from datetime import datetime, timedelta
 from django.http import JsonResponse
@@ -348,10 +348,9 @@ def teacher_dashboard(request):
         'total_students': total_students,
         'pending_grading': pending_grading,
         'total_assignments': assignments.count(),
-        'can_create_courses': True,  # Add this flag to control UI elements
+        'can_create_courses': True,
     }
     return render(request, 'dashboard/teacher_dashboard.html', context)
-
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_assignments(request):
@@ -499,11 +498,12 @@ def teacher_student_create(request):
         'form': form,
         'title': 'Add Student'
     })
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_course_detail(request, course_id):
     # Get the course and ensure the current teacher teaches it
-    course = get_object_or_404(Course, id=course_id)
+    course = get_object_or_404(Course.objects.prefetch_related('materials'), id=course_id)  # Add prefetch_related
     teacher = get_object_or_404(Teacher, user=request.user)
     
     # Check if the current teacher teaches this course
@@ -511,10 +511,10 @@ def teacher_course_detail(request, course_id):
         messages.error(request, "You don't have permission to view this course.")
         return redirect('dashboard:teacher_courses')
     
-    # Get students enrolled in this course (using course name since it's CharField)
+    # Get students enrolled in this course
     students = Student.objects.filter(course=course.name).select_related('user')
     
-    # Get assignments for this course created by this teacher
+    # Get assignments for this course
     assignments = Assignment.objects.filter(course=course, teacher=request.user)
     
     # Get assignment count and submission stats
@@ -540,8 +540,6 @@ def teacher_course_detail(request, course_id):
     }
     
     return render(request, 'dashboard/teacher_course_detail.html', context)
-
-
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def remove_student_from_course(request, course_id, student_id):
@@ -568,3 +566,92 @@ def remove_student_from_course(request, course_id, student_id):
     
     # If not POST, redirect back
     return redirect('dashboard:teacher_course_detail', course_id=course_id)
+
+# -----------------------------
+# Course Material Views
+# -----------------------------
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_course_materials(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+    teacher = get_object_or_404(Teacher, user=request.user)
+    
+    # Check if teacher teaches this course
+    if teacher not in course.teachers.all():
+        messages.error(request, "You don't have permission to view materials for this course.")
+        return redirect('dashboard:teacher_courses')
+    
+    materials = CourseMaterial.objects.filter(course=course)
+    
+    context = {
+        'course': course,
+        'materials': materials,
+    }
+    return render(request, 'dashboard/teacher_course_materials.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def add_course_material(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+    teacher = get_object_or_404(Teacher, user=request.user)
+    
+    # Check if teacher teaches this course
+    if teacher not in course.teachers.all():
+        messages.error(request, "You don't have permission to add materials to this course.")
+        return redirect('dashboard:teacher_courses')
+    
+    if request.method == 'POST':
+        form = CourseMaterialForm(request.POST, request.FILES)
+        if form.is_valid():
+            material = form.save(commit=False)
+            material.course = course
+            material.uploaded_by = request.user
+            material.save()
+            messages.success(request, 'Course material uploaded successfully!')
+            return redirect('dashboard:teacher_course_materials', course_id=course.id)
+    else:
+        form = CourseMaterialForm()
+    
+    context = {
+        'course': course,
+        'form': form,
+        'title': 'Add Course Material'
+    }
+    return render(request, 'dashboard/add_course_material.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def delete_course_material(request, material_id):
+    material = get_object_or_404(CourseMaterial, id=material_id)
+    
+    # Check if the current user uploaded this material
+    if material.uploaded_by != request.user:
+        messages.error(request, "You don't have permission to delete this material.")
+        return redirect('dashboard:teacher_courses')
+    
+    course_id = material.course.id
+    material.delete()
+    messages.success(request, 'Course material deleted successfully!')
+    return redirect('dashboard:teacher_course_materials', course_id=course_id)
+
+
+@login_required
+@user_passes_test(lambda u: u.role == 'student')
+def student_course_materials(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+    student = get_object_or_404(Student, user=request.user)
+    
+    # Check if student is enrolled in this course
+    if student.course != course.name:
+        messages.error(request, "You are not enrolled in this course.")
+        return redirect('student_home')
+    
+    materials = CourseMaterial.objects.filter(course=course)
+    
+    context = {
+        'course': course,
+        'materials': materials,
+    }
+    return render(request, 'dashboard/student_course_materials.html', context)
