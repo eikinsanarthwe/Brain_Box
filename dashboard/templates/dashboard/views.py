@@ -44,3 +44,4 @@ def teacher_form(request):
 @role_required('admin')
 def assignment(request):
     return render(request, 'dashboard/assignment.html')  # ← Add actual template
+

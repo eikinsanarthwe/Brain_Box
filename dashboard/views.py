@@ -499,3 +499,72 @@ def teacher_student_create(request):
         'form': form,
         'title': 'Add Student'
     })
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_course_detail(request, course_id):
+    # Get the course and ensure the current teacher teaches it
+    course = get_object_or_404(Course, id=course_id)
+    teacher = get_object_or_404(Teacher, user=request.user)
+    
+    # Check if the current teacher teaches this course
+    if teacher not in course.teachers.all():
+        messages.error(request, "You don't have permission to view this course.")
+        return redirect('dashboard:teacher_courses')
+    
+    # Get students enrolled in this course (using course name since it's CharField)
+    students = Student.objects.filter(course=course.name).select_related('user')
+    
+    # Get assignments for this course created by this teacher
+    assignments = Assignment.objects.filter(course=course, teacher=request.user)
+    
+    # Get assignment count and submission stats
+    assignment_stats = []
+    for assignment in assignments:
+        submissions = Submission.objects.filter(assignment=assignment)
+        graded_count = submissions.filter(grade__isnull=False).count()
+        pending_count = submissions.filter(grade__isnull=True).count()
+        
+        assignment_stats.append({
+            'assignment': assignment,
+            'total_submissions': submissions.count(),
+            'graded_count': graded_count,
+            'pending_count': pending_count
+        })
+    
+    context = {
+        'course': course,
+        'students': students,
+        'assignments': assignments,
+        'assignment_stats': assignment_stats,
+        'teacher': teacher,
+    }
+    
+    return render(request, 'dashboard/teacher_course_detail.html', context)
+
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def remove_student_from_course(request, course_id, student_id):
+    if request.method == 'POST':
+        course = get_object_or_404(Course, id=course_id)
+        student = get_object_or_404(Student, id=student_id)
+        
+        # Check if the current teacher teaches this course
+        teacher = get_object_or_404(Teacher, user=request.user)
+        if teacher not in course.teachers.all():
+            messages.error(request, "You don't have permission to modify this course.")
+            return redirect('dashboard:teacher_courses')
+        
+        # Since course is CharField, we need to handle removal differently
+        # We'll set the student's course to empty string
+        if student.course == course.name:
+            student.course = ""
+            student.save()
+            messages.success(request, f'Student {student.user.username} removed from the course.')
+        else:
+            messages.warning(request, 'Student is not enrolled in this course.')
+        
+        return redirect('dashboard:teacher_course_detail', course_id=course_id)
+    
+    # If not POST, redirect back
+    return redirect('dashboard:teacher_course_detail', course_id=course_id)

@@ -159,7 +159,7 @@ class StudentForm(forms.ModelForm):
 # ---------------- Course Form ---------------- #
 
 class CourseForm(forms.ModelForm):
-    class Meta:
+     class Meta:
         model = Course
         fields = ['code', 'name', 'description', 'teachers']
         widgets = {
@@ -169,16 +169,12 @@ class CourseForm(forms.ModelForm):
             'teachers': forms.SelectMultiple(attrs={'class': 'form-control select2-multiple', 'data-placeholder': 'Select teachers...'})
         }
 
-    def __init__(self, *args, **kwargs):
+     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['teachers'].queryset = User.objects.filter(role='teacher')
-
-# ---------------- Assignment Form ---------------- #
-
-# ---------------- Assignment Form ---------------- #
-
+        # Fix this line - use Teacher model instead of User
+        self.fields['teachers'].queryset = Teacher.objects.all()  # Changed from User to Teacher
 class AssignmentForm(forms.ModelForm):
-    class Meta:
+     class Meta:
         model = Assignment
         fields = ['title', 'description', 'due_date', 'course', 'teacher', 'max_points']
         widgets = {
@@ -189,11 +185,12 @@ class AssignmentForm(forms.ModelForm):
             'teacher': forms.Select(attrs={'class': 'form-control'}),
             'max_points': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Maximum score (e.g. 100)', 'min': 1})
         }
-
-    def __init__(self, *args, **kwargs):
+ 
+     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Filter teachers by role
-        self.fields['teacher'].queryset = User.objects.filter(role='teacher')
+        # Filter teachers by role - this should be User objects, not Teacher objects
+        # Because the teacher field in Assignment is a ForeignKey to User, not Teacher
+        self.fields['teacher'].queryset = User.objects.filter(role='teacher')  # This is correct
         
         # If initializing for a teacher user, set the initial value to the current user
         if 'initial' in kwargs and 'user' in kwargs['initial']:
@@ -213,7 +210,7 @@ class TeacherStudentForm(forms.ModelForm):
         widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Enter password'}),
         help_text="Enter password for the student"
     )
-    # Override the course field to be a ChoiceField instead of relying on the model's CharField
+    # Override the course field to be a ChoiceField
     course = forms.ChoiceField(
         widget=forms.Select(attrs={'class': 'form-control'}),
         label="Course*"
@@ -238,12 +235,10 @@ class TeacherStudentForm(forms.ModelForm):
                 courses = Course.objects.filter(teachers=self.teacher)
                 course_choices = [(course.name, f"{course.code} - {course.name}") for course in courses]
                 self.fields['course'].choices = [('', '---------')] + course_choices
-                print(f"DEBUG: Found {len(course_choices)} courses for teacher {self.teacher}")
             except Exception as e:
                 print(f"DEBUG: Error getting courses: {e}")
                 self.fields['course'].choices = [('', '---------')]
         else:
-            print("DEBUG: No teacher provided")
             self.fields['course'].choices = [('', '---------')]
 
     def save(self, commit=True):

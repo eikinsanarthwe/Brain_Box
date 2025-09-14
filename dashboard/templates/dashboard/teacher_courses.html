@@ -25,7 +25,7 @@
                             <i class="fas fa-user-tie me-1"></i> 
                             {{ course.teachers.count }} Teacher{{ course.teachers.count|pluralize }}
                         </span>
-                        <a href="#" class="btn btn-sm btn-outline-primary">View Details</a>
+                        <a href="{% url 'dashboard:teacher_course_detail' course.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
                     </div>
                 </div>
             </div>
