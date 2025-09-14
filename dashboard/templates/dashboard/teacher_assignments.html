@@ -1,0 +1,76 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-tasks me-2"></i>My Assignments
+        </h1>
+        <a href="{% url 'dashboard:teacher_assignment_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Create Assignment
+        </a>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Title</th>
+                            <th>Course</th>
+                            <th>Due Date</th>
+                            <th>Submissions</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assignment in assignments %}
+                        <tr>
+                            <td>{{ assignment.title }}</td>
+                            <td>{{ assignment.course.code }}</td>
+                            <td>{{ assignment.due_date|date:"M d, Y" }}</td>
+                            <td>
+                                <span class="badge bg-info">
+                                    {{ assignment.submission_set.count }} submitted
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if assignment.status == 'published' %}bg-success
+                                    {% elif assignment.status == 'draft' %}bg-secondary
+                                    {% else %}bg-warning{% endif %}">
+                                    {{ assignment.get_status_display }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{% url 'dashboard:teacher_assignment_detail' assignment.id %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <a href="{% url 'dashboard:edit_assignment' assignment.id %}" 
+                                   class="btn btn-sm btn-outline-secondary">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <i class="fas fa-tasks fa-2x text-muted mb-3"></i>
+                                <p class="text-muted">No assignments created yet</p>
+                                <a href="{% url 'dashboard:teacher_assignment_create' %}" class="btn btn-primary">
+                                    Create Your First Assignment
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

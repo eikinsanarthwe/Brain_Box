@@ -2,8 +2,13 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import logout, get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import Teacher, Student, Assignment, Course
-from .forms import TeacherForm, StudentForm, CourseForm, AssignmentForm, AdminCreationForm, AdminChangeForm
+from .models import Teacher, Student, Course, Assignment, Submission
+from .forms import TeacherForm, StudentForm, CourseForm, AssignmentForm, AdminCreationForm, AdminChangeForm,TeacherStudentForm,TeacherCourseForm
+from django.db.models import Count, Avg
+from datetime import datetime, timedelta
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
 
 User = get_user_model()
 
@@ -25,14 +30,19 @@ def custom_logout(request):
 # -----------------------------
 @login_required
 def dashboard(request):
-    context = {
-        'teacher_count': Teacher.objects.count(),
-        'student_count': Student.objects.count(),
-        'course_count': Course.objects.count(),
-        'admin_count': User.objects.filter(role='admin').count(),
-    }
-    return render(request, 'dashboard/index.html', context)
-
+    if request.user.role == 'admin':
+        context = {
+            'teacher_count': Teacher.objects.count(),
+            'student_count': Student.objects.count(),
+            'course_count': Course.objects.count(),
+            'admin_count': User.objects.filter(role='admin').count(),
+        }
+        return render(request, 'dashboard/index.html', context)
+    elif request.user.role == 'teacher':
+        return teacher_dashboard(request)
+    else:
+        # Handle student role or others
+        return redirect('login')
 # -----------------------------
 # Admin Views
 # -----------------------------
@@ -222,27 +232,270 @@ def assignment_list(request):
 
 @login_required
 def assignment_create(request):
-    return edit_assignment(request)
+    if request.method == 'POST':
+        form = AssignmentForm(request.POST, initial={'user': request.user})
+        if form.is_valid():
+            assignment = form.save(commit=False)
+            # For teachers, always set themselves as the teacher
+            if request.user.role == 'teacher':
+                assignment.teacher = request.user
+            assignment.save()
+            messages.success(request, 'Assignment created successfully!')
+            
+            if request.user.role == 'teacher':
+                return redirect('dashboard:teacher_assignments')
+            return redirect('dashboard:assignment_list')
+    else:
+        form = AssignmentForm(initial={'user': request.user})
+    
+    return render(request, 'dashboard/assignment_form.html', {
+        'form': form,
+        'title': 'Create Assignment'
+    })
 
+@login_required
+def teacher_assignment_create(request):
+    if request.method == 'POST':
+        form = AssignmentForm(request.POST, initial={'user': request.user})
+        if form.is_valid():
+            assignment = form.save(commit=False)
+            assignment.teacher = request.user
+            assignment.save()
+            messages.success(request, 'Assignment created successfully!')
+            return redirect('dashboard:teacher_assignments')
+    else:
+        form = AssignmentForm(initial={'user': request.user})
+    
+    return render(request, 'dashboard/assignment_form.html', {
+        'form': form,
+        'title': 'Create Assignment'
+    })
 @login_required
 def edit_assignment(request, id=None):
     assignment = get_object_or_404(Assignment, id=id) if id else None
+    
+    # Check if teacher owns this assignment
+    if id and request.user.role == 'teacher' and assignment.teacher != request.user:
+        messages.error(request, "You don't have permission to edit this assignment.")
+        return redirect('dashboard:teacher_assignments')
+    
     if request.method == 'POST':
         form = AssignmentForm(request.POST, instance=assignment)
         if form.is_valid():
-            assignment = form.save()
+            assignment = form.save(commit=False)
+            # For teachers, always set themselves as the teacher
+            if request.user.role == 'teacher':
+                assignment.teacher = request.user
+            assignment.save()
+            form.save_m2m()  # Save many-to-many relationships if any
             messages.success(request, f'Assignment {"updated" if id else "created"} successfully!')
+            
+            if request.user.role == 'teacher':
+                return redirect('dashboard:teacher_assignments')
             return redirect('dashboard:assignment_list')
     else:
         form = AssignmentForm(instance=assignment)
+    
     return render(request, 'dashboard/assignment_form.html', {
         'form': form,
         'title': 'Edit Assignment' if id else 'Add Assignment'
     })
-
 @login_required
 def delete_assignment(request, id):
     assignment = get_object_or_404(Assignment, id=id)
     assignment.delete()
     messages.success(request, 'Assignment deleted successfully!')
     return redirect('dashboard:assignment_list')
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_dashboard(request):
+    # Get the teacher object for the current user
+    try:
+        teacher = Teacher.objects.get(user=request.user)
+    except Teacher.DoesNotExist:
+        messages.error(request, "Teacher profile not found.")
+        return redirect('login')
+    
+    # Get courses taught by this teacher
+    courses = Course.objects.filter(teachers=teacher)
+    
+    # Get assignments created by this teacher
+    assignments = Assignment.objects.filter(teacher=request.user)
+    
+    # Get recent submissions for teacher's assignments
+    recent_submissions = Submission.objects.filter(
+        assignment__teacher=request.user
+    ).select_related('student', 'assignment').order_by('-submitted_at')[:5]
+    
+    # Calculate statistics - filter by teacher's courses
+    course_names = [course.name for course in courses]
+    total_students = Student.objects.filter(
+        course__in=course_names
+    ).distinct().count()
+    
+    # Count pending grading for this teacher's assignments
+    pending_grading = Submission.objects.filter(
+        assignment__teacher=request.user,
+        grade__isnull=True
+    ).count()
+    
+    context = {
+        'teacher': teacher,
+        'courses': courses,
+        'assignments': assignments,
+        'recent_submissions': recent_submissions,
+        'total_students': total_students,
+        'pending_grading': pending_grading,
+        'total_assignments': assignments.count(),
+        'can_create_courses': True,  # Add this flag to control UI elements
+    }
+    return render(request, 'dashboard/teacher_dashboard.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_assignments(request):
+    # Get assignments created by this teacher
+    assignments = Assignment.objects.filter(teacher=request.user)
+    
+    context = {
+        'assignments': assignments,
+    }
+    return render(request, 'dashboard/teacher_assignments.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def grade_submission(request, submission_id):
+    submission = get_object_or_404(Submission, id=submission_id)
+    
+    # Ensure the teacher can only grade submissions for their own assignments
+    if submission.assignment.teacher != request.user:
+        messages.error(request, "You don't have permission to grade this submission.")
+        return redirect('dashboard:teacher_dashboard')
+    
+    if request.method == 'POST':
+        grade = request.POST.get('grade')
+        feedback = request.POST.get('feedback')
+        
+        if grade:
+            try:
+                submission.grade = int(grade)
+                submission.feedback = feedback
+                submission.save()
+                messages.success(request, 'Submission graded successfully!')
+                return redirect('dashboard:teacher_assignment_detail', id=submission.assignment.id)
+            except ValueError:
+                messages.error(request, 'Please enter a valid grade.')
+    
+    context = {
+        'submission': submission,
+    }
+    return render(request, 'dashboard/grade_submission.html', context)
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_courses(request):
+    teacher = get_object_or_404(Teacher, user=request.user)
+    courses = Course.objects.filter(teachers=teacher)
+    
+    context = {
+        'courses': courses,
+    }
+    return render(request, 'dashboard/teacher_courses.html', context)
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_assignment_detail(request, id):
+    assignment = get_object_or_404(Assignment, id=id, teacher=request.user)
+    submissions = Submission.objects.filter(assignment=assignment).select_related('student')
+    
+    context = {
+        'assignment': assignment,
+        'submissions': submissions,
+    }
+    return render(request, 'dashboard/teacher_assignment_detail.html', context)
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_students(request):
+    teacher = get_object_or_404(Teacher, user=request.user)
+    courses = Course.objects.filter(teachers=teacher)
+    
+    # Get students enrolled in courses taught by this teacher
+    students = Student.objects.filter(
+        course__in=[course.name for course in courses]
+    ).select_related('user')
+    
+    context = {
+        'students': students,
+    }
+    return render(request, 'dashboard/teacher_students.html', context)
+@csrf_exempt
+def get_teachers_by_course(request):
+    if request.method == 'GET':
+        course_id = request.GET.get('course_id')
+        print(f"API called for course_id: {course_id}")
+        
+        if course_id:
+            try:
+                course = Course.objects.get(id=course_id)
+                teachers = course.teachers.all()
+                teachers_data = [{'id': teacher.user.id, 'name': str(teacher)} for teacher in teachers]
+                print(f"Returning teachers: {teachers_data}")
+                return JsonResponse(teachers_data, safe=False)
+            except Course.DoesNotExist:
+                print(f"Course with id {course_id} not found")
+                return JsonResponse([], safe=False)
+        else:
+            print("No course_id provided")
+    
+    return JsonResponse([], safe=False)
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_course_create(request):
+    if request.method == 'POST':
+        form = TeacherCourseForm(request.POST)
+        if form.is_valid():
+            course = form.save()
+            # Add the current teacher to the course
+            teacher = Teacher.objects.get(user=request.user)
+            course.teachers.add(teacher)
+            messages.success(request, 'Course created successfully!')
+            return redirect('dashboard:teacher_courses')
+    else:
+        form = TeacherCourseForm()
+    
+    return render(request, 'dashboard/teacher_course_form.html', {
+        'form': form,
+        'title': 'Create Course'
+    })
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_student_create(request):
+    # Get the current teacher (Teacher object, not User object)
+    try:
+        teacher_obj = Teacher.objects.get(user=request.user)
+        print(f"DEBUG: Found teacher object: {teacher_obj}")
+        
+        # Check what courses this teacher has
+        courses = Course.objects.filter(teachers=teacher_obj)
+        print(f"DEBUG: Teacher has {courses.count()} courses: {list(courses)}")
+        
+    except Teacher.DoesNotExist:
+        messages.error(request, "Teacher profile not found.")
+        return redirect('dashboard:teacher_dashboard')
+    
+    if request.method == 'POST':
+        form = TeacherStudentForm(request.POST, teacher=teacher_obj)
+        if form.is_valid():
+            student = form.save()
+            messages.success(request, 'Student created successfully!')
+            return redirect('dashboard:teacher_students')
+        else:
+            print(f"DEBUG: Form errors: {form.errors}")
+    else:
+        form = TeacherStudentForm(teacher=teacher_obj)
+        print(f"DEBUG: Form course choices: {form.fields['course'].choices}")
+    
+    return render(request, 'dashboard/teacher_student_form.html', {
+        'form': form,
+        'title': 'Add Student'
+    })

@@ -1,0 +1,119 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-users me-2"></i>My Students
+        </h1>
+        <a href="{% url 'dashboard:teacher_student_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Add Student
+        </a>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Name</th>
+                            <th>Enrollment ID</th>
+                            <th>Course</th>
+                            <th>Semester</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student in students %}
+                        <tr>
+                            <td>{{ student.user.get_full_name|default:student.user.username }}</td>
+                            <td>{{ student.enrollment_id }}</td>
+                            <td>{{ student.course }}</td>
+                            <td>{{ student.semester }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
+                                        data-bs-target="#studentModal{{ student.id }}">
+                                    <i class="fas fa-eye"></i> View
+                                </button>
+                            </td>
+                        </tr>
+                        
+                        <!-- Student Modal -->
+                        <div class="modal fade" id="studentModal{{ student.id }}" tabindex="-1" 
+                             aria-labelledby="studentModalLabel{{ student.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="studentModalLabel{{ student.id }}">
+                                            Student Details
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="row mb-3">
+                                            <div class="col-md-4">
+                                                <strong>Name:</strong>
+                                            </div>
+                                            <div class="col-md-8">
+                                                {{ student.user.get_full_name|default:student.user.username }}
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-4">
+                                                <strong>Enrollment ID:</strong>
+                                            </div>
+                                            <div class="col-md-8">
+                                                {{ student.enrollment_id }}
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-4">
+                                                <strong>Course:</strong>
+                                            </div>
+                                            <div class="col-md-8">
+                                                {{ student.course }}
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-4">
+                                                <strong>Semester:</strong>
+                                            </div>
+                                            <div class="col-md-8">
+                                                {{ student.semester }}
+                                            </div>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-md-4">
+                                                <strong>Email:</strong>
+                                            </div>
+                                            <div class="col-md-8">
+                                                {{ student.user.email|default:"Not provided" }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4">
+                                <i class="fas fa-users fa-2x text-muted mb-3"></i>
+                                <p class="text-muted">No students found in your courses</p>
+                                <a href="{% url 'dashboard:teacher_student_create' %}" class="btn btn-primary">
+                                    Add Your First Student
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

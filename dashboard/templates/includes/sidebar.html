@@ -6,35 +6,38 @@
 
     <div class="sidebar-divider"></div>
 
-    <!-- Dashboard -->
+    {% if user.role == 'admin' %}
+    <!-- Admin Links -->
     <a href="{% url 'dashboard:dashboard' %}" class="{% if request.path == '/' %}active{% endif %}">
         <i class="fas fa-tachometer-alt"></i> Dashboard
     </a>
-
-    <!-- Courses -->
     <a href="{% url 'dashboard:course_list' %}" class="{% if 'courses/' in request.path %}active{% endif %}">
         <i class="fas fa-book"></i> Courses
     </a>
-
-    <!-- Students -->
     <a href="{% url 'dashboard:student_list' %}" class="{% if 'students/' in request.path %}active{% endif %}">
         <i class="fas fa-users"></i> Students
     </a>
-
-    <!-- Teachers -->
     <a href="{% url 'dashboard:teacher_list' %}" class="{% if 'teachers/' in request.path %}active{% endif %}">
         <i class="fas fa-user-tie"></i> Teachers
     </a>
-
-    <!-- Assignments -->
-    <a href="{% url 'dashboard:admin_list' %}" class="{% if 'assignments/' in request.path %}active{% endif %}">
-        <i class="fas fa-tasks"></i> Admins
+    <a href="{% url 'dashboard:admin_list' %}" class="{% if 'admins/' in request.path %}active{% endif %}">
+        <i class="fas fa-user-shield"></i> Admins
     </a>
-
-    <!-- Reports -->
-    <a href="#">
-        <i class="fas fa-chart-line"></i> Reports
+    {% elif user.role == 'teacher' %}
+    <!-- Teacher Links -->
+    <a href="{% url 'dashboard:teacher_dashboard' %}" class="{% if request.path == '/dashboard/teacher/dashboard/' %}active{% endif %}">
+        <i class="fas fa-tachometer-alt"></i> Dashboard
     </a>
+    <a href="{% url 'dashboard:teacher_courses' %}" class="{% if 'teacher/courses' in request.path %}active{% endif %}">
+        <i class="fas fa-book"></i> My Courses
+    </a>
+    <a href="{% url 'dashboard:teacher_assignments' %}" class="{% if 'teacher/assignments' in request.path %}active{% endif %}">
+        <i class="fas fa-tasks"></i> Assignments
+    </a>
+    <a href="{% url 'dashboard:teacher_students' %}" class="{% if 'teacher/students' in request.path %}active{% endif %}">
+        <i class="fas fa-users"></i> Students
+    </a>
+    {% endif %}
 
     <div class="sidebar-divider"></div>
 

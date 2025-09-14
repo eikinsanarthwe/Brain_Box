@@ -104,18 +104,28 @@ class TeacherForm(forms.ModelForm):
 class StudentForm(forms.ModelForm):
     username = forms.CharField(max_length=150, required=True, widget=forms.TextInput(attrs={'class': 'form-control'}))
     password = forms.CharField(required=False, widget=forms.PasswordInput(attrs={'class': 'form-control'}), help_text="Leave blank to generate a random password")
+    # Override course field for admin too
+    course = forms.ChoiceField(
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label="Course"
+    )
 
     class Meta:
         model = Student
         fields = ['username', 'password', 'enrollment_id', 'course', 'semester']
         widgets = {
             'enrollment_id': forms.TextInput(attrs={'class': 'form-control'}),
-            'course': forms.TextInput(attrs={'class': 'form-control'}),
             'semester': forms.NumberInput(attrs={'class': 'form-control', 'min': 1})
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        # Get all courses for admin
+        courses = Course.objects.all()
+        course_choices = [(course.name, f"{course.code} - {course.name}") for course in courses]
+        self.fields['course'].choices = [('', '---------')] + course_choices
+        
         if self.instance.pk and self.instance.user:
             self.fields['username'].initial = self.instance.user.username
             self.fields['password'].help_text = "Leave blank to keep current password"
@@ -161,7 +171,9 @@ class CourseForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['teachers'].queryset = Teacher.objects.filter(user__role='teacher')
+        self.fields['teachers'].queryset = User.objects.filter(role='teacher')
+
+# ---------------- Assignment Form ---------------- #
 
 # ---------------- Assignment Form ---------------- #
 
@@ -180,4 +192,81 @@ class AssignmentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['teacher'].queryset = Teacher.objects.filter(user__role='teacher')
+        # Filter teachers by role
+        self.fields['teacher'].queryset = User.objects.filter(role='teacher')
+        
+        # If initializing for a teacher user, set the initial value to the current user
+        if 'initial' in kwargs and 'user' in kwargs['initial']:
+            user = kwargs['initial']['user']
+            if user.role == 'teacher':
+                self.fields['teacher'].initial = user
+                self.fields['teacher'].disabled = True
+# In your forms.py, update the TeacherStudentForm
+class TeacherStudentForm(forms.ModelForm):
+    username = forms.CharField(
+        max_length=150, 
+        required=True, 
+        widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter username'})
+    )
+    password = forms.CharField(
+        required=True, 
+        widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Enter password'}),
+        help_text="Enter password for the student"
+    )
+    # Override the course field to be a ChoiceField instead of relying on the model's CharField
+    course = forms.ChoiceField(
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label="Course*"
+    )
+
+    class Meta:
+        model = Student
+        fields = ['enrollment_id', 'course', 'semester']
+        widgets = {
+            'enrollment_id': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter enrollment ID'}),
+            'semester': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'placeholder': 'Enter semester'})
+        }
+
+    def __init__(self, *args, **kwargs):
+        # Extract teacher from kwargs before calling super
+        self.teacher = kwargs.pop('teacher', None)
+        super().__init__(*args, **kwargs)
+        
+        # Get course choices for the current teacher
+        if self.teacher:
+            try:
+                courses = Course.objects.filter(teachers=self.teacher)
+                course_choices = [(course.name, f"{course.code} - {course.name}") for course in courses]
+                self.fields['course'].choices = [('', '---------')] + course_choices
+                print(f"DEBUG: Found {len(course_choices)} courses for teacher {self.teacher}")
+            except Exception as e:
+                print(f"DEBUG: Error getting courses: {e}")
+                self.fields['course'].choices = [('', '---------')]
+        else:
+            print("DEBUG: No teacher provided")
+            self.fields['course'].choices = [('', '---------')]
+
+    def save(self, commit=True):
+        student = super().save(commit=False)
+        username = self.cleaned_data['username']
+        password = self.cleaned_data['password']
+        
+        # Create user account
+        user = User.objects.create_user(username=username, password=password)
+        user.role = 'student'
+        user.save()
+        
+        student.user = user
+        
+        if commit:
+            student.save()
+        return student
+class TeacherCourseForm(forms.ModelForm):
+    class Meta:
+        model = Course
+        fields = ['code', 'name', 'description']
+        widgets = {
+            'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. CS101'}),
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Intro to CS'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Course description...'}),
+        }

@@ -1,1 +1,18 @@
-<p>Welcome {{ user.username }}! You are now logged in as {{ user.role }}</p>
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="jumbotron bg-light rounded-3 p-5 mb-4">
+        <div class="container">
+            <h1 class="display-4">Welcome, {{ user.username }}!</h1>
+            <p class="lead">You are logged in as a <strong class="text-primary">{{ user.role }}</strong> in the BrainBox Learning Management System.</p>
+            <hr class="my-4">
+            <p>Access your teaching tools, manage courses, create assignments, and track student progress.</p>
+            <a class="btn btn-primary btn-lg" href="{% url 'dashboard:teacher_dashboard' %}" role="button">
+                Go to Teacher Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

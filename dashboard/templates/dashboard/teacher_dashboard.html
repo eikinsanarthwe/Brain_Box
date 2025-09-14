@@ -1,0 +1,223 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .stats-card {
+        border-radius: 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    }
+    .icon-circle {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    .recent-item {
+        border-left: 3px solid transparent;
+        transition: all 0.2s;
+    }
+    .recent-item:hover {
+        border-left-color: #4e73df;
+        background-color: #f8f9fc;
+    }
+</style>
+
+<!-- Debug Info (you can remove this later) -->
+<div class="alert alert-info mb-4">
+    <strong>Debug Info:</strong><br>
+    User: {{ request.user }}<br>
+    Teacher Profile: {{ teacher.user.get_full_name|default:teacher.user.username }}<br>
+    Courses: {{ courses.count }}<br>
+    Assignments: {{ assignments.count }}<br>
+</div>
+
+<div class="content">
+    <!-- Welcome Header -->
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-tachometer-alt me-2"></i>Teacher Dashboard
+        </h1>
+        <span class="mode-indicator">
+            <i class="fas fa-user-tie me-1"></i> Teacher Mode
+        </span>
+    </div>
+
+    <!-- Stats Cards Row -->
+    <div class="row g-4 mb-4">
+        <!-- Courses Card -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card stats-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase text-muted mb-2">My Courses</h6>
+                            <h2 class="mb-0">{{ courses.count }}</h2>
+                        </div>
+                        <div class="icon-circle bg-primary text-white">
+                            <i class="fas fa-book"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'dashboard:teacher_courses' %}" class="text-decoration-none small">
+                        View All <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Students Card -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card stats-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase text-muted mb-2">Total Students</h6>
+                            <h2 class="mb-0">{{ total_students }}</h2>
+                        </div>
+                        <div class="icon-circle bg-success text-white">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'dashboard:teacher_students' %}" class="text-decoration-none small">
+                        View Students <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assignments Card -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card stats-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase text-muted mb-2">Assignments</h6>
+                            <h2 class="mb-0">{{ assignments.count }}</h2>
+                        </div>
+                        <div class="icon-circle bg-info text-white">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'dashboard:teacher_assignments' %}" class="text-decoration-none small">
+                        View All <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Grading Card -->
+        <div class="col-xl-3 col-md-6">
+            <div class="card stats-card h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase text-muted mb-2">Pending Grading</h6>
+                            <h2 class="mb-0">{{ pending_grading }}</h2>
+                        </div>
+                        <div class="icon-circle bg-warning text-white">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <a href="{% url 'dashboard:teacher_assignments' %}" class="text-decoration-none small">
+                        Grade Now <i class="fas fa-arrow-right ms-1"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity Row -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <!-- Recent Submissions -->
+            <div class="card shadow h-100">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-clipboard-list me-2"></i>Recent Submissions
+                    </h6>
+                    <a href="{% url 'dashboard:teacher_assignments' %}" class="btn btn-sm btn-primary">
+                        View All
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if recent_submissions %}
+                    <div class="list-group list-group-flush">
+                        {% for submission in recent_submissions %}
+                        <div class="list-group-item recent-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">{{ submission.assignment.title }}</h6>
+                                <p class="mb-0 small text-muted">
+                                    Submitted by {{ submission.student.user.get_full_name|default:submission.student.user.username }}
+                                    on {{ submission.submitted_at|date:"M d, Y H:i" }}
+                                </p>
+                            </div>
+                            <div>
+                                {% if submission.grade %}
+                                <span class="badge bg-success">Graded: {{ submission.grade }}/{{ submission.assignment.max_points }}</span>
+                                {% else %}
+                                <a href="{% url 'dashboard:grade_submission' submission.id %}" class="btn btn-sm btn-outline-primary">
+                                    Grade Now
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">No recent submissions</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="col-lg-4">
+            <div class="card shadow h-100">
+                <div class="card-header py-3">
+                    <h6 class="m-0 font-weight-bold text-primary">
+                        <i class="fas fa-bolt me-2"></i>Quick Actions
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'dashboard:teacher_assignment_create' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Create Assignment
+                        </a>
+                        <a href="{% url 'dashboard:teacher_course_create' %}" class="btn btn-success">
+                            <i class="fas fa-book me-2"></i>Create Course
+                        </a>
+                        <a href="{% url 'dashboard:teacher_student_create' %}" class="btn btn-info">
+                            <i class="fas fa-user-plus me-2"></i>Add Student
+                        </a>
+                        <a href="{% url 'dashboard:teacher_courses' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-book me-2"></i>View Courses
+                        </a>
+                        <a href="{% url 'dashboard:teacher_students' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-users me-2"></i>View Students
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

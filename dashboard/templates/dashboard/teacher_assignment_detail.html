@@ -1,0 +1,145 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-tasks me-2"></i>{{ assignment.title }}
+        </h1>
+        <div>
+            <a href="{% url 'dashboard:edit_assignment' assignment.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-edit me-1"></i> Edit
+            </a>
+            <a href="{% url 'dashboard:teacher_assignments' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to List
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="m-0 font-weight-bold">Assignment Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Course:</strong> {{ assignment.course.code }} - {{ assignment.course.name }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Due Date:</strong> {{ assignment.due_date|date:"M d, Y H:i" }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Max Points:</strong> {{ assignment.max_points }}
+                    </div>
+                    <div class="mb-3">
+                        <strong>Status:</strong> 
+                        <span class="badge 
+                            {% if assignment.status == 'published' %}bg-success
+                            {% elif assignment.status == 'draft' %}bg-secondary
+                            {% else %}bg-warning{% endif %}">
+                            {{ assignment.get_status_display }}
+                        </span>
+                    </div>
+                    <div>
+                        <strong>Description:</strong>
+                        <p class="mt-2">{{ assignment.description }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header">
+                    <h5 class="m-0 font-weight-bold">Submission Stats</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="row mb-3">
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <h3 class="text-primary mb-0">{{ submissions.count }}</h3>
+                                <small class="text-muted">Total Submissions</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <h3 class="text-success mb-0">
+                                    {{ submissions|length|add:"-1" }}/{{ submissions.count }}
+                                </h3>
+                                <small class="text-muted">Graded</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="progress mb-3">
+                        <div class="progress-bar bg-success" role="progressbar" 
+                             style="width: 75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">
+                            75% Graded
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header">
+            <h5 class="m-0 font-weight-bold">Student Submissions</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Student</th>
+                            <th>Submitted On</th>
+                            <th>Status</th>
+                            <th>Grade</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for submission in submissions %}
+                        <tr>
+                            <td>{{ submission.student.user.get_full_name|default:submission.student.user.username }}</td>
+                            <td>{{ submission.submitted_at|date:"M d, Y H:i" }}</td>
+                            <td>
+                                {% if submission.is_late %}
+                                <span class="badge bg-warning">Late</span>
+                                {% else %}
+                                <span class="badge bg-success">On Time</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if submission.grade %}
+                                <span class="badge bg-info">{{ submission.grade }}/{{ assignment.max_points }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">Not Graded</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'dashboard:grade_submission' submission.id %}" 
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i> Grade
+                                </a>
+                                <a href="{{ submission.submitted_file.url }}" 
+                                   class="btn btn-sm btn-outline-secondary" target="_blank">
+                                    <i class="fas fa-download"></i> Download
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4">
+                                <i class="fas fa-inbox fa-2x text-muted mb-3"></i>
+                                <p class="text-muted">No submissions yet</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

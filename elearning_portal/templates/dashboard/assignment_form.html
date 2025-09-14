@@ -9,7 +9,9 @@
             </h4>
         </div>
         <div class="card-body">
-            <form method="post" enctype="multipart/form-data">
+            <form method="post" enctype="multipart/form-data" 
+                  data-user-role="{{ user.role }}"
+                  data-user-id="{{ user.id }}">
                 {% csrf_token %}
                 
                 <div class="form-group mb-3">
@@ -90,8 +92,19 @@
 document.addEventListener('DOMContentLoaded', function() {
     const courseSelect = document.getElementById('{{ form.course.id_for_label }}');
     const teacherSelect = document.getElementById('{{ form.teacher.id_for_label }}');
+    const form = document.querySelector('form');
+    const userRole = form.getAttribute('data-user-role');
+    const userId = form.getAttribute('data-user-id');
     
-    if (courseSelect && teacherSelect) {
+    // If user is teacher, set the teacher field to themselves and disable it
+    if (userRole === 'teacher') {
+        if (teacherSelect) {
+            teacherSelect.value = userId;
+            teacherSelect.disabled = true;
+        }
+    }
+    
+    if (courseSelect && teacherSelect && !teacherSelect.disabled) {
         courseSelect.addEventListener('change', function() {
             const courseId = this.value;
             if (courseId) {
