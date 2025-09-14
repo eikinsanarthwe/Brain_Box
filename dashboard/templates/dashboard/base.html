@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 {% load static %}
 <html lang="en">
-    
 <head>
     <meta charset="UTF-8">
     <title>Brain Box | Admin Dashboard</title>
@@ -12,212 +11,264 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="{% static 'css/styles.css' %}" rel="stylesheet">
     <style>
+        /* DEFAULT LIGHT THEME (applies when no data-theme is set) */
         :root {
-    --primary-color: #4e73df;
-    --secondary-color: #1cc88a;
-    --accent-color: #f6c23e;
-    --danger-color: #e74a3b;
-    --dark-color: #5a5c69;
-    --light-color: #f8f9fc;
-}
+            --primary-color: #4e73df;
+            --secondary-color: #1cc88a;
+            --accent-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --dark-color: #5a5c69;
+            --light-color: #f8f9fc;
+            --bg-color: #f8f9fc;
+            --text-color: #000000;
+            --card-bg: #ffffff;
+            --border-color: #e3e6f0;
+            --sidebar-bg: #343a40;
+            --navbar-bg: #ffffff;
+            --card-header-bg: #f8f9fc;
+        }
 
-body {
-    background-color: var(--light-color);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
+        /* LIGHT THEME (explicit) */
+        :root[data-theme="light"] {
+            --primary-color: #4e73df;
+            --secondary-color: #1cc88a;
+            --accent-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --dark-color: #5a5c69;
+            --light-color: #f8f9fc;
+            --bg-color: #f8f9fc;
+            --text-color: #ffffff;
+            --card-bg: #ffffff;
+            --border-color: #e3e6f0;
+            --sidebar-bg: #343a40;
+            --navbar-bg: #ffffff;
+            --card-header-bg: #f8f9fc;
+        }
 
-.sidebar {
-    min-height: 100vh;
-    background-color: #343a40 !important;
-    background: linear-gradient(180deg, #343a40 0%, #212529 100%);
-    padding-top: 20px;
-    box-shadow: 0 0.15rem 1.75rem 0 rgba(33, 37, 41, 0.15);
-    transition: all 0.3s;
-}
+        /* DARK THEME with your blue color #136B7F */
+        :root[data-theme="dark"] {
+            --primary-color: #4e73df;
+            --secondary-color: #1cc88a;
+            --accent-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --dark-color: #136B7F;
+            --light-color: #136B7F;
+            --bg-color: #0a3d49;
+            --text-color: #ffffff;
+            --card-bg: #136B7F;
+            --border-color: #0f5c6e;
+            --sidebar-bg: #08323d;
+            --navbar-bg: #136B7F;
+            --card-header-bg: #0f5c6e;
+        }
 
-.sidebar a {
-    color: rgba(255, 255, 255, 0.8);
-    text-decoration: none;
-    padding: 12px 15px;
-    display: block;
-    border-radius: 5px;
-    margin: 0 10px 5px 10px;
-    font-weight: 500;
-    transition: all 0.3s;
-}
+        /* Apply theme variables */
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-.sidebar a:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    transform: translateX(5px);
-}
+        .sidebar {
+            min-height: 100vh;
+            background-color: var(--sidebar-bg) !important;
+            background: linear-gradient(180deg, var(--sidebar-bg) 0%, #212529 100%);
+            padding-top: 20px;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(33, 37, 41, 0.15);
+            transition: all 0.3s;
+        }
 
-.sidebar a.active {
-    background-color: rgba(255, 255, 255, 0.2);
-    color: #fff;
-    font-weight: 600;
-}
+        .sidebar a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            padding: 12px 15px;
+            display: block;
+            border-radius: 5px;
+            margin: 0 10px 5px 10px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
 
-.sidebar a i {
-    width: 20px;
-    text-align: center;
-    margin-right: 10px;
-}
+        .sidebar a:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            transform: translateX(5px);
+        }
 
-.sidebar-brand {
-    color: #fff !important;
-    font-size: 1.2rem;
-    font-weight: 800;
-    padding: 1.5rem 1rem;
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 0.05rem;
-    margin-bottom: 1rem !important;
-}
+        .sidebar a.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-weight: 600;
+        }
 
-.sidebar-divider {
-    border-top: 1px solid rgba(255, 255, 255, 0.15);
-    margin: 1rem 1rem;
-}
+        .sidebar a i {
+            width: 20px;
+            text-align: center;
+            margin-right: 10px;
+        }
 
-.content {
-    padding: 20px;
-}
+        .sidebar-brand {
+            color: #fff !important;
+            font-size: 1.2rem;
+            font-weight: 800;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+            margin-bottom: 1rem !important;
+        }
 
-.card {
-    border: none;
-    border-radius: 0.5rem;
-    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
-    transition: 0.3s;
-    margin-bottom: 1.5rem;
-}
+        .sidebar-divider {
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            margin: 1rem 1rem;
+        }
 
-.card:hover {
-    box-shadow: 0 0.5rem 1.5rem 0 rgba(58, 59, 69, 0.2);
-    transform: translateY(-5px);
-}
+        .content {
+            padding: 20px;
+        }
 
-.card-header {
-    background-color: #f8f9fc;
-    border-bottom: 1px solid #e3e6f0;
-    padding: 1rem 1.25rem;
-    border-radius: 0.5rem 0.5rem 0 0 !important;
-}
+        .card {
+            border: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+            transition: 0.3s;
+            margin-bottom: 1.5rem;
+            background-color: var(--card-bg);
+            border-color: var(--border-color);
+        }
 
-.navbar {
-    background-color: #ffffff;
-    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
-    padding: 0.5rem 1rem;
-}
+        .card:hover {
+            box-shadow: 0 0.5rem 1.5rem 0 rgba(58, 59, 69, 0.2);
+            transform: translateY(-5px);
+        }
 
-.border-left-primary {
-    border-left: 0.25rem solid var(--primary-color) !important;
-}
+        .card-header {
+            background-color: var(--card-header-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 1.25rem;
+            border-radius: 0.5rem 0.5rem 0 0 !important;
+        }
 
-.border-left-success {
-    border-left: 0.25rem solid var(--secondary-color) !important;
-}
+        .navbar {
+            background-color: var(--navbar-bg);
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+            padding: 0.5rem 1rem;
+        }
 
-.border-left-warning {
-    border-left: 0.25rem solid var(--accent-color) !important;
-}
+        .border-left-primary {
+            border-left: 0.25rem solid var(--primary-color) !important;
+        }
 
-.border-left-danger {
-    border-left: 0.25rem solid var(--danger-color) !important;
-}
+        .border-left-success {
+            border-left: 0.25rem solid var(--secondary-color) !important;
+        }
 
-.text-primary {
-    color: var(--primary-color) !important;
-}
+        .border-left-warning {
+            border-left: 0.25rem solid var(--accent-color) !important;
+        }
 
-.text-success {
-    color: var(--secondary-color) !important;
-}
+        .border-left-danger {
+            border-left: 0.25rem solid var(--danger-color) !important;
+        }
 
-.text-warning {
-    color: var(--accent-color) !important;
-}
+        .text-primary {
+            color: var(--primary-color) !important;
+        }
 
-.text-danger {
-    color: var(--danger-color) !important;
-}
+        .text-success {
+            color: var(--secondary-color) !important;
+        }
 
-.bg-primary {
-    background-color: var(--primary-color) !important;
-}
+        .text-warning {
+            color: var(--accent-color) !important;
+        }
 
-.bg-success {
-    background-color: var(--secondary-color) !important;
-}
+        .text-danger {
+            color: var(--danger-color) !important;
+        }
 
-.bg-warning {
-    background-color: var(--accent-color) !important;
-}
+        .bg-primary {
+            background-color: var(--primary-color) !important;
+        }
 
-.bg-danger {
-    background-color: var(--danger-color) !important;
-}
+        .bg-success {
+            background-color: var(--secondary-color) !important;
+        }
 
-.mode-indicator {
-    background-color: var(--primary-color);
-    color: white;
-    padding: 5px 10px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    margin-right: 15px;
-}
+        .bg-warning {
+            background-color: var(--accent-color) !important;
+        }
 
-@media (max-width: 768px) {
-    .sidebar {
-        position: fixed;
-        z-index: 1000;
-        width: 250px;
-        transform: translateX(-100%);
-    }
-    
-    .sidebar.show {
-        transform: translateX(0);
-    }
-    
-    .content {
-        margin-left: 0;
-    }
-    
-    .navbar-toggler {
-        display: block;
-    }
+        .bg-danger {
+            background-color: var(--danger-color) !important;
+        }
 
-    /* Dashboard Cards */
-.card {
-    display: inline-block;
-    padding: 20px;
-    margin: 10px;
-    background: #f0f8ff;
-    border-radius: 8px;
-    text-decoration: none;
-    color: #333;
-    width: 200px;
-}
+        .mode-indicator {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            margin-right: 15px;
+        }
 
-/* Tables */
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-}
-th, td {
-    padding: 12px;
-    text-align: left;
-    border-bottom: 1px solid #ddd;
-}
-th {
-    background-color: #4CAF50;
-    color: white;
-}
-}
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                z-index: 1000;
+                width: 250px;
+                transform: translateX(-100%);
+            }
+            
+            .sidebar.show {
+                transform: translateX(0);
+            }
+            
+            .content {
+                margin-left: 0;
+            }
+            
+            .navbar-toggler {
+                display: block;
+            }
+
+            .card {
+                display: inline-block;
+                padding: 20px;
+                margin: 10px;
+                background: var(--card-bg);
+                border-radius: 8px;
+                text-decoration: none;
+                color: var(--text-color);
+                width: 200px;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+            }
+            th, td {
+                padding: 12px;
+                text-align: left;
+                border-bottom: 1px solid var(--border-color);
+            }
+            th {
+                background-color: var(--primary-color);
+                color: white;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Set initial theme to light if not set -->
+    <script>
+    if (!localStorage.getItem('theme')) {
+        localStorage.setItem('theme', 'light');
+        document.documentElement.setAttribute('data-theme', 'light');
+    }
+    </script>
+    
     <div class="container-fluid">
         <div class="row">
             {% include 'includes/sidebar.html' %}
@@ -233,5 +284,31 @@ th {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="{% static 'js/scripts.js' %}"></script>
+    
+    <!-- Theme Switching JavaScript -->
+    <script>
+    // Apply theme on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        let themeToApply = savedTheme;
+        
+        if (savedTheme === 'auto') {
+            themeToApply = systemPrefersDark ? 'dark' : 'light';
+        }
+        
+        document.documentElement.setAttribute('data-theme', themeToApply);
+    });
+
+    // Listen for system theme changes
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'auto') {
+            const newTheme = e.matches ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+        }
+    });
+    </script>
 </body>
 </html>

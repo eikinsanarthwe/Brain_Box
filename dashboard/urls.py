@@ -41,15 +41,20 @@ urlpatterns = [
     path('teacher/dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
     path('teacher/courses/', views.teacher_courses, name='teacher_courses'),
     path('teacher/assignments/', views.teacher_assignments, name='teacher_assignments'),
-    path('teacher/assignments/add/', views.teacher_assignment_create, name='teacher_assignment_create'),  # ADD THIS LINE
+    path('teacher/assignments/add/', views.teacher_assignment_create, name='teacher_assignment_create'),
     path('teacher/assignments/<int:id>/', views.teacher_assignment_detail, name='teacher_assignment_detail'),
     path('teacher/grade/<int:submission_id>/', views.grade_submission, name='grade_submission'),
     path('teacher/students/', views.teacher_students, name='teacher_students'),
-    # Add these to your urlpatterns list:
-    # In your urls.py, ensure you have:
     path('teacher/courses/add/', views.teacher_course_create, name='teacher_course_create'),
     path('teacher/students/add/', views.teacher_student_create, name='teacher_student_create'),
-    # Add these URLs to your existing urlpatterns list:
-path('teacher/courses/<int:course_id>/', views.teacher_course_detail, name='teacher_course_detail'),
-path('teacher/courses/<int:course_id>/remove-student/<int:student_id>/', views.remove_student_from_course, name='remove_student_from_course'),
+    path('teacher/courses/<int:course_id>/', views.teacher_course_detail, name='teacher_course_detail'),
+    path('teacher/courses/<int:course_id>/remove-student/<int:student_id>/', views.remove_student_from_course, name='remove_student_from_course'),
+
+    # Settings URLs
+    path('settings/', views.admin_settings, name='admin_settings'),
+    path('settings/profile/', views.profile_settings, name='profile_settings'),
+    path('settings/appearance/', views.appearance_settings, name='appearance_settings'),
+    path('settings/security/', views.security_settings, name='security_settings'),
+
+    path('settings/security/generate-qr/', views.generate_qr_code, name='generate_qr_code'),
 ]

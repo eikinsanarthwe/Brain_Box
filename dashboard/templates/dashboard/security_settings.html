@@ -1,0 +1,112 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-shield-alt me-2"></i>Security Settings
+        </h1>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Password Change -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="m-0">Change Password</h5>
+                </div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="current_password" class="form-label">Current Password</label>
+                            <input type="password" class="form-control" id="current_password" name="current_password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="new_password" class="form-label">New Password</label>
+                            <input type="password" class="form-control" id="new_password" name="new_password" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary" name="password_change">Update Password</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Two-Factor Authentication -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="m-0">Two-Factor Authentication</h5>
+                </div>
+                <div class="card-body">
+                    {% if user.userprofile.two_factor_enabled %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Two-factor authentication is enabled for your account.
+                        </div>
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="disable_2fa" value="true">
+                            <button type="submit" class="btn btn-danger">Disable Two-Factor Authentication</button>
+                        </form>
+                    {% else %}
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="two_factor" name="two_factor">
+                                <label class="form-check-label" for="two_factor">
+                                    Enable Two-Factor Authentication
+                                </label>
+                            </div>
+                            
+                            {% if user.userprofile.two_factor_secret %}
+                            <!-- QR Code and verification (shown after enabling but before verifying) -->
+                            <div id="2fa-setup" style="display: none;">
+                                <div class="mb-3">
+                                    <p>Scan this QR code with your authenticator app:</p>
+                                    <img src="{% url 'dashboard:generate_qr_code' %}" alt="QR Code" class="img-fluid mb-3" style="max-width: 200px;">
+                                    <p class="text-muted small">Or enter this secret key manually: <code>{{ user.userprofile.two_factor_secret }}</code></p>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="verification_code" class="form-label">Enter verification code</label>
+                                    <input type="text" class="form-control" id="verification_code" name="verification_code" placeholder="6-digit code" required>
+                                </div>
+                                <button type="submit" class="btn btn-success" name="verify_2fa">Verify and Enable</button>
+                            </div>
+                            {% endif %}
+                            
+                            <button type="submit" class="btn btn-primary" name="enable_2fa" id="enable-btn">Enable Two-Factor</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Active Sessions -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="m-0">Active Sessions ({{ active_sessions }})</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">You're currently logged in on 1 device.</p>
+                    <button class="btn btn-outline-danger">Log out of all other sessions</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Show/hide 2FA setup section when checkbox is toggled
+document.getElementById('two_factor').addEventListener('change', function(e) {
+    const setupSection = document.getElementById('2fa-setup');
+    const enableBtn = document.getElementById('enable-btn');
+    
+    if (e.target.checked) {
+        if (setupSection) setupSection.style.display = 'block';
+        if (enableBtn) enableBtn.style.display = 'none';
+    } else {
+        if (setupSection) setupSection.style.display = 'none';
+        if (enableBtn) enableBtn.style.display = 'block';
+    }
+});
+</script>
+{% endblock %}

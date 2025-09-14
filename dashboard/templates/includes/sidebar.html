@@ -1,53 +1,88 @@
-<div class="col-md-2 sidebar d-flex flex-column">
+<div class="col-md-2 sidebar d-flex flex-column"
+     style="min-height:100vh;
+            background:linear-gradient(135deg,
+                #0F2027 0%,
+                #136B7F 25%,
+                #2A9D8F 50%,
+                #7B2CBF 75%,
+                #E85D75 30%);
+            background-size:400% 400%;
+            box-shadow:0 0.15rem 1.75rem 0 rgba(0,0,0,0.3);
+            padding:0;
+            color:white;">
+
     <!-- Brand Logo -->
-    <a class="sidebar-brand" href="{% url 'dashboard:dashboard' %}">
-        <i class="fas fa-brain me-2"></i>Brain Box
+    <a class="sidebar-brand" href="{% if user.role == 'admin' %}{% url 'dashboard:dashboard' %}{% else %}{% url 'dashboard:teacher_dashboard' %}{% endif %}"
+       style="padding:1.5rem 1rem;
+              font-size:1.2rem;
+              font-weight:700;
+              text-align:center;
+              text-transform:uppercase;
+              letter-spacing:0.05em;
+              text-decoration:none;
+              color:#fff;
+              border-bottom:1px solid rgba(255,255,255,0.3);">
+        <i class="fas fa-brain me-2"></i> Brain Box
     </a>
 
-    <div class="sidebar-divider"></div>
+    <hr style="border-top:1px solid rgba(255,255,255,0.3); margin:1rem;">
 
     {% if user.role == 'admin' %}
     <!-- Admin Links -->
-    <a href="{% url 'dashboard:dashboard' %}" class="{% if request.path == '/' %}active{% endif %}">
-        <i class="fas fa-tachometer-alt"></i> Dashboard
+    <a href="{% url 'dashboard:dashboard' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-tachometer-alt" style="margin-right:0.75rem;"></i> Dashboard
     </a>
-    <a href="{% url 'dashboard:course_list' %}" class="{% if 'courses/' in request.path %}active{% endif %}">
-        <i class="fas fa-book"></i> Courses
+    <a href="{% url 'dashboard:course_list' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-book" style="margin-right:0.75rem;"></i> Courses
     </a>
-    <a href="{% url 'dashboard:student_list' %}" class="{% if 'students/' in request.path %}active{% endif %}">
-        <i class="fas fa-users"></i> Students
+    <a href="{% url 'dashboard:student_list' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-users" style="margin-right:0.75rem;"></i> Students
     </a>
-    <a href="{% url 'dashboard:teacher_list' %}" class="{% if 'teachers/' in request.path %}active{% endif %}">
-        <i class="fas fa-user-tie"></i> Teachers
+    <a href="{% url 'dashboard:teacher_list' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-user-tie" style="margin-right:0.75rem;"></i> Teachers
     </a>
-    <a href="{% url 'dashboard:admin_list' %}" class="{% if 'admins/' in request.path %}active{% endif %}">
-        <i class="fas fa-user-shield"></i> Admins
+    <a href="{% url 'dashboard:admin_list' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-user-shield" style="margin-right:0.75rem;"></i> Admins
     </a>
     {% elif user.role == 'teacher' %}
     <!-- Teacher Links -->
-    <a href="{% url 'dashboard:teacher_dashboard' %}" class="{% if request.path == '/dashboard/teacher/dashboard/' %}active{% endif %}">
-        <i class="fas fa-tachometer-alt"></i> Dashboard
+    <a href="{% url 'dashboard:teacher_dashboard' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-tachometer-alt" style="margin-right:0.75rem;"></i> Dashboard
     </a>
-    <a href="{% url 'dashboard:teacher_courses' %}" class="{% if 'teacher/courses' in request.path %}active{% endif %}">
-        <i class="fas fa-book"></i> My Courses
+    <a href="{% url 'dashboard:teacher_courses' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-book" style="margin-right:0.75rem;"></i> My Courses
     </a>
-    <a href="{% url 'dashboard:teacher_assignments' %}" class="{% if 'teacher/assignments' in request.path %}active{% endif %}">
-        <i class="fas fa-tasks"></i> Assignments
+    <a href="{% url 'dashboard:teacher_assignments' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-tasks" style="margin-right:0.75rem;"></i> Assignments
     </a>
-    <a href="{% url 'dashboard:teacher_students' %}" class="{% if 'teacher/students' in request.path %}active{% endif %}">
-        <i class="fas fa-users"></i> Students
+    <a href="{% url 'dashboard:teacher_students' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-users" style="margin-right:0.75rem;"></i> Students
+    </a>
+    <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-chart-line" style="margin-right:0.75rem;"></i> Progress Track
+    </a>
+    <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-envelope" style="margin-right:0.75rem;"></i> Messages
     </a>
     {% endif %}
 
-    <div class="sidebar-divider"></div>
+    <hr style="border-top:1px solid rgba(255,255,255,0.3); margin:1rem;">
 
     <!-- Settings -->
-    <a href="#">
-        <i class="fas fa-cog"></i> Settings
+    <a href="{% url 'dashboard:admin_settings' %}" class="{% if 'settings/' in request.path %}active{% endif %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-cog" style="margin-right:0.75rem;"></i> Settings
+    </a>
+
+    <!-- Profile -->
+    <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-user" style="margin-right:0.75rem;"></i> Profile
     </a>
 
     <!-- Logout -->
-    <a href="{% url 'logout' %}">
-        <i class="fas fa-sign-out-alt"></i> Logout
-    </a>
+    <form method="post" action="{% url 'logout' %}" style="margin:0;">
+        {% csrf_token %}
+        <button type="submit" style="background:rgba(255,255,255,0.1); border:none; width:100%; padding:1rem; text-align:left; display:flex; align-items:center; color:#fff; cursor:pointer; border-radius:6px; margin:0.25rem 1rem;">
+            <i class="fas fa-sign-out-alt" style="margin-right:0.75rem;"></i> Logout
+        </button>
+    </form>
 </div>

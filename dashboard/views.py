@@ -2,13 +2,17 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import logout, get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import Teacher, Student, Course, Assignment, Submission
+from .models import Teacher, Student, Course, Assignment, Submission, UserProfile
 from .forms import TeacherForm, StudentForm, CourseForm, AssignmentForm, AdminCreationForm, AdminChangeForm,TeacherStudentForm,TeacherCourseForm
 from django.db.models import Count, Avg
 from datetime import datetime, timedelta
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
+import pyotp
+import qrcode
+import io
+import base64
 
 User = get_user_model()
 
@@ -568,3 +572,157 @@ def remove_student_from_course(request, course_id, student_id):
     
     # If not POST, redirect back
     return redirect('dashboard:teacher_course_detail', course_id=course_id)
+
+# -----------------------------
+# Settings Views
+# -----------------------------
+@user_passes_test(is_admin)
+def admin_settings(request):
+    context = {
+        'title': 'Admin Settings',
+        'settings_options': [
+            {'name': 'Profile', 'icon': 'fas fa-user', 'description': 'Update your profile information', 'url': 'dashboard:profile_settings'},
+            {'name': 'Appearance', 'icon': 'fas fa-palette', 'description': 'Customize theme', 'url': 'dashboard:appearance_settings'},
+            {'name': 'Security', 'icon': 'fas fa-shield-alt', 'description': 'Security settings', 'url': 'dashboard:security_settings'},
+        ]
+    }
+    return render(request, 'dashboard/admin_settings.html', context)
+
+@user_passes_test(is_admin)
+def profile_settings(request):
+    if request.method == 'POST':
+        user = request.user
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.email = request.POST.get('email', user.email)
+        
+        # Handle profile photo upload (you'll need to add this field to your User model)
+        # if 'profile_photo' in request.FILES:
+        #     user.profile_photo = request.FILES['profile_photo']
+        
+        user.save()
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('dashboard:profile_settings')
+    
+    return render(request, 'dashboard/profile_settings.html', {
+        'title': 'Profile Settings'
+    })
+
+@user_passes_test(is_admin)
+def appearance_settings(request):
+    if request.method == 'POST':
+        theme = request.POST.get('theme', 'light')
+        
+        # Save to user's profile or session
+        try:
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            profile.theme_preference = theme
+            profile.save()
+            messages.success(request, 'Appearance settings saved!')
+        except:
+            # Fallback to session if no profile model
+            request.session['theme'] = theme
+            messages.success(request, 'Appearance settings saved!')
+        
+        return redirect('dashboard:appearance_settings')
+    
+    # Get current theme preference
+    current_theme = 'light'  # default
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+        current_theme = profile.theme_preference
+    except:
+        current_theme = request.session.get('theme', 'light')
+    
+    return render(request, 'dashboard/appearance_settings.html', {
+        'title': 'Appearance Settings',
+        'themes': ['light', 'dark', 'auto'],
+        'current_theme': current_theme
+    })
+
+@user_passes_test(is_admin)
+def security_settings(request):
+    if request.method == 'POST':
+        # Handle password change
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+        
+        if current_password and new_password and 'password_change' in request.POST:
+            if request.user.check_password(current_password):
+                request.user.set_password(new_password)
+                request.user.save()
+                messages.success(request, 'Password updated successfully!')
+            else:
+                messages.error(request, 'Current password is incorrect')
+        
+        # Handle 2FA enable
+        elif 'enable_2fa' in request.POST:
+            # Generate a secret key
+            secret = pyotp.random_base32()
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            profile.two_factor_secret = secret
+            profile.save()
+            messages.info(request, 'Please scan the QR code with your authenticator app')
+        
+        # Handle 2FA verification
+        elif 'verify_2fa' in request.POST:
+            verification_code = request.POST.get('verification_code')
+            profile = UserProfile.objects.get(user=request.user)
+            
+            totp = pyotp.TOTP(profile.two_factor_secret)
+            if totp.verify(verification_code):
+                profile.two_factor_enabled = True
+                profile.save()
+                messages.success(request, 'Two-factor authentication enabled successfully!')
+            else:
+                messages.error(request, 'Invalid verification code')
+        
+        # Handle 2FA disable
+        elif 'disable_2fa' in request.POST:
+            profile = UserProfile.objects.get(user=request.user)
+            profile.two_factor_enabled = False
+            profile.two_factor_secret = None
+            profile.save()
+            messages.success(request, 'Two-factor authentication disabled')
+        
+        return redirect('dashboard:security_settings')
+    
+    # Get active sessions (simplified implementation)
+    active_sessions = 1  # You would implement proper session tracking
+    
+    # Check if user has 2FA enabled
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+        two_factor_enabled = profile.two_factor_enabled
+        has_secret = bool(profile.two_factor_secret)
+    except UserProfile.DoesNotExist:
+        two_factor_enabled = False
+        has_secret = False
+    
+    return render(request, 'dashboard/security_settings.html', {
+        'title': 'Security Settings',
+        'active_sessions': active_sessions,
+        'two_factor_enabled': two_factor_enabled,
+        'has_secret': has_secret
+    })
+
+def generate_qr_code(request):
+    """Generate QR code for 2FA setup"""
+    profile = UserProfile.objects.get(user=request.user)
+    totp = pyotp.TOTP(profile.two_factor_secret)
+    provisioning_uri = totp.provisioning_uri(
+        name=request.user.email,
+        issuer_name="Brain Box"
+    )
+    
+    # Generate QR code
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(provisioning_uri)
+    qr.make(fit=True)
+    
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+    
+    return HttpResponse(buffer.getvalue(), content_type='image/png')
