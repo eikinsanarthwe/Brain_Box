@@ -2,13 +2,21 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import logout, get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import Teacher, Student, Course, Assignment, Submission, CourseMaterial
-from .forms import TeacherForm, StudentForm, CourseForm, AssignmentForm, AdminCreationForm, AdminChangeForm,TeacherStudentForm,TeacherCourseForm, CourseMaterialForm
+from django.db import models
 from django.db.models import Count, Avg
-from datetime import datetime, timedelta
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.template.loader import render_to_string
+from datetime import datetime, timedelta
 import json
+
+from .models import Teacher, Student, Course, Assignment, Submission, CourseMaterial, Message
+from .forms import (
+    TeacherForm, StudentForm, CourseForm, AssignmentForm,
+    AdminCreationForm, AdminChangeForm, TeacherStudentForm,
+    TeacherCourseForm, CourseMaterialForm, MessageForm, ReplyForm
+)
+
 
 User = get_user_model()
 
@@ -655,3 +663,119 @@ def student_course_materials(request, course_id):
         'materials': materials,
     }
     return render(request, 'dashboard/student_course_materials.html', context)
+# -----------------------------
+# Message Views
+# -----------------------------
+
+
+@login_required
+def message_list(request):
+    messages = Message.objects.filter(recipient=request.user).order_by('-sent_at')
+    unread_count = messages.filter(is_read=False).count()
+    
+    # Handle preview request for dropdown
+    if request.GET.get('preview'):
+        preview_messages = messages[:3]  # Get latest 3 messages
+        html = render_to_string('dashboard/message_preview.html', {
+            'preview_messages': preview_messages
+        })
+        return HttpResponse(html)
+    
+    # Regular page request - render the full message list
+    context = {
+        'messages': messages,
+        'unread_count': unread_count,
+    }
+    return render(request, 'dashboard/message_list.html', context)  # This line was missing!
+@login_required
+def message_compose(request, recipient_id=None):
+    if request.method == 'POST':
+        form = MessageForm(request.POST, sender=request.user)
+        print(f"Form is valid: {form.is_valid()}")
+        if not form.is_valid():
+            print(f"Form errors: {form.errors}")
+            
+        if form.is_valid():
+            message = form.save(commit=False)
+            message.sender = request.user
+            message.save()
+            print(f"Message saved: {message.id}, From: {message.sender}, To: {message.recipient}")
+            messages.success(request, 'Message sent successfully!')
+            return redirect('dashboard:message_list')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        initial = {}
+        if recipient_id:
+            recipient = get_object_or_404(User, id=recipient_id)
+            initial['recipient'] = recipient
+        
+        form = MessageForm(initial=initial, sender=request.user)
+        print(f"Recipient choices: {form.fields['recipient'].queryset.count()}")
+    
+    return render(request, 'dashboard/message_compose.html', {
+        'form': form,
+        'title': 'Compose Message'
+    })
+@login_required
+def message_detail(request, message_id):
+    message = get_object_or_404(Message, id=message_id)
+    
+    # Ensure the current user is either sender or recipient
+    if message.recipient != request.user and message.sender != request.user:
+        messages.error(request, "You don't have permission to view this message.")
+        return redirect('dashboard:message_list')
+    
+    # Mark as read if recipient is viewing
+    if message.recipient == request.user and not message.is_read:
+        message.mark_as_read()
+    
+    if request.method == 'POST':
+        form = ReplyForm(request.POST)
+        if form.is_valid():
+            reply = form.save(commit=False)
+            reply.sender = request.user
+            reply.recipient = message.sender if request.user == message.recipient else message.recipient
+            reply.subject = f"Re: {message.subject}"
+            reply.parent_message = message
+            reply.save()
+            messages.success(request, 'Reply sent successfully!')
+            return redirect('dashboard:message_detail', message_id=message.id)
+    else:
+        form = ReplyForm()
+    
+    # Get conversation thread
+    conversation = Message.objects.filter(
+        models.Q(parent_message=message) | 
+        models.Q(id=message.parent_message.id) if message.parent_message else models.Q(id=message.id)
+    ).order_by('sent_at')
+    
+    context = {
+        'message': message,
+        'form': form,
+        'conversation': conversation,
+    }
+    return render(request, 'dashboard/message_detail.html', context)
+
+@login_required
+def message_delete(request, message_id):
+    message = get_object_or_404(Message, id=message_id)
+    
+    # Ensure the current user is the recipient
+    if message.recipient != request.user:
+        messages.error(request, "You can only delete messages you received.")
+        return redirect('dashboard:message_list')
+    
+    if request.method == 'POST':
+        message.delete()
+        messages.success(request, 'Message deleted successfully!')
+        return redirect('dashboard:message_list')
+    
+    return render(request, 'dashboard/message_confirm_delete.html', {'message': message})
+
+@login_required
+def get_unread_count(request):
+    if request.user.is_authenticated:
+        unread_count = Message.objects.filter(recipient=request.user, is_read=False).count()
+        return JsonResponse({'unread_count': unread_count})
+    return JsonResponse({'unread_count': 0})

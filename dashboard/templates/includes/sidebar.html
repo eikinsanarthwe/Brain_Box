@@ -1,283 +1,88 @@
-<div class="col-md-2 sidebar d-flex flex-column">
+<div class="col-md-2 sidebar d-flex flex-column"
+     style="min-height:100vh;
+            background:linear-gradient(135deg,
+                #0F2027 0%,
+                #136B7F 25%,
+                #2A9D8F 50%,
+                #7B2CBF 75%,
+                #E85D75 30%);
+            background-size:400% 400%;
+            box-shadow:0 0.15rem 1.75rem 0 rgba(0,0,0,0.3);
+            padding:0;
+            color:white;">
+
     <!-- Brand Logo -->
-    <a class="sidebar-brand" href="{% if user.role == 'admin' %}{% url 'dashboard:dashboard' %}{% else %}{% url 'dashboard:teacher_dashboard' %}{% endif %}">
-        <i class="fas fa-brain me-2"></i>Brain Box
+    <a class="sidebar-brand" href="{% if user.role == 'admin' %}{% url 'dashboard:dashboard' %}{% else %}{% url 'dashboard:teacher_dashboard' %}{% endif %}"
+       style="padding:1.5rem 1rem;
+              font-size:1.2rem;
+              font-weight:700;
+              text-align:center;
+              text-transform:uppercase;
+              letter-spacing:0.05em;
+              text-decoration:none;
+              color:#fff;
+              border-bottom:1px solid rgba(255,255,255,0.3);">
+        <i class="fas fa-brain me-2"></i> Brain Box
     </a>
 
-    <div class="sidebar-divider"></div>
+    <hr style="border-top:1px solid rgba(255,255,255,0.3); margin:1rem;">
 
     {% if user.role == 'admin' %}
     <!-- Admin Links -->
-    <a href="{% url 'dashboard:dashboard' %}" class="{% if request.path == '/' %}active{% endif %}">
-        <i class="fas fa-tachometer-alt"></i> Dashboard
+    <a href="{% url 'dashboard:dashboard' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-tachometer-alt" style="margin-right:0.75rem;"></i> Dashboard
     </a>
-    <a href="{% url 'dashboard:course_list' %}" class="{% if 'courses/' in request.path %}active{% endif %}">
-        <i class="fas fa-book"></i> Courses
+    <a href="{% url 'dashboard:course_list' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-book" style="margin-right:0.75rem;"></i> Courses
     </a>
-    <a href="{% url 'dashboard:student_list' %}" class="{% if 'students/' in request.path %}active{% endif %}">
-        <i class="fas fa-users"></i> Students
+    <a href="{% url 'dashboard:student_list' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-users" style="margin-right:0.75rem;"></i> Students
     </a>
-    <a href="{% url 'dashboard:teacher_list' %}" class="{% if 'teachers/' in request.path %}active{% endif %}">
-        <i class="fas fa-user-tie"></i> Teachers
+    <a href="{% url 'dashboard:teacher_list' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-user-tie" style="margin-right:0.75rem;"></i> Teachers
     </a>
-    <a href="{% url 'dashboard:admin_list' %}" class="{% if 'admins/' in request.path %}active{% endif %}">
-        <i class="fas fa-user-shield"></i> Admins
+    <a href="{% url 'dashboard:admin_list' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-user-shield" style="margin-right:0.75rem;"></i> Admins
     </a>
     {% elif user.role == 'teacher' %}
     <!-- Teacher Links -->
-    <a href="{% url 'dashboard:teacher_dashboard' %}" class="{% if request.path == '/dashboard/teacher/dashboard/' or request.path == '/dashboard/teacher/dashboard' %}active{% endif %}">
-        <i class="fas fa-tachometer-alt"></i> Dashboard
+    <a href="{% url 'dashboard:teacher_dashboard' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-tachometer-alt" style="margin-right:0.75rem;"></i> Dashboard
     </a>
-    <a href="{% url 'dashboard:teacher_courses' %}" class="{% if 'teacher/courses' in request.path %}active{% endif %}">
-        <i class="fas fa-book"></i> My Courses
+    <a href="{% url 'dashboard:teacher_courses' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-book" style="margin-right:0.75rem;"></i> My Courses
     </a>
-    <a href="{% url 'dashboard:teacher_assignments' %}" class="{% if 'teacher/assignments' in request.path %}active{% endif %}">
-        <i class="fas fa-tasks"></i> Assignments
+    <a href="{% url 'dashboard:teacher_assignments' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-tasks" style="margin-right:0.75rem;"></i> Assignments
     </a>
-    <a href="{% url 'dashboard:teacher_students' %}" class="{% if 'teacher/students' in request.path %}active{% endif %}">
-        <i class="fas fa-users"></i> Students
+    <a href="{% url 'dashboard:teacher_students' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-users" style="margin-right:0.75rem;"></i> Students
     </a>
-    <a href="#">
-        <i class="fas fa-chart-line"></i> Progress Track
+    <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-chart-line" style="margin-right:0.75rem;"></i> Progress Track
     </a>
-    <a href="#">
-        <i class="fas fa-envelope"></i> Messages
-    </a>
+    <a href="{% url 'dashboard:message_list' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+    <i class="fas fa-envelope" style="margin-right:0.75rem;"></i> Messages
+</a>
     {% endif %}
 
-    <div class="sidebar-divider"></div>
+    <hr style="border-top:1px solid rgba(255,255,255,0.3); margin:1rem;">
 
     <!-- Settings -->
-    <a href="#">
-        <i class="fas fa-cog"></i> Settings
+    <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-cog" style="margin-right:0.75rem;"></i> Settings
     </a>
-    
+
     <!-- Profile -->
-    <a href="#">
-        <i class="fas fa-user"></i> Profile
+    <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-user" style="margin-right:0.75rem;"></i> Profile
     </a>
 
     <!-- Logout -->
-    <form method="post" action="{% url 'logout' %}" class="sidebar-link-form">
+    <form method="post" action="{% url 'logout' %}" style="margin:0;">
         {% csrf_token %}
-        <button type="submit" class="sidebar-link-btn">
-            <i class="fas fa-sign-out-alt"></i> Logout
+        <button type="submit" style="background:rgba(255,255,255,0.1); border:none; width:100%; padding:1rem; text-align:left; display:flex; align-items:center; color:#fff; cursor:pointer; border-radius:6px; margin:0.25rem 1rem;">
+            <i class="fas fa-sign-out-alt" style="margin-right:0.75rem;"></i> Logout
         </button>
     </form>
 </div>
-
-<style>
-.sidebar {
-    min-height: 100vh;
-    padding: 0;
-    background: linear-gradient(135deg, 
-        #136B7F 0%, 
-        #2A7F94 25%, 
-        #3D8FA3 50%, 
-        #5A9DAD 75%, 
-        #79B0BB 100%);
-    background-size: 400% 400%;
-    animation: softNorthernLights 25s ease infinite;
-    box-shadow: 0 0.15rem 1.75rem 0 rgba(0, 0, 0, 0.1);
-    position: relative;
-    overflow: hidden;
-    backdrop-filter: blur(3px);
-    border-right: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.sidebar::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 20% 30%, 
-        rgba(121, 176, 187, 0.3) 0%, 
-        rgba(90, 157, 173, 0.2) 20%, 
-        transparent 50%),
-               radial-gradient(circle at 80% 70%, 
-        rgba(121, 176, 187, 0.2) 0%, 
-        rgba(90, 157, 173, 0.1) 20%, 
-        transparent 50%);
-    pointer-events: none;
-    animation: softGlow 10s ease-in-out infinite alternate;
-}
-
-.sidebar::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(45deg, 
-        transparent 0%, 
-        rgba(255, 255, 255, 0.08) 25%, 
-        rgba(255, 255, 255, 0.05) 50%, 
-        rgba(255, 255, 255, 0.08) 75%, 
-        transparent 100%);
-    pointer-events: none;
-    animation: softShimmer 15s ease-in-out infinite;
-}
-
-@keyframes softNorthernLights {
-    0% { background-position: 0% 0%; }
-    33% { background-position: 50% 50%; }
-    66% { background-position: 100% 100%; }
-    100% { background-position: 0% 0%; }
-}
-
-@keyframes softGlow {
-    0% { opacity: 0.2; transform: scale(1); }
-    50% { opacity: 0.3; transform: scale(1.02); }
-    100% { opacity: 0.25; transform: scale(1); }
-}
-
-@keyframes softShimmer {
-    0% { background-position: -100% 0%; }
-    100% { background-position: 200% 0%; }
-}
-
-.sidebar-brand {
-    padding: 1.5rem 1rem;
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #ffffff !important;
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    text-decoration: none;
-    position: relative;
-    z-index: 1;
-    background: rgba(19, 107, 127, 0.3);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-    margin: 0;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-}
-
-.sidebar-divider {
-    border-top: 1px solid rgba(255, 255, 255, 0.25);
-    margin: 1rem;
-    position: relative;
-    z-index: 1;
-}
-
-.sidebar a {
-    color: rgba(255, 255, 255, 0.9);
-    padding: 1rem;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    transition: all 0.3s ease;
-    border-radius: 6px;
-    margin: 0.25rem 1rem;
-    position: relative;
-    z-index: 1;
-    font-weight: 500;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
-}
-
-.sidebar a:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #ffffff;
-    transform: translateX(4px);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.sidebar a.active {
-    background: rgba(255, 255, 255, 0.2);
-    color: #ffffff;
-    font-weight: 600;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    border-color: rgba(255, 255, 255, 0.25);
-    transform: translateX(3px);
-}
-
-.sidebar a i {
-    margin-right: 0.75rem;
-    width: 1.5rem;
-    text-align: center;
-    font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.8);
-    transition: color 0.3s ease;
-}
-
-.sidebar a:hover i {
-    color: #ffffff;
-}
-
-.sidebar-link-form {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    position: relative;
-    z-index: 1;
-}
-
-.sidebar-link-btn {
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    text-align: left;
-    width: 100%;
-    padding: 1rem;
-    color: rgba(255, 255, 255, 0.9);
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border-radius: 6px;
-    margin: 0.25rem 1rem;
-    font-weight: 500;
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
-}
-
-.sidebar-link-btn:hover {
-    background: rgba(255, 255, 255, 0.15);
-    color: #ffffff;
-    transform: translateX(4px);
-    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
-    border-color: rgba(255, 255, 255, 0.2);
-}
-
-.sidebar-link-btn i {
-    margin-right: 0.75rem;
-    width: 1.5rem;
-    text-align: center;
-    font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.8);
-    transition: color 0.3s ease;
-}
-
-.sidebar-link-btn:hover i {
-    color: #ffffff;
-}
-
-/* Mobile responsiveness */
-@media (max-width: 768px) {
-    .sidebar {
-        position: fixed;
-        z-index: 1000;
-        width: 280px;
-        transform: translateX(-100%);
-    }
-    
-    .sidebar.show {
-        transform: translateX(0);
-    }
-    
-    .sidebar a {
-        margin: 0 15px 6px 15px;
-        padding: 1rem;
-    }
-    
-    .sidebar-link-btn {
-        margin: 0 15px 6px 15px;
-        padding: 1rem;
-    }
-}
-</style>

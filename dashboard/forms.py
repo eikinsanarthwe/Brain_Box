@@ -1,7 +1,10 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
-from .models import Teacher, Student, Course, Assignment,CourseMaterial
+from .models import Teacher, Student, Course, Assignment,CourseMaterial,Message
+from django.db import models  # Add this import
+from django.db.models import Q  # Make sure this import is there
+
 
 User = get_user_model()
 
@@ -275,4 +278,72 @@ class CourseMaterialForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter material title'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Description of the material...'}),
             'file': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+        # ---------------- Message Form ---------------- #
+# ---------------- Message Form ---------------- #
+
+class MessageForm(forms.ModelForm):
+    # Define the recipient field explicitly
+    recipient = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label="Recipient"
+    )
+
+    class Meta:
+        model = Message   # ✅ use the actual model, not a string
+        fields = ['recipient', 'subject', 'body']
+        widgets = {
+            'subject': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Message subject'}),
+            'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Type your message here...'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.sender = kwargs.pop('sender', None)
+        super().__init__(*args, **kwargs)
+
+        if self.sender:
+            if self.sender.role == 'admin':
+                self.fields['recipient'].queryset = User.objects.exclude(id=self.sender.id)
+
+            elif self.sender.role == 'teacher':
+                teacher_courses = Course.objects.filter(teachers__user=self.sender)
+                student_users = Student.objects.filter(
+                    course__in=teacher_courses
+                ).values_list('user', flat=True)
+
+                recipients = User.objects.filter(
+                    Q(role='admin') |
+                    Q(role='teacher') |
+                    Q(id__in=student_users)
+                ).exclude(id=self.sender.id)
+
+                self.fields['recipient'].queryset = recipients
+
+            elif self.sender.role == 'student':
+                student = Student.objects.get(user=self.sender)
+
+                teacher_users = Teacher.objects.filter(
+                    courses=student.course
+                ).values_list('user', flat=True)
+
+                same_course_students = Student.objects.filter(
+                    course=student.course
+                ).values_list('user', flat=True)
+
+                recipients = User.objects.filter(
+                    Q(role='admin') |
+                    Q(id__in=teacher_users) |
+                    Q(id__in=same_course_students)
+                ).exclude(id=self.sender.id)
+
+                self.fields['recipient'].queryset = recipients
+
+
+class ReplyForm(forms.ModelForm):
+    class Meta:
+        model = Message   # ✅ directly set model here
+        fields = ['body']
+        widgets = {
+            'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Type your reply here...'}),
         }

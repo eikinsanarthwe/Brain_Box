@@ -57,4 +57,11 @@ path('teacher/courses/<int:course_id>/remove-student/<int:student_id>/', views.r
 path('teacher/courses/<int:course_id>/materials/', views.teacher_course_materials, name='teacher_course_materials'),
 path('teacher/courses/<int:course_id>/materials/add/', views.add_course_material, name='add_course_material'),
 path('teacher/courses/materials/<int:material_id>/delete/', views.delete_course_material, name='delete_course_material'),
-path('student/courses/<int:course_id>/materials/', views.student_course_materials, name='student_course_materials'),]
+path('student/courses/<int:course_id>/materials/', views.student_course_materials, name='student_course_materials'),
+# Message URLs
+path('messages/', views.message_list, name='message_list'),
+path('messages/compose/', views.message_compose, name='message_compose'),
+path('messages/compose/<int:recipient_id>/', views.message_compose, name='message_compose_to'),
+path('messages/<int:message_id>/', views.message_detail, name='message_detail'),
+path('messages/<int:message_id>/delete/', views.message_delete, name='message_delete'),
+path('messages/unread-count/', views.get_unread_count, name='unread_count'),]
