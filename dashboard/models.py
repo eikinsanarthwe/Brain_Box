@@ -8,7 +8,7 @@ class UserProfile(models.Model):
     profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
     two_factor_enabled = models.BooleanField(default=False)
     two_factor_secret = models.CharField(max_length=32, null=True, blank=True)
-    
+
     def __str__(self):
         return f"{self.user.username}'s Profile"
 
@@ -29,7 +29,7 @@ class Teacher(models.Model):
 class Student(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     enrollment_id = models.CharField(max_length=20, unique=True)
-    course = models.CharField(max_length=100)  # You can switch to FK if needed later
+    courses = models.ManyToManyField('Course', related_name='students')
     semester = models.IntegerField(default=1)
 
     def __str__(self):
@@ -106,7 +106,7 @@ class Submission(models.Model):
 
     def __str__(self):
         return f"{self.student}'s submission for {self.assignment}"
-    
+
 
 # -----------------------------
 # Course Material Model
@@ -122,9 +122,9 @@ class CourseMaterial(models.Model):
         on_delete=models.CASCADE
     )
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    
+
     def __str__(self):
         return f"{self.title} - {self.course.code}"
-    
+
     class Meta:
         ordering = ['-uploaded_at']

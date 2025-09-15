@@ -1,12 +1,13 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
 from django import forms
-from .models import Teacher, Student, Course, Assignment, Submission
-from .models import CourseMaterial
+from .models import Teacher, Student, Course, Assignment, Submission, CourseMaterial
 
 User = get_user_model()
 
-# Custom Form for Assignment with Teacher Validation
+# -----------------------------
+# Assignment Form with Teacher Validation
+# -----------------------------
 class AssignmentAdminForm(forms.ModelForm):
     class Meta:
         model = Assignment
@@ -18,77 +19,65 @@ class AssignmentAdminForm(forms.ModelForm):
             raise forms.ValidationError("The selected user must be a registered teacher")
         return teacher
 
-# Custom Filter for Teachers in Assignment Admin
+# -----------------------------
+# Custom Filter for Teachers
+# -----------------------------
 class TeacherFilter(admin.SimpleListFilter):
-    title = 'teacher'
+    title = 'Teacher'
     parameter_name = 'teacher'
 
     def lookups(self, request, model_admin):
-        return [(t.user.id, f"{t.user.get_full_name()} ({t.specialty})") 
-               for t in Teacher.objects.all()]
+        return [(t.user.id, f"{t.user.get_full_name()} ({t.specialty})") for t in Teacher.objects.all()]
 
     def queryset(self, request, queryset):
         if self.value():
             return queryset.filter(teacher__id=self.value())
         return queryset
 
+# -----------------------------
 # Teacher Admin
+# -----------------------------
 @admin.register(Teacher)
 class TeacherAdmin(admin.ModelAdmin):
     list_display = ['user', 'specialty', 'phone', 'user_email']
     search_fields = ['user__first_name', 'user__last_name', 'specialty', 'phone']
     list_filter = ['specialty']
     raw_id_fields = ['user']
-    fieldsets = (
-        (None, {
-            'fields': ('user', 'specialty')
-        }),
-        ('Contact Information', {
-            'fields': ('phone',)
-        }),
-    )
 
     def user_email(self, obj):
         return obj.user.email
     user_email.short_description = 'Email'
     user_email.admin_order_field = 'user__email'
 
+# -----------------------------
 # Student Admin
+# -----------------------------
 @admin.register(Student)
 class StudentAdmin(admin.ModelAdmin):
-    list_display = ['user', 'enrollment_id', 'course', 'semester', 'user_email']
-    list_filter = ['course', 'semester']
+    list_display = ['user', 'enrollment_id', 'semester', 'user_email', 'get_courses']
+    list_filter = ['semester']
     search_fields = ['user__first_name', 'user__last_name', 'enrollment_id']
     raw_id_fields = ['user']
-    fieldsets = (
-        (None, {
-            'fields': ('user', 'enrollment_id')
-        }),
-        ('Academic Information', {
-            'fields': ('course', 'semester')
-        }),
-    )
+    filter_horizontal = ['courses']
+
+    def get_courses(self, obj):
+        return ", ".join([c.code for c in obj.courses.all()])
+    get_courses.short_description = 'Courses'
 
     def user_email(self, obj):
         return obj.user.email
     user_email.short_description = 'Email'
     user_email.admin_order_field = 'user__email'
 
+# -----------------------------
 # Course Admin
+# -----------------------------
 @admin.register(Course)
 class CourseAdmin(admin.ModelAdmin):
     list_display = ['code', 'name', 'teacher_count', 'description_short']
     list_filter = ['teachers']
     search_fields = ['code', 'name', 'description']
     filter_horizontal = ['teachers']
-    fieldsets = (
-        (None, {
-            'fields': ('code', 'name', 'description')
-        }),
-        ('Instructors', {
-            'fields': ('teachers',)
-        }),
-    )
 
     def teacher_count(self, obj):
         return obj.teachers.count()
@@ -98,28 +87,18 @@ class CourseAdmin(admin.ModelAdmin):
         return obj.description[:50] + '...' if len(obj.description) > 50 else obj.description
     description_short.short_description = 'Description'
 
+# -----------------------------
 # Assignment Admin
+# -----------------------------
 @admin.register(Assignment)
 class AssignmentAdmin(admin.ModelAdmin):
     form = AssignmentAdminForm
-    list_display = ('title', 'course', 'teacher_name', 'due_date', 'status_badge', 'max_points')
-    list_filter = ('status', 'course', TeacherFilter)
-    search_fields = ('title', 'course__name', 'teacher__username')
+    list_display = ['title', 'course', 'teacher_name', 'due_date', 'status_badge', 'max_points']
+    list_filter = ['status', 'course', TeacherFilter]
+    search_fields = ['title', 'course__name', 'teacher__username']
     date_hierarchy = 'due_date'
     filter_horizontal = ['students']
-    ordering = ('-due_date',)
-    list_per_page = 20
-    fieldsets = (
-        (None, {
-            'fields': ('title', 'description', 'course')
-        }),
-        ('Participants', {
-            'fields': ('teacher', 'students')
-        }),
-        ('Details', {
-            'fields': ('due_date', 'max_points', 'status')
-        }),
-    )
+    ordering = ['-due_date']
 
     def teacher_name(self, obj):
         return obj.teacher.get_full_name()
@@ -145,26 +124,17 @@ class AssignmentAdmin(admin.ModelAdmin):
             kwargs["queryset"] = User.objects.filter(teacher__isnull=False)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
+# -----------------------------
 # Submission Admin
+# -----------------------------
 @admin.register(Submission)
 class SubmissionAdmin(admin.ModelAdmin):
-    list_display = ('assignment', 'student_name', 'submitted_at', 'grade_display', 'is_late_badge')
-    list_filter = ('is_late', 'assignment__course')
-    search_fields = ('assignment__title', 'student__user__username')
-    readonly_fields = ('submitted_at',)
-    raw_id_fields = ('assignment', 'student')
-    list_per_page = 20
-    fieldsets = (
-        (None, {
-            'fields': ('assignment', 'student')
-        }),
-        ('Submission Details', {
-            'fields': ('submitted_file', 'submitted_at', 'is_late')
-        }),
-        ('Evaluation', {
-            'fields': ('grade', 'feedback')
-        }),
-    )
+    list_display = ['assignment', 'student_name', 'submitted_at', 'grade_display', 'is_late_badge']
+    list_filter = ['is_late', 'assignment__course']
+    search_fields = ['assignment__title', 'student__user__username']
+    readonly_fields = ['submitted_at']
+    raw_id_fields = ['assignment', 'student']
+    ordering = ['-submitted_at']
 
     def student_name(self, obj):
         return obj.student.user.get_full_name()
@@ -172,9 +142,7 @@ class SubmissionAdmin(admin.ModelAdmin):
     student_name.admin_order_field = 'student__user__first_name'
 
     def grade_display(self, obj):
-        if obj.grade is not None:
-            return f"{obj.grade}/{obj.assignment.max_points}"
-        return "Not graded"
+        return f"{obj.grade}/{obj.assignment.max_points}" if obj.grade is not None else "Not graded"
     grade_display.short_description = 'Grade'
 
     def is_late_badge(self, obj):
@@ -185,7 +153,9 @@ class SubmissionAdmin(admin.ModelAdmin):
         )
     is_late_badge.short_description = 'Status'
 
-
+# -----------------------------
+# Course Material Admin
+# -----------------------------
 @admin.register(CourseMaterial)
 class CourseMaterialAdmin(admin.ModelAdmin):
     list_display = ['title', 'course', 'uploaded_by', 'uploaded_at']

@@ -1,3 +1,4 @@
+from urllib import request
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import logout, get_user_model
@@ -423,15 +424,24 @@ def teacher_students(request):
     teacher = get_object_or_404(Teacher, user=request.user)
     courses = Course.objects.filter(teachers=teacher)
 
+
+
+
     # Get students enrolled in courses taught by this teacher
     students = Student.objects.filter(
-        course__in=[course.name for course in courses]
-    ).select_related('user')
+        courses__in=courses
+    ).select_related('user').distinct()
 
     context = {
-        'students': students,
-    }
+    'students': students,
+}
     return render(request, 'dashboard/teacher_students.html', context)
+
+
+
+
+
+
 @csrf_exempt
 def get_teachers_by_course(request):
     if request.method == 'GET':
@@ -815,3 +825,65 @@ def student_course_materials(request, course_id):
         'materials': materials,
     }
     return render(request, 'dashboard/student_course_materials.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def add_student_to_course(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+    teacher = get_object_or_404(Teacher, user=request.user)
+
+    # Check if the current teacher teaches this course
+    if teacher not in course.teachers.all():
+        messages.error(request, "You don't have permission to modify this course.")
+        return redirect('dashboard:teacher_courses')
+
+    if request.method == 'POST':
+        student_id = request.POST.get('student_id')
+        if student_id:
+            student = get_object_or_404(Student, id=student_id)
+
+            # Add student to the course
+            if course not in student.courses.all():
+                student.courses.add(course)
+                messages.success(request, f'Student {student.user.username} added to the course.')
+            else:
+                messages.warning(request, 'Student is already enrolled in this course.')
+
+            return redirect('dashboard:teacher_course_detail', course_id=course_id)
+
+    # Get all students not enrolled in this course
+    enrolled_students = Student.objects.filter(courses=course)
+    available_students = Student.objects.exclude(id__in=enrolled_students.values('id'))
+
+    context = {
+        'course': course,
+        'available_students': available_students,
+    }
+    return render(request, 'dashboard/add_student_to_course.html', context)
+
+
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def remove_student_from_course(request, course_id, student_id):
+    if request.method == 'POST':
+        course = get_object_or_404(Course, id=course_id)
+        student = get_object_or_404(Student, id=student_id)
+
+        # Check if the current teacher teaches this course
+        teacher = get_object_or_404(Teacher, user=request.user)
+        if teacher not in course.teachers.all():
+            messages.error(request, "You don't have permission to modify this course.")
+            return redirect('dashboard:teacher_courses')
+
+        # Remove student from the course (ManyToMany relationship)
+        if course in student.courses.all():
+            student.courses.remove(course)
+            messages.success(request, f'Student {student.user.username} removed from the course.')
+        else:
+            messages.warning(request, 'Student is not enrolled in this course.')
+
+        return redirect('dashboard:teacher_course_detail', course_id=course_id)
+
+    # If not POST, redirect back
+    return redirect('dashboard:teacher_course_detail', course_id=course_id)
