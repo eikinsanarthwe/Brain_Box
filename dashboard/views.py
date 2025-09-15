@@ -2,13 +2,19 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import logout, get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import Teacher, Student, Course, Assignment, Submission, CourseMaterial
+from .models import Teacher, Student, Course, Assignment, Submission
+from .forms import TeacherForm, StudentForm, CourseForm, AssignmentForm, AdminCreationForm, AdminChangeForm,TeacherStudentForm,TeacherCourseForm
+from .models import Teacher, Student, Course, Assignment, Submission, CourseMaterial, UserProfile
 from .forms import TeacherForm, StudentForm, CourseForm, AssignmentForm, AdminCreationForm, AdminChangeForm,TeacherStudentForm,TeacherCourseForm, CourseMaterialForm
 from django.db.models import Count, Avg
 from datetime import datetime, timedelta
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
+import pyotp
+import qrcode
+import io
+import base64
 
 User = get_user_model()
 
@@ -241,13 +247,13 @@ def assignment_create(request):
                 assignment.teacher = request.user
             assignment.save()
             messages.success(request, 'Assignment created successfully!')
-            
+
             if request.user.role == 'teacher':
                 return redirect('dashboard:teacher_assignments')
             return redirect('dashboard:assignment_list')
     else:
         form = AssignmentForm(initial={'user': request.user})
-    
+
     return render(request, 'dashboard/assignment_form.html', {
         'form': form,
         'title': 'Create Assignment'
@@ -265,7 +271,7 @@ def teacher_assignment_create(request):
             return redirect('dashboard:teacher_assignments')
     else:
         form = AssignmentForm(initial={'user': request.user})
-    
+
     return render(request, 'dashboard/assignment_form.html', {
         'form': form,
         'title': 'Create Assignment'
@@ -273,12 +279,12 @@ def teacher_assignment_create(request):
 @login_required
 def edit_assignment(request, id=None):
     assignment = get_object_or_404(Assignment, id=id) if id else None
-    
+
     # Check if teacher owns this assignment
     if id and request.user.role == 'teacher' and assignment.teacher != request.user:
         messages.error(request, "You don't have permission to edit this assignment.")
         return redirect('dashboard:teacher_assignments')
-    
+
     if request.method == 'POST':
         form = AssignmentForm(request.POST, instance=assignment)
         if form.is_valid():
@@ -289,13 +295,13 @@ def edit_assignment(request, id=None):
             assignment.save()
             form.save_m2m()  # Save many-to-many relationships if any
             messages.success(request, f'Assignment {"updated" if id else "created"} successfully!')
-            
+
             if request.user.role == 'teacher':
                 return redirect('dashboard:teacher_assignments')
             return redirect('dashboard:assignment_list')
     else:
         form = AssignmentForm(instance=assignment)
-    
+
     return render(request, 'dashboard/assignment_form.html', {
         'form': form,
         'title': 'Edit Assignment' if id else 'Add Assignment'
@@ -316,30 +322,30 @@ def teacher_dashboard(request):
     except Teacher.DoesNotExist:
         messages.error(request, "Teacher profile not found.")
         return redirect('login')
-    
+
     # Get courses taught by this teacher
     courses = Course.objects.filter(teachers=teacher)
-    
+
     # Get assignments created by this teacher
     assignments = Assignment.objects.filter(teacher=request.user)
-    
+
     # Get recent submissions for teacher's assignments
     recent_submissions = Submission.objects.filter(
         assignment__teacher=request.user
     ).select_related('student', 'assignment').order_by('-submitted_at')[:5]
-    
+
     # Calculate statistics - filter by teacher's courses
     course_names = [course.name for course in courses]
     total_students = Student.objects.filter(
         course__in=course_names
     ).distinct().count()
-    
+
     # Count pending grading for this teacher's assignments
     pending_grading = Submission.objects.filter(
         assignment__teacher=request.user,
         grade__isnull=True
     ).count()
-    
+
     context = {
         'teacher': teacher,
         'courses': courses,
@@ -356,7 +362,7 @@ def teacher_dashboard(request):
 def teacher_assignments(request):
     # Get assignments created by this teacher
     assignments = Assignment.objects.filter(teacher=request.user)
-    
+
     context = {
         'assignments': assignments,
     }
@@ -366,16 +372,16 @@ def teacher_assignments(request):
 @user_passes_test(lambda u: u.role == 'teacher')
 def grade_submission(request, submission_id):
     submission = get_object_or_404(Submission, id=submission_id)
-    
+
     # Ensure the teacher can only grade submissions for their own assignments
     if submission.assignment.teacher != request.user:
         messages.error(request, "You don't have permission to grade this submission.")
         return redirect('dashboard:teacher_dashboard')
-    
+
     if request.method == 'POST':
         grade = request.POST.get('grade')
         feedback = request.POST.get('feedback')
-        
+
         if grade:
             try:
                 submission.grade = int(grade)
@@ -385,7 +391,7 @@ def grade_submission(request, submission_id):
                 return redirect('dashboard:teacher_assignment_detail', id=submission.assignment.id)
             except ValueError:
                 messages.error(request, 'Please enter a valid grade.')
-    
+
     context = {
         'submission': submission,
     }
@@ -395,7 +401,7 @@ def grade_submission(request, submission_id):
 def teacher_courses(request):
     teacher = get_object_or_404(Teacher, user=request.user)
     courses = Course.objects.filter(teachers=teacher)
-    
+
     context = {
         'courses': courses,
     }
@@ -405,7 +411,7 @@ def teacher_courses(request):
 def teacher_assignment_detail(request, id):
     assignment = get_object_or_404(Assignment, id=id, teacher=request.user)
     submissions = Submission.objects.filter(assignment=assignment).select_related('student')
-    
+
     context = {
         'assignment': assignment,
         'submissions': submissions,
@@ -416,12 +422,12 @@ def teacher_assignment_detail(request, id):
 def teacher_students(request):
     teacher = get_object_or_404(Teacher, user=request.user)
     courses = Course.objects.filter(teachers=teacher)
-    
+
     # Get students enrolled in courses taught by this teacher
     students = Student.objects.filter(
         course__in=[course.name for course in courses]
     ).select_related('user')
-    
+
     context = {
         'students': students,
     }
@@ -431,7 +437,7 @@ def get_teachers_by_course(request):
     if request.method == 'GET':
         course_id = request.GET.get('course_id')
         print(f"API called for course_id: {course_id}")
-        
+
         if course_id:
             try:
                 course = Course.objects.get(id=course_id)
@@ -444,7 +450,7 @@ def get_teachers_by_course(request):
                 return JsonResponse([], safe=False)
         else:
             print("No course_id provided")
-    
+
     return JsonResponse([], safe=False)
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
@@ -460,7 +466,7 @@ def teacher_course_create(request):
             return redirect('dashboard:teacher_courses')
     else:
         form = TeacherCourseForm()
-    
+
     return render(request, 'dashboard/teacher_course_form.html', {
         'form': form,
         'title': 'Create Course'
@@ -473,15 +479,15 @@ def teacher_student_create(request):
     try:
         teacher_obj = Teacher.objects.get(user=request.user)
         print(f"DEBUG: Found teacher object: {teacher_obj}")
-        
+
         # Check what courses this teacher has
         courses = Course.objects.filter(teachers=teacher_obj)
         print(f"DEBUG: Teacher has {courses.count()} courses: {list(courses)}")
-        
+
     except Teacher.DoesNotExist:
         messages.error(request, "Teacher profile not found.")
         return redirect('dashboard:teacher_dashboard')
-    
+
     if request.method == 'POST':
         form = TeacherStudentForm(request.POST, teacher=teacher_obj)
         if form.is_valid():
@@ -493,7 +499,7 @@ def teacher_student_create(request):
     else:
         form = TeacherStudentForm(teacher=teacher_obj)
         print(f"DEBUG: Form course choices: {form.fields['course'].choices}")
-    
+
     return render(request, 'dashboard/teacher_student_form.html', {
         'form': form,
         'title': 'Add Student'
@@ -505,32 +511,32 @@ def teacher_course_detail(request, course_id):
     # Get the course and ensure the current teacher teaches it
     course = get_object_or_404(Course.objects.prefetch_related('materials'), id=course_id)  # Add prefetch_related
     teacher = get_object_or_404(Teacher, user=request.user)
-    
+
     # Check if the current teacher teaches this course
     if teacher not in course.teachers.all():
         messages.error(request, "You don't have permission to view this course.")
         return redirect('dashboard:teacher_courses')
-    
+
     # Get students enrolled in this course
     students = Student.objects.filter(course=course.name).select_related('user')
-    
+
     # Get assignments for this course
     assignments = Assignment.objects.filter(course=course, teacher=request.user)
-    
+
     # Get assignment count and submission stats
     assignment_stats = []
     for assignment in assignments:
         submissions = Submission.objects.filter(assignment=assignment)
         graded_count = submissions.filter(grade__isnull=False).count()
         pending_count = submissions.filter(grade__isnull=True).count()
-        
+
         assignment_stats.append({
             'assignment': assignment,
             'total_submissions': submissions.count(),
             'graded_count': graded_count,
             'pending_count': pending_count
         })
-    
+
     context = {
         'course': course,
         'students': students,
@@ -538,7 +544,7 @@ def teacher_course_detail(request, course_id):
         'assignment_stats': assignment_stats,
         'teacher': teacher,
     }
-    
+
     return render(request, 'dashboard/teacher_course_detail.html', context)
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
@@ -546,13 +552,13 @@ def remove_student_from_course(request, course_id, student_id):
     if request.method == 'POST':
         course = get_object_or_404(Course, id=course_id)
         student = get_object_or_404(Student, id=student_id)
-        
+
         # Check if the current teacher teaches this course
         teacher = get_object_or_404(Teacher, user=request.user)
         if teacher not in course.teachers.all():
             messages.error(request, "You don't have permission to modify this course.")
             return redirect('dashboard:teacher_courses')
-        
+
         # Since course is CharField, we need to handle removal differently
         # We'll set the student's course to empty string
         if student.course == course.name:
@@ -561,11 +567,165 @@ def remove_student_from_course(request, course_id, student_id):
             messages.success(request, f'Student {student.user.username} removed from the course.')
         else:
             messages.warning(request, 'Student is not enrolled in this course.')
-        
+
         return redirect('dashboard:teacher_course_detail', course_id=course_id)
-    
+
     # If not POST, redirect back
     return redirect('dashboard:teacher_course_detail', course_id=course_id)
+
+# -----------------------------
+# Settings Views
+# -----------------------------
+@user_passes_test(is_admin)
+def admin_settings(request):
+    context = {
+        'title': 'Admin Settings',
+        'settings_options': [
+            {'name': 'Profile', 'icon': 'fas fa-user', 'description': 'Update your profile information', 'url': 'dashboard:profile_settings'},
+            {'name': 'Appearance', 'icon': 'fas fa-palette', 'description': 'Customize theme', 'url': 'dashboard:appearance_settings'},
+            {'name': 'Security', 'icon': 'fas fa-shield-alt', 'description': 'Security settings', 'url': 'dashboard:security_settings'},
+        ]
+    }
+    return render(request, 'dashboard/admin_settings.html', context)
+
+@user_passes_test(is_admin)
+def profile_settings(request):
+    if request.method == 'POST':
+        user = request.user
+        user.first_name = request.POST.get('first_name', user.first_name)
+        user.last_name = request.POST.get('last_name', user.last_name)
+        user.email = request.POST.get('email', user.email)
+
+        # Handle profile photo upload (you'll need to add this field to your User model)
+        # if 'profile_photo' in request.FILES:
+        #     user.profile_photo = request.FILES['profile_photo']
+
+        user.save()
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('dashboard:profile_settings')
+
+    return render(request, 'dashboard/profile_settings.html', {
+        'title': 'Profile Settings'
+    })
+
+@user_passes_test(is_admin)
+def appearance_settings(request):
+    if request.method == 'POST':
+        theme = request.POST.get('theme', 'light')
+
+        # Save to user's profile or session
+        try:
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            profile.theme_preference = theme
+            profile.save()
+            messages.success(request, 'Appearance settings saved!')
+        except:
+            # Fallback to session if no profile model
+            request.session['theme'] = theme
+            messages.success(request, 'Appearance settings saved!')
+
+        return redirect('dashboard:appearance_settings')
+
+    # Get current theme preference
+    current_theme = 'light'  # default
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+        current_theme = profile.theme_preference
+    except:
+        current_theme = request.session.get('theme', 'light')
+
+    return render(request, 'dashboard/appearance_settings.html', {
+        'title': 'Appearance Settings',
+        'themes': ['light', 'dark', 'auto'],
+        'current_theme': current_theme
+    })
+
+@user_passes_test(is_admin)
+def security_settings(request):
+    if request.method == 'POST':
+        # Handle password change
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+
+        if current_password and new_password and 'password_change' in request.POST:
+            if request.user.check_password(current_password):
+                request.user.set_password(new_password)
+                request.user.save()
+                messages.success(request, 'Password updated successfully!')
+            else:
+                messages.error(request, 'Current password is incorrect')
+
+        # Handle 2FA enable
+        elif 'enable_2fa' in request.POST:
+            # Generate a secret key
+            secret = pyotp.random_base32()
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            profile.two_factor_secret = secret
+            profile.save()
+            messages.info(request, 'Please scan the QR code with your authenticator app')
+
+        # Handle 2FA verification
+        elif 'verify_2fa' in request.POST:
+            verification_code = request.POST.get('verification_code')
+            profile = UserProfile.objects.get(user=request.user)
+
+            totp = pyotp.TOTP(profile.two_factor_secret)
+            if totp.verify(verification_code):
+                profile.two_factor_enabled = True
+                profile.save()
+                messages.success(request, 'Two-factor authentication enabled successfully!')
+            else:
+                messages.error(request, 'Invalid verification code')
+
+        # Handle 2FA disable
+        elif 'disable_2fa' in request.POST:
+            profile = UserProfile.objects.get(user=request.user)
+            profile.two_factor_enabled = False
+            profile.two_factor_secret = None
+            profile.save()
+            messages.success(request, 'Two-factor authentication disabled')
+
+        return redirect('dashboard:security_settings')
+
+    # Get active sessions (simplified implementation)
+    active_sessions = 1  # You would implement proper session tracking
+
+    # Check if user has 2FA enabled
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+        two_factor_enabled = profile.two_factor_enabled
+        has_secret = bool(profile.two_factor_secret)
+    except UserProfile.DoesNotExist:
+        two_factor_enabled = False
+        has_secret = False
+
+    return render(request, 'dashboard/security_settings.html', {
+        'title': 'Security Settings',
+        'active_sessions': active_sessions,
+        'two_factor_enabled': two_factor_enabled,
+        'has_secret': has_secret
+    })
+
+def generate_qr_code(request):
+    """Generate QR code for 2FA setup"""
+    profile = UserProfile.objects.get(user=request.user)
+    totp = pyotp.TOTP(profile.two_factor_secret)
+    provisioning_uri = totp.provisioning_uri(
+        name=request.user.email,
+        issuer_name="Brain Box"
+    )
+
+    # Generate QR code
+    qr = qrcode.QRCode(version=1, box_size=10, border=5)
+    qr.add_data(provisioning_uri)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    buffer = io.BytesIO()
+    img.save(buffer, format='PNG')
+    buffer.seek(0)
+
+    return HttpResponse(buffer.getvalue(), content_type='image/png')
 
 # -----------------------------
 # Course Material Views
@@ -575,14 +735,14 @@ def remove_student_from_course(request, course_id, student_id):
 def teacher_course_materials(request, course_id):
     course = get_object_or_404(Course, id=course_id)
     teacher = get_object_or_404(Teacher, user=request.user)
-    
+
     # Check if teacher teaches this course
     if teacher not in course.teachers.all():
         messages.error(request, "You don't have permission to view materials for this course.")
         return redirect('dashboard:teacher_courses')
-    
+
     materials = CourseMaterial.objects.filter(course=course)
-    
+
     context = {
         'course': course,
         'materials': materials,
@@ -595,12 +755,12 @@ def teacher_course_materials(request, course_id):
 def add_course_material(request, course_id):
     course = get_object_or_404(Course, id=course_id)
     teacher = get_object_or_404(Teacher, user=request.user)
-    
+
     # Check if teacher teaches this course
     if teacher not in course.teachers.all():
         messages.error(request, "You don't have permission to add materials to this course.")
         return redirect('dashboard:teacher_courses')
-    
+
     if request.method == 'POST':
         form = CourseMaterialForm(request.POST, request.FILES)
         if form.is_valid():
@@ -612,7 +772,7 @@ def add_course_material(request, course_id):
             return redirect('dashboard:teacher_course_materials', course_id=course.id)
     else:
         form = CourseMaterialForm()
-    
+
     context = {
         'course': course,
         'form': form,
@@ -625,12 +785,12 @@ def add_course_material(request, course_id):
 @user_passes_test(lambda u: u.role == 'teacher')
 def delete_course_material(request, material_id):
     material = get_object_or_404(CourseMaterial, id=material_id)
-    
+
     # Check if the current user uploaded this material
     if material.uploaded_by != request.user:
         messages.error(request, "You don't have permission to delete this material.")
         return redirect('dashboard:teacher_courses')
-    
+
     course_id = material.course.id
     material.delete()
     messages.success(request, 'Course material deleted successfully!')
@@ -642,14 +802,14 @@ def delete_course_material(request, material_id):
 def student_course_materials(request, course_id):
     course = get_object_or_404(Course, id=course_id)
     student = get_object_or_404(Student, user=request.user)
-    
+
     # Check if student is enrolled in this course
     if student.course != course.name:
         messages.error(request, "You are not enrolled in this course.")
         return redirect('student_home')
-    
+
     materials = CourseMaterial.objects.filter(course=course)
-    
+
     context = {
         'course': course,
         'materials': materials,

@@ -1,0 +1,86 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-palette me-2"></i>Appearance Settings
+        </h1>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" id="theme-form">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Theme Preference</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="theme" 
+                                       id="theme-light" value="light" 
+                                       {% if current_theme == 'light' %}checked{% endif %}>
+                                <label class="form-check-label" for="theme-light">
+                                    Light Mode
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="theme" 
+                                       id="theme-dark" value="dark"
+                                       {% if current_theme == 'dark' %}checked{% endif %}>
+                                <label class="form-check-label" for="theme-dark">
+                                    Dark Mode
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="theme" 
+                                       id="theme-auto" value="auto"
+                                       {% if current_theme == 'auto' %}checked{% endif %}>
+                                <label class="form-check-label" for="theme-auto">
+                                    Auto (System Preference)
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <button type="button" class="btn btn-primary" onclick="saveTheme()">Save Preferences</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function saveTheme() {
+    const selectedTheme = document.querySelector('input[name="theme"]:checked').value;
+    
+    // Save to localStorage
+    localStorage.setItem('theme', selectedTheme);
+    
+    // Apply the theme immediately
+    if (selectedTheme === 'auto') {
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', systemPrefersDark ? 'dark' : 'light');
+    } else {
+        document.documentElement.setAttribute('data-theme', selectedTheme);
+    }
+    
+    // Show success message
+    alert('Theme preference saved successfully!');
+    
+    // Optional: Send to server via AJAX instead of form submission
+    // If you still want to save to server, use AJAX:
+    /*
+    fetch(window.location.href, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: `theme=${selectedTheme}`
+    });
+    */
+}
+</script>
+{% endblock %}

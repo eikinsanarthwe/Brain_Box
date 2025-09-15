@@ -1,5 +1,16 @@
 from django.db import models
 from django.conf import settings
+# -----------------------------
+# User Profile Model (for profile pictures and 2FA)
+# -----------------------------
+class UserProfile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    profile_picture = models.ImageField(upload_to='profile_pictures/', null=True, blank=True)
+    two_factor_enabled = models.BooleanField(default=False)
+    two_factor_secret = models.CharField(max_length=32, null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.user.username}'s Profile"
 
 # -----------------------------
 # Teacher Model

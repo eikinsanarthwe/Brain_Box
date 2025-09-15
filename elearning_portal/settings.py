@@ -85,7 +85,8 @@ MEDIA_URL = '/media/'                                   # ✅ Added for uploads
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Custom user model
-AUTH_USER_MODEL = 'accounts.CustomUser'
+AUTH_USER_MODEL = 'accounts.CustomUser'  
+
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
