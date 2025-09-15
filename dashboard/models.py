@@ -128,3 +128,39 @@ class CourseMaterial(models.Model):
 
     class Meta:
         ordering = ['-uploaded_at']
+
+
+# Message Model
+# -----------------------------
+class Message(models.Model):
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name='sent_messages',
+        on_delete=models.CASCADE
+    )
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        related_name='received_messages',
+        on_delete=models.CASCADE
+    )
+    subject = models.CharField(max_length=200)
+    body = models.TextField()
+    is_read = models.BooleanField(default=False)
+    sent_at = models.DateTimeField(auto_now_add=True)
+    parent_message = models.ForeignKey(
+        'self',
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name='replies'
+    )
+
+    class Meta:
+        ordering = ['-sent_at']
+
+    def __str__(self):
+        return f"{self.subject} - {self.sender} to {self.recipient}"
+
+    def mark_as_read(self):
+        self.is_read = True
+        self.save()

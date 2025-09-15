@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BrainBox - Sign Up</title>
   <style>
-    /* Reuse login styles */
+    /* Your existing CSS styles remain the same */
     body {
       background: #f4f2f7ff;
       color: #3b3b3bff;
@@ -76,11 +76,10 @@
     }
 
     .form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
 
     label {
       font-size: 0.9rem;
@@ -91,18 +90,27 @@
       padding: 14px;
       border-radius: 6px;
       border: 1px solid #d2d6d4ff;
-      background: #cececeff;
-      color: #fff;
+      background: #f8f9faff;
+      color: #333;
       font-size: 1rem;
     }
 
     input:focus {
       border-color: #acadacff;
+      outline: none;
+      background: #fff;
     }
 
     .error-message {
       color: #ff6b6b;
       font-size: 0.85rem;
+      margin-top: 5px;
+    }
+
+    .field-errors {
+      color: #ff6b6b;
+      font-size: 0.85rem;
+      margin-top: 5px;
     }
 
     button {
@@ -115,6 +123,7 @@
       font-size: 1rem;
       cursor: pointer;
       transition: background 0.3s;
+      margin-top: 10px;
     }
 
     button:hover {
@@ -159,30 +168,63 @@
 
         {% if form.errors %}
         <div class="error-message">
-          Please correct the errors below.
+          <strong>Please correct the errors below.</strong>
         </div>
         {% endif %}
 
         <form method="POST">
-  {% csrf_token %}
-  <div class="form-group">
-    <label for="id_username">Username</label>
-    {{ form.username }}
-  </div>
+          {% csrf_token %}
 
-  <div class="form-group">
-    <label for="id_email">Email</label>
-    {{ form.email }}
-  </div>
+          <div class="form-group">
+            <label for="id_username">Username</label>
+            <input type="text" name="username" id="id_username" placeholder="Enter your username" required>
+            {% if form.username.errors %}
+              <div class="field-errors">{{ form.username.errors }}</div>
+            {% endif %}
+          </div>
 
-  <div class="form-group">
-    <label for="id_password">Password</label>
-    {{ form.password }}
-  </div>
-  <div class="form-group">
+          <div class="form-group">
+            <label for="id_first_name">First Name</label>
+            <input type="text" name="first_name" id="id_first_name" placeholder="Enter your first name" required>
+            {% if form.first_name.errors %}
+              <div class="field-errors">{{ form.first_name.errors }}</div>
+            {% endif %}
+          </div>
 
-  <button type="submit">Create Account</button></div>
-</form>
+          <div class="form-group">
+            <label for="id_last_name">Last Name</label>
+            <input type="text" name="last_name" id="id_last_name" placeholder="Enter your last name" required>
+            {% if form.last_name.errors %}
+              <div class="field-errors">{{ form.last_name.errors }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="id_email">Email</label>
+            <input type="email" name="email" id="id_email" placeholder="Enter your email" required>
+            {% if form.email.errors %}
+              <div class="field-errors">{{ form.email.errors }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="id_enrollment_id">Enrollment ID</label>
+            <input type="text" name="enrollment_id" id="id_enrollment_id" placeholder="Enter your enrollment ID" required>
+            {% if form.enrollment_id.errors %}
+              <div class="field-errors">{{ form.enrollment_id.errors }}</div>
+            {% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="id_password">Password</label>
+            <input type="password" name="password" id="id_password" placeholder="Enter your password" required>
+            {% if form.password.errors %}
+              <div class="field-errors">{{ form.password.errors }}</div>
+            {% endif %}
+          </div>
+
+          <button type="submit">Create Account</button>
+        </form>
 
         <div class="auth-links">
           Already have an account? <a href="{% url 'login' %}">Log in here</a>

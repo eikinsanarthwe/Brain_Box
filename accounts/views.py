@@ -53,8 +53,13 @@ def test_view(request):
     return render(request, 'accounts/test.html')
 
 def signup_view(request):
-    form = SignupForm(request.POST or None)
-    if form.is_valid():
-        form.save()
-        return redirect('login')  # Redirect to login after signup
+    if request.method == 'POST':
+        form = SignupForm(request.POST)
+        if form.is_valid():
+            user = form.save()  # This will create both User and Student
+            login(request, user)
+            return redirect('student_home')  # Redirect to student dashboard
+    else:
+        form = SignupForm()
+
     return render(request, 'accounts/signup.html', {'form': form})

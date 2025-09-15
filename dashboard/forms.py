@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
-from .models import Teacher, Student, Course, Assignment,CourseMaterial
+from .models import Teacher, Student, Course, Assignment,CourseMaterial, Message
 
 User = get_user_model()
 
@@ -120,12 +120,12 @@ class StudentForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
+
         # Get all courses for admin
         courses = Course.objects.all()
         course_choices = [(course.name, f"{course.code} - {course.name}") for course in courses]
         self.fields['course'].choices = [('', '---------')] + course_choices
-        
+
         if self.instance.pk and self.instance.user:
             self.fields['username'].initial = self.instance.user.username
             self.fields['password'].help_text = "Leave blank to keep current password"
@@ -185,13 +185,13 @@ class AssignmentForm(forms.ModelForm):
             'teacher': forms.Select(attrs={'class': 'form-control'}),
             'max_points': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Maximum score (e.g. 100)', 'min': 1})
         }
- 
+
      def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Filter teachers by role - this should be User objects, not Teacher objects
         # Because the teacher field in Assignment is a ForeignKey to User, not Teacher
         self.fields['teacher'].queryset = User.objects.filter(role='teacher')  # This is correct
-        
+
         # If initializing for a teacher user, set the initial value to the current user
         if 'initial' in kwargs and 'user' in kwargs['initial']:
             user = kwargs['initial']['user']
@@ -201,12 +201,12 @@ class AssignmentForm(forms.ModelForm):
 # In your forms.py, update the TeacherStudentForm
 class TeacherStudentForm(forms.ModelForm):
     username = forms.CharField(
-        max_length=150, 
-        required=True, 
+        max_length=150,
+        required=True,
         widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter username'})
     )
     password = forms.CharField(
-        required=True, 
+        required=True,
         widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': 'Enter password'}),
         help_text="Enter password for the student"
     )
@@ -228,7 +228,7 @@ class TeacherStudentForm(forms.ModelForm):
         # Extract teacher from kwargs before calling super
         self.teacher = kwargs.pop('teacher', None)
         super().__init__(*args, **kwargs)
-        
+
         # Get course choices for the current teacher
         if self.teacher:
             try:
@@ -245,14 +245,14 @@ class TeacherStudentForm(forms.ModelForm):
         student = super().save(commit=False)
         username = self.cleaned_data['username']
         password = self.cleaned_data['password']
-        
+
         # Create user account
         user = User.objects.create_user(username=username, password=password)
         user.role = 'student'
         user.save()
-        
+
         student.user = user
-        
+
         if commit:
             student.save()
         return student
@@ -275,4 +275,72 @@ class CourseMaterialForm(forms.ModelForm):
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter material title'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Description of the material...'}),
             'file': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+
+
+# ---------------- Message Form ---------------- #
+class MessageForm(forms.ModelForm):
+    recipient = forms.ModelChoiceField(
+        queryset=User.objects.none(),
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label="Recipient"
+    )
+
+    class Meta:
+        model = Message
+        fields = ['recipient', 'subject', 'body']
+        widgets = {
+            'subject': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Message subject'}),
+            'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Type your message here...'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.sender = kwargs.pop('sender', None)
+        super().__init__(*args, **kwargs)
+
+        if self.sender:
+            if self.sender.role == 'admin':
+                self.fields['recipient'].queryset = User.objects.exclude(id=self.sender.id)
+
+            elif self.sender.role == 'teacher':
+                teacher_courses = Course.objects.filter(teachers__user=self.sender)
+                student_users = Student.objects.filter(
+                    courses__in=teacher_courses
+                ).values_list('user', flat=True)
+
+                recipients = User.objects.filter(
+                    Q(role='admin') |
+                    Q(role='teacher') |
+                    Q(id__in=student_users)
+                ).exclude(id=self.sender.id)
+
+                self.fields['recipient'].queryset = recipients
+
+            elif self.sender.role == 'student':
+                student = Student.objects.get(user=self.sender)
+
+                teacher_users = Teacher.objects.filter(
+                    course__in=student.courses.all()
+                ).values_list('user', flat=True)
+
+                same_course_students = Student.objects.filter(
+                    courses__in=student.courses.all()
+                ).values_list('user', flat=True)
+
+                recipients = User.objects.filter(
+                    Q(role='admin') |
+                    Q(id__in=teacher_users) |
+                    Q(id__in=same_course_students)
+                ).exclude(id=self.sender.id)
+
+                self.fields['recipient'].queryset = recipients
+
+
+# ---------------- Reply Form ---------------- #
+class ReplyForm(forms.ModelForm):
+    class Meta:
+        model = Message
+        fields = ['body']
+        widgets = {
+            'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Type your reply here...'}),
         }

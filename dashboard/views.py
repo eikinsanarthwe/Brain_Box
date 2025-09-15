@@ -1,21 +1,25 @@
-from urllib import request
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import logout, get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
-from .models import Teacher, Student, Course, Assignment, Submission
-from .forms import TeacherForm, StudentForm, CourseForm, AssignmentForm, AdminCreationForm, AdminChangeForm,TeacherStudentForm,TeacherCourseForm
-from .models import Teacher, Student, Course, Assignment, Submission, CourseMaterial, UserProfile
-from .forms import TeacherForm, StudentForm, CourseForm, AssignmentForm, AdminCreationForm, AdminChangeForm,TeacherStudentForm,TeacherCourseForm, CourseMaterialForm
+from django.db import models
 from django.db.models import Count, Avg
-from datetime import datetime, timedelta
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.template.loader import render_to_string
+from datetime import datetime, timedelta
 import json
 import pyotp
 import qrcode
 import io
 import base64
+
+from .models import Teacher, Student, Course, Assignment, Submission, CourseMaterial, UserProfile, Message
+from .forms import (
+    TeacherForm, StudentForm, CourseForm, AssignmentForm,
+    AdminCreationForm, AdminChangeForm, TeacherStudentForm,
+    TeacherCourseForm, CourseMaterialForm, MessageForm, ReplyForm
+)
 
 User = get_user_model()
 
@@ -50,6 +54,7 @@ def dashboard(request):
     else:
         # Handle student role or others
         return redirect('login')
+
 # -----------------------------
 # Admin Views
 # -----------------------------
@@ -171,7 +176,11 @@ def edit_student(request, id=None):
             if password:
                 student.user.set_password(password)
                 student.user.save()
+
+            # NEW: Assign courses based on form data or default logic
             student.save()
+            form.save_m2m()  # This saves the ManyToMany relationships (courses)
+
             if '_addanother' in request.POST:
                 messages.success(request, 'Student created successfully. You may add another student below.')
                 return redirect('dashboard:student_create')
@@ -277,6 +286,7 @@ def teacher_assignment_create(request):
         'form': form,
         'title': 'Create Assignment'
     })
+
 @login_required
 def edit_assignment(request, id=None):
     assignment = get_object_or_404(Assignment, id=id) if id else None
@@ -307,6 +317,7 @@ def edit_assignment(request, id=None):
         'form': form,
         'title': 'Edit Assignment' if id else 'Add Assignment'
     })
+
 @login_required
 def delete_assignment(request, id):
     assignment = get_object_or_404(Assignment, id=id)
@@ -336,9 +347,8 @@ def teacher_dashboard(request):
     ).select_related('student', 'assignment').order_by('-submitted_at')[:5]
 
     # Calculate statistics - filter by teacher's courses
-    course_names = [course.name for course in courses]
     total_students = Student.objects.filter(
-        course__in=course_names
+        courses__in=courses  # FIXED: Use ManyToMany relationship
     ).distinct().count()
 
     # Count pending grading for this teacher's assignments
@@ -358,6 +368,7 @@ def teacher_dashboard(request):
         'can_create_courses': True,
     }
     return render(request, 'dashboard/teacher_dashboard.html', context)
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_assignments(request):
@@ -397,6 +408,7 @@ def grade_submission(request, submission_id):
         'submission': submission,
     }
     return render(request, 'dashboard/grade_submission.html', context)
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_courses(request):
@@ -407,6 +419,7 @@ def teacher_courses(request):
         'courses': courses,
     }
     return render(request, 'dashboard/teacher_courses.html', context)
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_assignment_detail(request, id):
@@ -418,29 +431,20 @@ def teacher_assignment_detail(request, id):
         'submissions': submissions,
     }
     return render(request, 'dashboard/teacher_assignment_detail.html', context)
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_students(request):
     teacher = get_object_or_404(Teacher, user=request.user)
     courses = Course.objects.filter(teachers=teacher)
 
-
-
-
     # Get students enrolled in courses taught by this teacher
-    students = Student.objects.filter(
-        courses__in=courses
-    ).select_related('user').distinct()
+    students = Student.objects.filter(courses__in=courses).select_related('user').distinct()
 
     context = {
-    'students': students,
-}
+        'students': students,
+    }
     return render(request, 'dashboard/teacher_students.html', context)
-
-
-
-
-
 
 @csrf_exempt
 def get_teachers_by_course(request):
@@ -462,6 +466,7 @@ def get_teachers_by_course(request):
             print("No course_id provided")
 
     return JsonResponse([], safe=False)
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_course_create(request):
@@ -519,7 +524,7 @@ def teacher_student_create(request):
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_course_detail(request, course_id):
     # Get the course and ensure the current teacher teaches it
-    course = get_object_or_404(Course.objects.prefetch_related('materials'), id=course_id)  # Add prefetch_related
+    course = get_object_or_404(Course.objects.prefetch_related('materials'), id=course_id)
     teacher = get_object_or_404(Teacher, user=request.user)
 
     # Check if the current teacher teaches this course
@@ -527,8 +532,8 @@ def teacher_course_detail(request, course_id):
         messages.error(request, "You don't have permission to view this course.")
         return redirect('dashboard:teacher_courses')
 
-    # Get students enrolled in this course
-    students = Student.objects.filter(course=course.name).select_related('user')
+    # Get students enrolled in this course - FIXED: Use ManyToMany relationship
+    students = Student.objects.filter(courses=course).select_related('user')
 
     # Get assignments for this course
     assignments = Assignment.objects.filter(course=course, teacher=request.user)
@@ -556,6 +561,7 @@ def teacher_course_detail(request, course_id):
     }
 
     return render(request, 'dashboard/teacher_course_detail.html', context)
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def remove_student_from_course(request, course_id, student_id):
@@ -569,11 +575,9 @@ def remove_student_from_course(request, course_id, student_id):
             messages.error(request, "You don't have permission to modify this course.")
             return redirect('dashboard:teacher_courses')
 
-        # Since course is CharField, we need to handle removal differently
-        # We'll set the student's course to empty string
-        if student.course == course.name:
-            student.course = ""
-            student.save()
+        # Remove student from the course (ManyToMany relationship)
+        if course in student.courses.all():
+            student.courses.remove(course)
             messages.success(request, f'Student {student.user.username} removed from the course.')
         else:
             messages.warning(request, 'Student is not enrolled in this course.')
@@ -759,7 +763,6 @@ def teacher_course_materials(request, course_id):
     }
     return render(request, 'dashboard/teacher_course_materials.html', context)
 
-
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def add_course_material(request, course_id):
@@ -790,7 +793,6 @@ def add_course_material(request, course_id):
     }
     return render(request, 'dashboard/add_course_material.html', context)
 
-
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def delete_course_material(request, material_id):
@@ -805,7 +807,6 @@ def delete_course_material(request, material_id):
     material.delete()
     messages.success(request, 'Course material deleted successfully!')
     return redirect('dashboard:teacher_course_materials', course_id=course_id)
-
 
 @login_required
 @user_passes_test(lambda u: u.role == 'student')
@@ -825,6 +826,123 @@ def student_course_materials(request, course_id):
         'materials': materials,
     }
     return render(request, 'dashboard/student_course_materials.html', context)
+
+# -----------------------------
+# Message Views
+# -----------------------------
+@login_required
+def message_list(request):
+    messages = Message.objects.filter(recipient=request.user).order_by('-sent_at')
+    unread_count = messages.filter(is_read=False).count()
+
+    # Handle preview request for dropdown
+    if request.GET.get('preview'):
+        preview_messages = messages[:3]  # Get latest 3 messages
+        html = render_to_string('dashboard/message_preview.html', {
+            'preview_messages': preview_messages
+        })
+        return HttpResponse(html)
+
+    # Regular page request - render the full message list
+    context = {
+        'messages': messages,
+        'unread_count': unread_count,
+    }
+    return render(request, 'dashboard/message_list.html', context)
+
+@login_required
+def message_compose(request, recipient_id=None):
+    if request.method == 'POST':
+        form = MessageForm(request.POST, sender=request.user)
+        print(f"Form is valid: {form.is_valid()}")
+        if not form.is_valid():
+            print(f"Form errors: {form.errors}")
+
+        if form.is_valid():
+            message = form.save(commit=False)
+            message.sender = request.user
+            message.save()
+            print(f"Message saved: {message.id}, From: {message.sender}, To: {message.recipient}")
+            messages.success(request, 'Message sent successfully!')
+            return redirect('dashboard:message_list')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        initial = {}
+        if recipient_id:
+            recipient = get_object_or_404(User, id=recipient_id)
+            initial['recipient'] = recipient
+
+        form = MessageForm(initial=initial, sender=request.user)
+        print(f"Recipient choices: {form.fields['recipient'].queryset.count()}")
+
+    return render(request, 'dashboard/message_compose.html', {
+        'form': form,
+        'title': 'Compose Message'
+    })
+
+@login_required
+def message_detail(request, message_id):
+    message = get_object_or_404(Message, id=message_id)
+
+    # Ensure the current user is either sender or recipient
+    if message.recipient != request.user and message.sender != request.user:
+        messages.error(request, "You don't have permission to view this message.")
+        return redirect('dashboard:message_list')
+
+    # Mark as read if recipient is viewing
+    if message.recipient == request.user and not message.is_read:
+        message.mark_as_read()
+
+    if request.method == 'POST':
+        form = ReplyForm(request.POST)
+        if form.is_valid():
+            reply = form.save(commit=False)
+            reply.sender = request.user
+            reply.recipient = message.sender if request.user == message.recipient else message.recipient
+            reply.subject = f"Re: {message.subject}"
+            reply.parent_message = message
+            reply.save()
+            messages.success(request, 'Reply sent successfully!')
+            return redirect('dashboard:message_detail', message_id=message.id)
+    else:
+        form = ReplyForm()
+
+    # Get conversation thread
+    conversation = Message.objects.filter(
+        models.Q(parent_message=message) |
+        models.Q(id=message.parent_message.id) if message.parent_message else models.Q(id=message.id)
+    ).order_by('sent_at')
+
+    context = {
+        'message': message,
+        'form': form,
+        'conversation': conversation,
+    }
+    return render(request, 'dashboard/message_detail.html', context)
+
+@login_required
+def message_delete(request, message_id):
+    message = get_object_or_404(Message, id=message_id)
+
+    # Ensure the current user is the recipient
+    if message.recipient != request.user:
+        messages.error(request, "You can only delete messages you received.")
+        return redirect('dashboard:message_list')
+
+    if request.method == 'POST':
+        message.delete()
+        messages.success(request, 'Message deleted successfully!')
+        return redirect('dashboard:message_list')
+
+    return render(request, 'dashboard/message_confirm_delete.html', {'message': message})
+
+@login_required
+def get_unread_count(request):
+    if request.user.is_authenticated:
+        unread_count = Message.objects.filter(recipient=request.user, is_read=False).count()
+        return JsonResponse({'unread_count': unread_count})
+    return JsonResponse({'unread_count': 0})
 
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
@@ -860,30 +978,3 @@ def add_student_to_course(request, course_id):
         'available_students': available_students,
     }
     return render(request, 'dashboard/add_student_to_course.html', context)
-
-
-
-@login_required
-@user_passes_test(lambda u: u.role == 'teacher')
-def remove_student_from_course(request, course_id, student_id):
-    if request.method == 'POST':
-        course = get_object_or_404(Course, id=course_id)
-        student = get_object_or_404(Student, id=student_id)
-
-        # Check if the current teacher teaches this course
-        teacher = get_object_or_404(Teacher, user=request.user)
-        if teacher not in course.teachers.all():
-            messages.error(request, "You don't have permission to modify this course.")
-            return redirect('dashboard:teacher_courses')
-
-        # Remove student from the course (ManyToMany relationship)
-        if course in student.courses.all():
-            student.courses.remove(course)
-            messages.success(request, f'Student {student.user.username} removed from the course.')
-        else:
-            messages.warning(request, 'Student is not enrolled in this course.')
-
-        return redirect('dashboard:teacher_course_detail', course_id=course_id)
-
-    # If not POST, redirect back
-    return redirect('dashboard:teacher_course_detail', course_id=course_id)

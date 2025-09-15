@@ -7,9 +7,7 @@
         <h1 class="h3 mb-0 text-gray-800">
             <i class="fas fa-users me-2"></i>My Students
         </h1>
-        <a href="{% url 'dashboard:teacher_student_create' %}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Add Student
-        </a>
+
     </div>
 
     <div class="card shadow">
@@ -104,9 +102,7 @@
                             <td colspan="5" class="text-center py-4">
                                 <i class="fas fa-users fa-2x text-muted mb-3"></i>
                                 <p class="text-muted">No students found in your courses</p>
-                                <a href="{% url 'dashboard:teacher_student_create' %}" class="btn btn-primary">
-                                    Add Your First Student
-                                </a>
+
                             </td>
                         </tr>
                         {% endfor %}
