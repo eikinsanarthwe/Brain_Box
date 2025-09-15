@@ -1,0 +1,16 @@
+{% for message in preview_messages %}
+<a class="dropdown-item d-flex align-items-center" href="{% url 'dashboard:message_detail' message.id %}">
+    <div class="me-3">
+        <div class="status-indicator bg-{% if not message.is_read %}success{% else %}secondary{% endif %}"></div>
+    </div>
+    <div>
+        <div class="fw-bold text-truncate" style="max-width: 200px;">{{ message.subject }}</div>
+        <div class="small text-gray-500">
+            {{ message.sender.get_full_name|default:message.sender.username }} · 
+            {{ message.sent_at|timesince }} ago
+        </div>
+    </div>
+</a>
+{% empty %}
+<a class="dropdown-item text-center small text-gray-500">No messages</a>
+{% endfor %}

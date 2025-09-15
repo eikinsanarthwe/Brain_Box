@@ -978,3 +978,154 @@ def add_student_to_course(request, course_id):
         'available_students': available_students,
     }
     return render(request, 'dashboard/add_student_to_course.html', context)
+
+@login_required
+def message_list(request):
+    messages = Message.objects.filter(recipient=request.user).order_by('-sent_at')
+    unread_count = messages.filter(is_read=False).count()
+
+    # Handle preview request for dropdown
+    if request.GET.get('preview'):
+        preview_messages = messages[:3]  # Get latest 3 messages
+        html = render_to_string('dashboard/message_preview.html', {
+            'preview_messages': preview_messages
+        })
+        return HttpResponse(html)
+
+    # Regular page request - render the full message list
+    context = {
+        'messages': messages,
+        'unread_count': unread_count,
+    }
+    return render(request, 'dashboard/message_list.html', context)  # This line was missing!
+@login_required
+def message_compose(request, recipient_id=None):
+    if request.method == 'POST':
+        form = MessageForm(request.POST, sender=request.user)
+        print(f"Form is valid: {form.is_valid()}")
+        if not form.is_valid():
+            print(f"Form errors: {form.errors}")
+            # Add this to see the errors in the template
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+
+        if form.is_valid():
+            message = form.save(commit=False)
+            message.sender = request.user
+            message.save()
+            print(f"Message saved: {message.id}, From: {message.sender}, To: {message.recipient}")
+            messages.success(request, 'Message sent successfully!')
+            return redirect('dashboard:message_list')
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        initial = {}
+        if recipient_id:
+            recipient = get_object_or_404(User, id=recipient_id)
+            initial['recipient'] = recipient
+
+        form = MessageForm(initial=initial, sender=request.user)
+        print(f"Recipient choices: {form.fields['recipient'].queryset.count()}")
+
+    return render(request, 'dashboard/message_compose.html', {
+        'form': form,
+        'title': 'Compose Message'
+    })
+@login_required
+def message_detail(request, message_id):
+    message = get_object_or_404(Message, id=message_id)
+
+    # Ensure the current user is either sender or recipient
+    if message.recipient != request.user and message.sender != request.user:
+        messages.error(request, "You don't have permission to view this message.")
+        return redirect('dashboard:message_list')
+
+    # Mark as read if recipient is viewing
+    if message.recipient == request.user and not message.is_read:
+        message.mark_as_read()
+
+    if request.method == 'POST':
+        form = ReplyForm(request.POST)
+        if form.is_valid():
+            reply = form.save(commit=False)
+            reply.sender = request.user
+            reply.recipient = message.sender if request.user == message.recipient else message.recipient
+            reply.subject = f"Re: {message.subject}"
+            reply.parent_message = message
+            reply.save()
+            messages.success(request, 'Reply sent successfully!')
+            return redirect('dashboard:message_detail', message_id=message.id)
+    else:
+        form = ReplyForm()
+
+    # Get conversation thread
+    conversation = Message.objects.filter(
+        models.Q(parent_message=message) |
+        models.Q(id=message.parent_message.id) if message.parent_message else models.Q(id=message.id)
+    ).order_by('sent_at')
+
+    context = {
+        'message': message,
+        'form': form,
+        'conversation': conversation,
+    }
+    return render(request, 'dashboard/message_detail.html', context)
+
+
+@login_required
+def message_delete(request, message_id):
+    message = get_object_or_404(Message, id=message_id)
+
+    # Ensure the current user is the recipient
+    if message.recipient != request.user:
+        messages.error(request, "You can only delete messages you received.")
+        return redirect('dashboard:message_list')
+
+    if request.method == 'POST':
+        message.delete()
+        messages.success(request, 'Message deleted successfully!')
+        return redirect('dashboard:message_list')
+
+    return render(request, 'dashboard/message_confirm_delete.html', {'message': message})
+
+@login_required
+def get_unread_count(request):
+    if request.user.is_authenticated:
+        unread_count = Message.objects.filter(recipient=request.user, is_read=False).count()
+        return JsonResponse({'unread_count': unread_count})
+    return JsonResponse({'unread_count': 0})
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def add_student_to_course(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+    teacher = get_object_or_404(Teacher, user=request.user)
+
+    # Check if the current teacher teaches this course
+    if teacher not in course.teachers.all():
+        messages.error(request, "You don't have permission to modify this course.")
+        return redirect('dashboard:teacher_courses')
+
+    if request.method == 'POST':
+        student_id = request.POST.get('student_id')
+        if student_id:
+            student = get_object_or_404(Student, id=student_id)
+
+            # Add student to the course
+            if course not in student.courses.all():
+                student.courses.add(course)
+                messages.success(request, f'Student {student.user.username} added to the course.')
+            else:
+                messages.warning(request, 'Student is already enrolled in this course.')
+
+            return redirect('dashboard:teacher_course_detail', course_id=course_id)
+
+    # Get all students not enrolled in this course
+    enrolled_students = Student.objects.filter(courses=course)
+    available_students = Student.objects.exclude(id__in=enrolled_students.values('id'))
+
+    context = {
+        'course': course,
+        'available_students': available_students,
+    }
+    return render(request, 'dashboard/add_student_to_course.html', context)

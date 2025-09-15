@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
-from .models import Teacher, Student, Course, Assignment,CourseMaterial, Message
+from .models import Teacher, Student, Course, Assignment,CourseMaterial,Message
+from django.db.models import Q
 
 User = get_user_model()
 

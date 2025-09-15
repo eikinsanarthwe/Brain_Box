@@ -64,4 +64,14 @@ urlpatterns = [
     path('settings/appearance/', views.appearance_settings, name='appearance_settings'),
     path('settings/security/', views.security_settings, name='security_settings'),
     path('settings/security/generate-qr/', views.generate_qr_code, name='generate_qr_code'),
+
+    # Messaging URLs
+    path('messages/', views.message_list, name='message_list'),
+    path('messages/compose/', views.message_compose, name='message_compose'),
+    path('messages/compose/<int:recipient_id>/', views.message_compose, name='message_compose_to'),
+    path('messages/<int:message_id>/', views.message_detail, name='message_detail'),
+    path('messages/<int:message_id>/delete/', views.message_delete, name='message_delete'),
+    path('messages/unread-count/', views.get_unread_count, name='unread_count'),
+
 ]
+
