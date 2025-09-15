@@ -1,0 +1,38 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h5 class="m-0 font-weight-bold text-primary mb-0">
+                <i class="fas fa-user-plus me-2"></i>
+                Add Student to {{ course.name }}
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if available_students %}
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="studentSelect" class="form-label">Select Student</label>
+                    <select class="form-select" id="studentSelect" name="student_id" required>
+                        <option value="" selected>Choose a student...</option>
+                        {% for student in available_students %}
+                        <option value="{{ student.id }}">{{ student.user.username }} - {{ student.enrollment_id }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Student</button>
+                <a href="{% url 'dashboard:teacher_course_detail' course.id %}" class="btn btn-secondary">Cancel</a>
+            </form>
+            {% else %}
+            <div class="alert alert-info">
+                All students are already enrolled in this course or no students available.
+            </div>
+            <a href="{% url 'dashboard:teacher_course_detail' course.id %}" class="btn btn-secondary">Back to Course</a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

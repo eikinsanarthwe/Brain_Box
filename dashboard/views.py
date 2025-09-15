@@ -337,9 +337,8 @@ def teacher_dashboard(request):
     ).select_related('student', 'assignment').order_by('-submitted_at')[:5]
     
     # Calculate statistics - filter by teacher's courses
-    course_names = [course.name for course in courses]
     total_students = Student.objects.filter(
-        course__in=course_names
+        courses__in=courses  # Changed from course__in=course_names
     ).distinct().count()
     
     # Count pending grading for this teacher's assignments
@@ -359,7 +358,6 @@ def teacher_dashboard(request):
         'can_create_courses': True,
     }
     return render(request, 'dashboard/teacher_dashboard.html', context)
-@login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_assignments(request):
     # Get assignments created by this teacher
@@ -426,9 +424,7 @@ def teacher_students(request):
     courses = Course.objects.filter(teachers=teacher)
     
     # Get students enrolled in courses taught by this teacher
-    students = Student.objects.filter(
-        course__in=[course.name for course in courses]
-    ).select_related('user')
+    students = Student.objects.filter(courses__in=courses).select_related('user').distinct()
     
     context = {
         'students': students,
@@ -474,44 +470,12 @@ def teacher_course_create(request):
         'title': 'Create Course'
     })
 
-@login_required
-@user_passes_test(lambda u: u.role == 'teacher')
-def teacher_student_create(request):
-    # Get the current teacher (Teacher object, not User object)
-    try:
-        teacher_obj = Teacher.objects.get(user=request.user)
-        print(f"DEBUG: Found teacher object: {teacher_obj}")
-        
-        # Check what courses this teacher has
-        courses = Course.objects.filter(teachers=teacher_obj)
-        print(f"DEBUG: Teacher has {courses.count()} courses: {list(courses)}")
-        
-    except Teacher.DoesNotExist:
-        messages.error(request, "Teacher profile not found.")
-        return redirect('dashboard:teacher_dashboard')
-    
-    if request.method == 'POST':
-        form = TeacherStudentForm(request.POST, teacher=teacher_obj)
-        if form.is_valid():
-            student = form.save()
-            messages.success(request, 'Student created successfully!')
-            return redirect('dashboard:teacher_students')
-        else:
-            print(f"DEBUG: Form errors: {form.errors}")
-    else:
-        form = TeacherStudentForm(teacher=teacher_obj)
-        print(f"DEBUG: Form course choices: {form.fields['course'].choices}")
-    
-    return render(request, 'dashboard/teacher_student_form.html', {
-        'form': form,
-        'title': 'Add Student'
-    })
 
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_course_detail(request, course_id):
     # Get the course and ensure the current teacher teaches it
-    course = get_object_or_404(Course.objects.prefetch_related('materials'), id=course_id)  # Add prefetch_related
+    course = get_object_or_404(Course.objects.prefetch_related('materials'), id=course_id)
     teacher = get_object_or_404(Teacher, user=request.user)
     
     # Check if the current teacher teaches this course
@@ -520,7 +484,7 @@ def teacher_course_detail(request, course_id):
         return redirect('dashboard:teacher_courses')
     
     # Get students enrolled in this course
-    students = Student.objects.filter(course=course.name).select_related('user')
+    students = Student.objects.filter(courses=course).select_related('user')
     
     # Get assignments for this course
     assignments = Assignment.objects.filter(course=course, teacher=request.user)
@@ -561,11 +525,9 @@ def remove_student_from_course(request, course_id, student_id):
             messages.error(request, "You don't have permission to modify this course.")
             return redirect('dashboard:teacher_courses')
         
-        # Since course is CharField, we need to handle removal differently
-        # We'll set the student's course to empty string
-        if student.course == course.name:
-            student.course = ""
-            student.save()
+        # Remove student from the course (ManyToMany relationship)
+        if course in student.courses.all():
+            student.courses.remove(course)
             messages.success(request, f'Student {student.user.username} removed from the course.')
         else:
             messages.warning(request, 'Student is not enrolled in this course.')
@@ -779,3 +741,37 @@ def get_unread_count(request):
         unread_count = Message.objects.filter(recipient=request.user, is_read=False).count()
         return JsonResponse({'unread_count': unread_count})
     return JsonResponse({'unread_count': 0})
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def add_student_to_course(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+    teacher = get_object_or_404(Teacher, user=request.user)
+    
+    # Check if the current teacher teaches this course
+    if teacher not in course.teachers.all():
+        messages.error(request, "You don't have permission to modify this course.")
+        return redirect('dashboard:teacher_courses')
+    
+    if request.method == 'POST':
+        student_id = request.POST.get('student_id')
+        if student_id:
+            student = get_object_or_404(Student, id=student_id)
+            
+            # Add student to the course
+            if course not in student.courses.all():
+                student.courses.add(course)
+                messages.success(request, f'Student {student.user.username} added to the course.')
+            else:
+                messages.warning(request, 'Student is already enrolled in this course.')
+            
+            return redirect('dashboard:teacher_course_detail', course_id=course_id)
+    
+    # Get all students not enrolled in this course
+    enrolled_students = Student.objects.filter(courses=course)
+    available_students = Student.objects.exclude(id__in=enrolled_students.values('id'))
+    
+    context = {
+        'course': course,
+        'available_students': available_students,
+    }
+    return render(request, 'dashboard/add_student_to_course.html', context)

@@ -48,7 +48,7 @@ urlpatterns = [
     # Add these to your urlpatterns list:
     # In your urls.py, ensure you have:
     path('teacher/courses/add/', views.teacher_course_create, name='teacher_course_create'),
-    path('teacher/students/add/', views.teacher_student_create, name='teacher_student_create'),
+
     # Add these URLs to your existing urlpatterns list:
 path('teacher/courses/<int:course_id>/', views.teacher_course_detail, name='teacher_course_detail'),
 path('teacher/courses/<int:course_id>/remove-student/<int:student_id>/', views.remove_student_from_course, name='remove_student_from_course'),
@@ -64,4 +64,6 @@ path('messages/compose/', views.message_compose, name='message_compose'),
 path('messages/compose/<int:recipient_id>/', views.message_compose, name='message_compose_to'),
 path('messages/<int:message_id>/', views.message_detail, name='message_detail'),
 path('messages/<int:message_id>/delete/', views.message_delete, name='message_delete'),
-path('messages/unread-count/', views.get_unread_count, name='unread_count'),]
+path('messages/unread-count/', views.get_unread_count, name='unread_count'),
+path('teacher/course/<int:course_id>/add-student/', views.add_student_to_course, name='add_student_to_course'),
+path('teacher/course/<int:course_id>/remove-student/<int:student_id>/', views.remove_student_from_course, name='remove_student_from_course'),]

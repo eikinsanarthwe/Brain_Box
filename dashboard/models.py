@@ -1,5 +1,20 @@
+# In dashboard/models.py
 from django.db import models
 from django.conf import settings
+
+# -----------------------------
+# Course Model (First)
+# -----------------------------
+class Course(models.Model):
+    name = models.CharField(max_length=200)
+    code = models.CharField(max_length=20, unique=True)
+    description = models.TextField(blank=True)
+    teachers = models.ManyToManyField('Teacher')  # String reference
+    credit = models.IntegerField(default=3)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
 
 # -----------------------------
 # Teacher Model
@@ -17,8 +32,8 @@ class Teacher(models.Model):
 # -----------------------------
 class Student(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    enrollment_id = models.CharField(max_length=20, unique=True)
-    course = models.CharField(max_length=100)  # You can switch to FK if needed later
+    enrollment_id = models.CharField(max_length=20, unique=True)  # No unique constraint
+    courses = models.ManyToManyField('Course')  # String reference
     semester = models.IntegerField(default=1)
 
     def __str__(self):
@@ -27,21 +42,6 @@ class Student(models.Model):
     class Meta:
         verbose_name = "Student"
         verbose_name_plural = "Students"
-
-# -----------------------------
-# Course Model
-# -----------------------------
-class Course(models.Model):
-    name = models.CharField(max_length=200)
-    code = models.CharField(max_length=20, unique=True)
-    description = models.TextField(blank=True)
-    teachers = models.ManyToManyField(Teacher)
-    credit = models.IntegerField(default=3)  # Add this field
-    created_at = models.DateTimeField(auto_now_add=True)
-    # Add this field
-
-    def __str__(self):
-        return f"{self.code} - {self.name}"
 
 # -----------------------------
 # Assignment Model
@@ -72,6 +72,7 @@ class Assignment(models.Model):
     def __str__(self):
         return f"{self.title} - {self.course.code}"
 
+# ... rest of your models (Submission, CourseMaterial, Message)
 # -----------------------------
 # Submission Model
 # -----------------------------

@@ -54,18 +54,6 @@
 
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label for="{{ form.course.id_for_label }}" class="form-label">Course*</label>
-                            {{ form.course }}
-                            {% if form.course.errors %}
-                            <div class="invalid-feedback d-block">
-                                {{ form.course.errors|striptags }}
-                            </div>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="col-md-6">
-                        <div class="form-group">
                             <label for="{{ form.semester.id_for_label }}" class="form-label">Semester*</label>
                             {{ form.semester }}
                             {% if form.semester.errors %}

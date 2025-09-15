@@ -7,9 +7,7 @@
         <h1 class="h3 mb-0 text-gray-800">
             <i class="fas fa-users me-2"></i>My Students
         </h1>
-        <a href="{% url 'dashboard:teacher_student_create' %}" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Add Student
-        </a>
+        <!-- Removed the Add Student button -->
     </div>
 
     <div class="card shadow">
@@ -20,7 +18,7 @@
                         <tr>
                             <th>Name</th>
                             <th>Enrollment ID</th>
-                            <th>Course</th>
+                            <th>Courses</th>
                             <th>Semester</th>
                             <th>Actions</th>
                         </tr>
@@ -30,7 +28,13 @@
                         <tr>
                             <td>{{ student.user.get_full_name|default:student.user.username }}</td>
                             <td>{{ student.enrollment_id }}</td>
-                            <td>{{ student.course }}</td>
+                            <td>
+                                {% for course in student.courses.all %}
+                                    {{ course.name }}{% if not forloop.last %}, {% endif %}
+                                {% empty %}
+                                    No courses
+                                {% endfor %}
+                            </td>
                             <td>{{ student.semester }}</td>
                             <td>
                                 <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" 
@@ -70,10 +74,14 @@
                                         </div>
                                         <div class="row mb-3">
                                             <div class="col-md-4">
-                                                <strong>Course:</strong>
+                                                <strong>Courses:</strong>
                                             </div>
                                             <div class="col-md-8">
-                                                {{ student.course }}
+                                                {% for course in student.courses.all %}
+                                                    {{ course.name }}{% if not forloop.last %}, {% endif %}
+                                                {% empty %}
+                                                    No courses
+                                                {% endfor %}
                                             </div>
                                         </div>
                                         <div class="row mb-3">
@@ -104,9 +112,6 @@
                             <td colspan="5" class="text-center py-4">
                                 <i class="fas fa-users fa-2x text-muted mb-3"></i>
                                 <p class="text-muted">No students found in your courses</p>
-                                <a href="{% url 'dashboard:teacher_student_create' %}" class="btn btn-primary">
-                                    Add Your First Student
-                                </a>
                             </td>
                         </tr>
                         {% endfor %}
