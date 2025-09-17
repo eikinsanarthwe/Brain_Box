@@ -33,15 +33,21 @@ urlpatterns = [
 
     # Assignments
     path('assignments/', views.assignment_list, name='assignment_list'),
-    path('assignments/add/', views.assignment_create, name='assignment_create'),
+path('assignments/add/', views.teacher_assignment_create, name='assignment_create'),
     path('assignments/<int:id>/edit/', views.edit_assignment, name='edit_assignment'),
     path('assignments/<int:id>/delete/', views.delete_assignment, name='delete_assignment'),
+
+
+
+
+
 
     # Teacher Dashboard URLs
     path('teacher/dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
     path('teacher/courses/', views.teacher_courses, name='teacher_courses'),
     path('teacher/assignments/', views.teacher_assignments, name='teacher_assignments'),
     path('teacher/assignments/add/', views.teacher_assignment_create, name='teacher_assignment_create'),
+
     path('teacher/assignments/<int:id>/', views.teacher_assignment_detail, name='teacher_assignment_detail'),
     path('teacher/grade/<int:submission_id>/', views.grade_submission, name='grade_submission'),
     path('teacher/students/', views.teacher_students, name='teacher_students'),

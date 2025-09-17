@@ -9,6 +9,8 @@ urlpatterns = [
     path('accounts/', include('accounts.urls')),
     path('dashboard/', include(('dashboard.urls', 'dashboard'), namespace='dashboard')),  # Added with namespace
     path('', lambda request: redirect('login')),  #  Keeps redirect to login
+
+
 ]
 
 if settings.DEBUG:

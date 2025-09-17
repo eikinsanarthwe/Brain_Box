@@ -174,32 +174,45 @@ class CourseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Fix this line - use Teacher model instead of User
         self.fields['teachers'].queryset = Teacher.objects.all()  # Changed from User to Teacher
+# C:\Users\ASUS\Brain_Box\dashboard\forms.py
+
 class AssignmentForm(forms.ModelForm):
-     class Meta:
+    class Meta:
         model = Assignment
-        fields = ['title', 'description', 'due_date', 'course', 'teacher', 'max_points']
+        fields = ['title', 'description', 'due_date', 'course', 'max_points', 'status', 'students']
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter assignment title'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Detailed assignment description...'}),
             'due_date': forms.DateTimeInput(attrs={'class': 'form-control', 'type': 'datetime-local'}),
             'course': forms.Select(attrs={'class': 'form-control'}),
-            'teacher': forms.Select(attrs={'class': 'form-control'}),
-            'max_points': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Maximum score (e.g. 100)', 'min': 1})
+            'max_points': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Maximum score (e.g. 100)', 'min': 1}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
+            'students': forms.SelectMultiple(attrs={'class': 'form-control select2-multiple', 'data-placeholder': 'Select students...'}),
         }
 
-     def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Filter teachers by role - this should be User objects, not Teacher objects
-        # Because the teacher field in Assignment is a ForeignKey to User, not Teacher
-        self.fields['teacher'].queryset = User.objects.filter(role='teacher')  # This is correct
 
-        # If initializing for a teacher user, set the initial value to the current user
-        if 'initial' in kwargs and 'user' in kwargs['initial']:
-            user = kwargs['initial']['user']
+        # Filter courses and students based on teacher
+        if hasattr(self, 'initial') and 'user' in self.initial:
+            user = self.initial['user']
             if user.role == 'teacher':
-                self.fields['teacher'].initial = user
-                self.fields['teacher'].disabled = True
-# In your forms.py, update the TeacherStudentForm
+                try:
+                    teacher = Teacher.objects.get(user=user)
+                    # Get courses taught by this teacher
+                    self.fields['course'].queryset = Course.objects.filter(teachers=teacher)
+
+                    # Get students enrolled in teacher's courses
+                    teacher_courses = Course.objects.filter(teachers=teacher)
+                    self.fields['students'].queryset = Student.objects.filter(courses__in=teacher_courses).distinct()
+
+                except Teacher.DoesNotExist:
+                    self.fields['course'].queryset = Course.objects.none()
+                    self.fields['students'].queryset = Student.objects.none()
+        else:
+            # Default querysets for admin users
+            self.fields['course'].queryset = Course.objects.all()
+            self.fields['students'].queryset = Student.objects.all()
 class TeacherStudentForm(forms.ModelForm):
     username = forms.CharField(
         max_length=150,
@@ -345,3 +358,7 @@ class ReplyForm(forms.ModelForm):
         widgets = {
             'body': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Type your reply here...'}),
         }
+def clean(self):
+    cleaned_data = super().clean()
+    print(f"Form cleaned data: {cleaned_data}")  # Debug output
+    return cleaned_data

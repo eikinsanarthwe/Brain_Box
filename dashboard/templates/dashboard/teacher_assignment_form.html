@@ -9,17 +9,48 @@
             </h4>
         </div>
         <div class="card-body">
-            <form method="post" enctype="multipart/form-data">
+            <!-- Debug messages -->
+            {% if messages %}
+            <div class="alert alert-info">
+                {% for message in messages %}
+                <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <form method="post" enctype="multipart/form-data" id="assignmentForm">
                 {% csrf_token %}
-                
-                <div class="form-group mb-3">
-                    <label for="{{ form.title.id_for_label }}" class="form-label">Title</label>
-                    {{ form.title }}
-                    {% if form.title.errors %}
-                        <div class="invalid-feedback d-block">
-                            {{ form.title.errors|join:", " }}
+
+                <!-- Display form non-field errors -->
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+                {% endif %}
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label">Title *</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.title.errors|join:", " }}
+                                </div>
+                            {% endif %}
                         </div>
-                    {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group mb-3">
+                            <label for="{{ form.course.id_for_label }}" class="form-label">Course *</label>
+                            {{ form.course }}
+                            {% if form.course.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.course.errors|join:", " }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group mb-3">
@@ -32,39 +63,58 @@
                     {% endif %}
                 </div>
 
-                <div class="form-group mb-3">
-                    <label for="{{ form.course.id_for_label }}" class="form-label">Course</label>
-                    {{ form.course }}
-                    {% if form.course.errors %}
-                        <div class="invalid-feedback d-block">
-                            {{ form.course.errors|join:", " }}
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label for="{{ form.due_date.id_for_label }}" class="form-label">Due Date *</label>
+                            {{ form.due_date }}
+                            {% if form.due_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.due_date.errors|join:", " }}
+                                </div>
+                            {% endif %}
                         </div>
-                    {% endif %}
-                </div>
-
-                <div class="form-group mb-3">
-                    <label for="{{ form.due_date.id_for_label }}" class="form-label">Due Date</label>
-                    {{ form.due_date }}
-                    {% if form.due_date.errors %}
-                        <div class="invalid-feedback d-block">
-                            {{ form.due_date.errors|join:", " }}
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label for="{{ form.max_points.id_for_label }}" class="form-label">Maximum Score *</label>
+                            {{ form.max_points }}
+                            {% if form.max_points.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.max_points.errors|join:", " }}
+                                </div>
+                            {% endif %}
                         </div>
-                    {% endif %}
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group mb-3">
+                            <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.status.errors|join:", " }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
 
                 <div class="form-group mb-4">
-                    <label for="{{ form.max_points.id_for_label }}" class="form-label">Maximum Score</label>
-                    {{ form.max_points }}
-                    {% if form.max_points.errors %}
+                    <label for="{{ form.students.id_for_label }}" class="form-label">Assigned Students</label>
+                    {{ form.students }}
+                    {% if form.students.errors %}
                         <div class="invalid-feedback d-block">
-                            {{ form.max_points.errors|join:", " }}
+                            {{ form.students.errors|join:", " }}
                         </div>
                     {% endif %}
+                    <small class="form-text text-muted">
+                        Select students who should complete this assignment (optional)
+                    </small>
                 </div>
 
                 <div class="d-flex justify-content-between">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-1"></i> Save
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="fas fa-save me-1"></i> Save Assignment
                     </button>
                     <a href="{% url 'dashboard:teacher_assignments' %}" class="btn btn-secondary">
                         <i class="fas fa-times me-1"></i> Cancel
@@ -74,4 +124,65 @@
         </div>
     </div>
 </div>
+
+<!-- Add JavaScript to handle form submission -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('assignmentForm');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', function(e) {
+        // Basic validation
+        const title = document.getElementById('id_title').value;
+        const course = document.getElementById('id_course').value;
+        const dueDate = document.getElementById('id_due_date').value;
+        const maxPoints = document.getElementById('id_max_points').value;
+
+        let isValid = true;
+        let errorMessage = '';
+
+        if (!title.trim()) {
+            errorMessage += 'Please enter a title for the assignment.\n';
+            isValid = false;
+        }
+
+        if (!course) {
+            errorMessage += 'Please select a course for the assignment.\n';
+            isValid = false;
+        }
+
+        if (!dueDate) {
+            errorMessage += 'Please select a due date for the assignment.\n';
+            isValid = false;
+        }
+
+        if (!maxPoints || maxPoints <= 0) {
+            errorMessage += 'Please enter a valid maximum score (greater than 0).\n';
+            isValid = false;
+        }
+
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fix the following errors:\n\n' + errorMessage);
+            return false;
+        }
+
+        // Disable button to prevent double submission
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving...';
+    });
+});
+</script>
+
+<!-- Add Select2 for better multi-select -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('.select2-multiple').select2({
+        placeholder: "Select students...",
+        allowClear: true
+    });
+});
+</script>
 {% endblock %}

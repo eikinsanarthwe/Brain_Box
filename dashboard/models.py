@@ -57,14 +57,15 @@ class Course(models.Model):
 # -----------------------------
 # Assignment Model
 # -----------------------------
+# C:\Users\ASUS\Brain_Box\dashboard\models.py
+
 class Assignment(models.Model):
     STATUS_CHOICES = [
         ('draft', 'Draft'),
         ('published', 'Published'),
         ('archived', 'Archived'),
-        ('graded', 'Graded'),
     ]
-
+    students = models.ManyToManyField(Student)
     title = models.CharField(max_length=200)
     description = models.TextField()
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
@@ -73,16 +74,14 @@ class Assignment(models.Model):
         limit_choices_to={'role': 'teacher'},
         on_delete=models.CASCADE
     )
-    students = models.ManyToManyField(Student)
     due_date = models.DateTimeField()
     max_points = models.PositiveIntegerField(default=100)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')  # Add this field
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return f"{self.title} - {self.course.code}"
-
 # -----------------------------
 # Submission Model
 # -----------------------------

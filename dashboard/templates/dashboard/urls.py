@@ -19,4 +19,5 @@ urlpatterns = [
     path('teacher/assignments/<int:id>/', views.teacher_assignment_detail, name='teacher_assignment_detail'),
     path('teacher/grade/<int:submission_id>/', views.grade_submission, name='grade_submission'),
     path('teacher/students/', views.teacher_students, name='teacher_students'),
-    path('teacher/assignments/add/', views.teacher_assignment_create, name='teacher_assignment_create'),]
+
+    path('assignments/add/', views.teacher_assignment_create, name='teacher_assignment_create'),]
