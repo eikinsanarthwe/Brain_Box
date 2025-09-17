@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 {% load static %}
 <html lang="en">
-    
+
 <head>
     <meta charset="UTF-8">
     <title>Brain Box | {% if user.role == 'admin' %}Admin{% else %}Teacher{% endif %} Dashboard</title>
@@ -118,15 +118,15 @@
                 width: 250px;
                 transform: translateX(-100%);
             }
-            
+
             .sidebar.show {
                 transform: translateX(0);
             }
-            
+
             .content {
                 margin-left: 0;
             }
-            
+
             .navbar-toggler {
                 display: block;
             }
@@ -178,16 +178,19 @@
     <div class="container-fluid">
         <div class="row">
             {% include 'includes/sidebar.html' %}
-            
+
             <div class="col-md-10 p-0">
                 {% include 'includes/navbar.html' %}
-                
+
                 {% block content %}{% endblock %}
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- In your base.html or wherever you include scripts -->
+
     <script src="{% static 'js/scripts.js' %}"></script>
 </body>
 </html>

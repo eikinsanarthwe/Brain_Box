@@ -304,8 +304,10 @@ def teacher_assignment_create(request):
 
     return render(request, 'dashboard/teacher_assignment_form.html', {
         'form': form,
-        'title': 'Create Assignment'
+        'title': 'Create Assignment',
+        'action': 'create'
     })
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def edit_assignment(request, id=None):
@@ -324,6 +326,7 @@ def edit_assignment(request, id=None):
             if request.user.role == 'teacher':
                 assignment.teacher = request.user
             assignment.save()
+            form.save_m2m()  # Save ManyToMany relationships
             messages.success(request, f'Assignment {"updated" if id else "created"} successfully!')
 
             if request.user.role == 'teacher':
@@ -334,9 +337,10 @@ def edit_assignment(request, id=None):
     else:
         form = AssignmentForm(instance=assignment)
 
-    return render(request, 'dashboard/assignment_form.html', {
+    return render(request, 'dashboard/teacher_assignment_form.html', {
         'form': form,
-        'title': 'Edit Assignment' if id else 'Add Assignment'
+        'title': 'Edit Assignment',
+        'action': 'edit'
     })
 @login_required
 def delete_assignment(request, id):
@@ -458,14 +462,15 @@ def teacher_students(request):
     teacher = get_object_or_404(Teacher, user=request.user)
     courses = Course.objects.filter(teachers=teacher)
 
-    # Get students enrolled in courses taught by this teacher
-    students = Student.objects.filter(courses__in=courses).select_related('user').distinct()
+    # Get students enrolled in courses taught by this teacher with prefetch
+    students = Student.objects.filter(
+        courses__in=courses
+    ).select_related('user').prefetch_related('courses').distinct()
 
     context = {
         'students': students,
     }
     return render(request, 'dashboard/teacher_students.html', context)
-
 @csrf_exempt
 def get_teachers_by_course(request):
     if request.method == 'GET':

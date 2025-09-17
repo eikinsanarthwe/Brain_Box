@@ -58,6 +58,13 @@ path('assignments/add/', views.teacher_assignment_create, name='assignment_creat
     path('teacher/course/<int:course_id>/remove-student/<int:student_id>/', views.remove_student_from_course, name='remove_student_from_course'),
 
 
+# Teacher Dashboard URLs
+
+   path('teacher/assignments/<int:id>/edit/', views.edit_assignment, name='teacher_edit_assignment'),
+
+
+
+
     # Course Materials URLs
     path('teacher/courses/<int:course_id>/materials/', views.teacher_course_materials, name='teacher_course_materials'),
     path('teacher/courses/<int:course_id>/materials/add/', views.add_course_material, name='add_course_material'),
@@ -81,3 +88,4 @@ path('assignments/add/', views.teacher_assignment_create, name='assignment_creat
 
 ]
 
+# Assignments
