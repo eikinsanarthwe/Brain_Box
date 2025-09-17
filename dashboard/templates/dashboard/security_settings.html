@@ -38,7 +38,7 @@
                     <h5 class="m-0">Two-Factor Authentication</h5>
                 </div>
                 <div class="card-body">
-                    {% if user.userprofile.two_factor_enabled %}
+                    {% if two_factor_enabled %}
                         <div class="alert alert-success">
                             <i class="fas fa-check-circle me-2"></i>
                             Two-factor authentication is enabled for your account.
@@ -58,7 +58,7 @@
                                 </label>
                             </div>
                             
-                            {% if user.userprofile.two_factor_secret %}
+                            {% if has_secret %}
                             <!-- QR Code and verification (shown after enabling but before verifying) -->
                             <div id="2fa-setup" style="display: none;">
                                 <div class="mb-3">
@@ -86,8 +86,68 @@
                     <h5 class="m-0">Active Sessions ({{ active_sessions }})</h5>
                 </div>
                 <div class="card-body">
-                    <p class="text-muted">You're currently logged in on 1 device.</p>
-                    <button class="btn btn-outline-danger">Log out of all other sessions</button>
+                    {% if active_sessions > 1 %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            You're logged in on {{ active_sessions }} devices.
+                        </div>
+                    {% else %}
+                        <p class="text-muted">You're currently logged in on 1 device.</p>
+                    {% endif %}
+                    
+                    <!-- Session list -->
+                    {% if user_sessions %}
+                    <div class="table-responsive mt-3">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Device</th>
+                                    <th>Browser</th>
+                                    <th>IP Address</th>
+                                    <th>Last Activity</th>
+                                    <th>Current</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in user_sessions %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-laptop me-2"></i>
+                                        {{ session.device_name }}
+                                    </td>
+                                    <td>{{ session.browser }}</td>
+                                    <td>{{ session.ip_address }}</td>
+                                    <td>{{ session.last_activity|timesince }} ago</td>
+                                    <td>
+                                        {% if session.is_current %}
+                                            <span class="badge bg-success">Current</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Session key info -->
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Current session: {{ current_session_key|slice:":8" }}...
+                        </small>
+                    </div>
+                    
+                    {% if active_sessions > 1 %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="logout_other_sessions" value="true">
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="fas fa-sign-out-alt me-1"></i>
+                            Log out of all other sessions
+                        </button>
+                    </form>
+                    {% endif %}
                 </div>
             </div>
         </div>

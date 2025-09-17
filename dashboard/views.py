@@ -1,9 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.conf import settings 
+from datetime import timedelta
 from django.contrib import messages
-from django.contrib.auth import logout, get_user_model
+from django.contrib.auth import logout, get_user_model, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.exceptions import ValidationError
 from .models import Teacher, Student, Course, Assignment, Submission, UserProfile
-from .forms import TeacherForm, StudentForm, CourseForm, AssignmentForm, AdminCreationForm, AdminChangeForm,TeacherStudentForm,TeacherCourseForm
+from .forms import TeacherForm, StudentForm, CourseForm, AssignmentForm, AdminCreationForm, AdminChangeForm, TeacherStudentForm, TeacherCourseForm, ProfileUpdateForm
 from django.db.models import Count, Avg
 from datetime import datetime, timedelta
 from django.http import JsonResponse, HttpResponse
@@ -47,6 +50,7 @@ def dashboard(request):
     else:
         # Handle student role or others
         return redirect('login')
+
 # -----------------------------
 # Admin Views
 # -----------------------------
@@ -274,6 +278,7 @@ def teacher_assignment_create(request):
         'form': form,
         'title': 'Create Assignment'
     })
+
 @login_required
 def edit_assignment(request, id=None):
     assignment = get_object_or_404(Assignment, id=id) if id else None
@@ -304,6 +309,7 @@ def edit_assignment(request, id=None):
         'form': form,
         'title': 'Edit Assignment' if id else 'Add Assignment'
     })
+
 @login_required
 def delete_assignment(request, id):
     assignment = get_object_or_404(Assignment, id=id)
@@ -395,6 +401,7 @@ def grade_submission(request, submission_id):
         'submission': submission,
     }
     return render(request, 'dashboard/grade_submission.html', context)
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_courses(request):
@@ -405,6 +412,7 @@ def teacher_courses(request):
         'courses': courses,
     }
     return render(request, 'dashboard/teacher_courses.html', context)
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_assignment_detail(request, id):
@@ -416,6 +424,7 @@ def teacher_assignment_detail(request, id):
         'submissions': submissions,
     }
     return render(request, 'dashboard/teacher_assignment_detail.html', context)
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_students(request):
@@ -431,6 +440,7 @@ def teacher_students(request):
         'students': students,
     }
     return render(request, 'dashboard/teacher_students.html', context)
+
 @csrf_exempt
 def get_teachers_by_course(request):
     if request.method == 'GET':
@@ -451,6 +461,7 @@ def get_teachers_by_course(request):
             print("No course_id provided")
     
     return JsonResponse([], safe=False)
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_course_create(request):
@@ -503,6 +514,7 @@ def teacher_student_create(request):
         'form': form,
         'title': 'Add Student'
     })
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_course_detail(request, course_id):
@@ -544,7 +556,6 @@ def teacher_course_detail(request, course_id):
     }
     
     return render(request, 'dashboard/teacher_course_detail.html', context)
-
 
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
@@ -591,21 +602,24 @@ def admin_settings(request):
 @user_passes_test(is_admin)
 def profile_settings(request):
     if request.method == 'POST':
-        user = request.user
-        user.first_name = request.POST.get('first_name', user.first_name)
-        user.last_name = request.POST.get('last_name', user.last_name)
-        user.email = request.POST.get('email', user.email)
-        
-        # Handle profile photo upload (you'll need to add this field to your User model)
-        # if 'profile_photo' in request.FILES:
-        #     user.profile_photo = request.FILES['profile_photo']
-        
-        user.save()
-        messages.success(request, 'Profile updated successfully!')
-        return redirect('dashboard:profile_settings')
+        form = ProfileUpdateForm(request.POST, instance=request.user)
+        if form.is_valid():
+            user = form.save()
+            messages.success(request, 'Profile updated successfully!')
+            
+            # Keep the user logged in after password change
+            update_session_auth_hash(request, user)
+            
+            return redirect('dashboard:profile_settings')
+        else:
+            for error in form.errors.values():
+                messages.error(request, error)
+    else:
+        form = ProfileUpdateForm(instance=request.user)
     
     return render(request, 'dashboard/profile_settings.html', {
-        'title': 'Profile Settings'
+        'title': 'Profile Settings',
+        'form': form
     })
 
 @user_passes_test(is_admin)
@@ -642,6 +656,54 @@ def appearance_settings(request):
 
 @user_passes_test(is_admin)
 def security_settings(request):
+    # Get or create user profile at the start
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    
+    # GET REAL ACTIVE SESSIONS
+    from django.contrib.sessions.models import Session
+    from django.utils import timezone
+    import user_agents
+    
+    # Get all active sessions for the current user
+    user_sessions = []
+    all_sessions = Session.objects.filter(expire_date__gte=timezone.now())
+    
+    for session in all_sessions:
+        session_data = session.get_decoded()
+        user_id = session_data.get('_auth_user_id', '')
+        
+        # Check if this session belongs to the current user
+        if user_id and str(request.user.id) == user_id:
+            # Get device information from session
+            user_agent_string = session_data.get('user_agent', '')
+            if user_agent_string:
+                user_agent = user_agents.parse(user_agent_string)
+                device_name = f"{user_agent.device.brand} {user_agent.device.model}" if user_agent.device.brand else "Unknown Device"
+                browser = f"{user_agent.browser.family} {user_agent.browser.version_string}"
+                os = f"{user_agent.os.family} {user_agent.os.version_string}"
+            else:
+                device_name = "Unknown Device"
+                browser = "Unknown Browser"
+                os = "Unknown OS"
+                
+            # Get IP address
+            ip_address = session_data.get('ip_address', 'Unknown')
+            
+            # Get last activity (approximate)
+            last_activity = session.expire_date - timedelta(seconds=settings.SESSION_COOKIE_AGE)
+            
+            user_sessions.append({
+                'session_key': session.session_key,
+                'device_name': device_name,
+                'browser': browser,
+                'os': os,
+                'ip_address': ip_address,
+                'last_activity': last_activity,
+                'is_current': session.session_key == request.session.session_key
+            })
+    
+    active_sessions_count = len(user_sessions)
+    
     if request.method == 'POST':
         # Handle password change
         current_password = request.POST.get('current_password')
@@ -651,6 +713,10 @@ def security_settings(request):
             if request.user.check_password(current_password):
                 request.user.set_password(new_password)
                 request.user.save()
+                
+                # Update session auth hash to keep user logged in
+                update_session_auth_hash(request, request.user)
+                
                 messages.success(request, 'Password updated successfully!')
             else:
                 messages.error(request, 'Current password is incorrect')
@@ -659,7 +725,6 @@ def security_settings(request):
         elif 'enable_2fa' in request.POST:
             # Generate a secret key
             secret = pyotp.random_base32()
-            profile, created = UserProfile.objects.get_or_create(user=request.user)
             profile.two_factor_secret = secret
             profile.save()
             messages.info(request, 'Please scan the QR code with your authenticator app')
@@ -667,45 +732,51 @@ def security_settings(request):
         # Handle 2FA verification
         elif 'verify_2fa' in request.POST:
             verification_code = request.POST.get('verification_code')
-            profile = UserProfile.objects.get(user=request.user)
             
             totp = pyotp.TOTP(profile.two_factor_secret)
             if totp.verify(verification_code):
                 profile.two_factor_enabled = True
                 profile.save()
                 messages.success(request, 'Two-factor authentication enabled successfully!')
+                return redirect('dashboard:security_settings')
             else:
                 messages.error(request, 'Invalid verification code')
         
         # Handle 2FA disable
         elif 'disable_2fa' in request.POST:
-            profile = UserProfile.objects.get(user=request.user)
             profile.two_factor_enabled = False
             profile.two_factor_secret = None
             profile.save()
             messages.success(request, 'Two-factor authentication disabled')
+            return redirect('dashboard:security_settings')
         
-        return redirect('dashboard:security_settings')
-    
-    # Get active sessions (simplified implementation)
-    active_sessions = 1  # You would implement proper session tracking
+        # Handle logout other sessions
+        elif 'logout_other_sessions' in request.POST:
+            sessions_deleted = 0
+            for session in all_sessions:
+                session_data = session.get_decoded()
+                if (str(request.user.id) == session_data.get('_auth_user_id', '') and 
+                    session.session_key != request.session.session_key):
+                    session.delete()
+                    sessions_deleted += 1
+            
+            messages.success(request, f'Logged out of {sessions_deleted} other sessions.')
+            return redirect('dashboard:security_settings')
     
     # Check if user has 2FA enabled
-    try:
-        profile = UserProfile.objects.get(user=request.user)
-        two_factor_enabled = profile.two_factor_enabled
-        has_secret = bool(profile.two_factor_secret)
-    except UserProfile.DoesNotExist:
-        two_factor_enabled = False
-        has_secret = False
+    two_factor_enabled = profile.two_factor_enabled
+    has_secret = bool(profile.two_factor_secret)
     
     return render(request, 'dashboard/security_settings.html', {
         'title': 'Security Settings',
-        'active_sessions': active_sessions,
+        'active_sessions': active_sessions_count,
+        'user_sessions': user_sessions,
+        'current_session_key': request.session.session_key,
         'two_factor_enabled': two_factor_enabled,
-        'has_secret': has_secret
+        'has_secret': has_secret,
+        'user': request.user
     })
-
+    
 def generate_qr_code(request):
     """Generate QR code for 2FA setup"""
     profile = UserProfile.objects.get(user=request.user)
@@ -726,3 +797,27 @@ def generate_qr_code(request):
     buffer.seek(0)
     
     return HttpResponse(buffer.getvalue(), content_type='image/png')
+
+@user_passes_test(is_admin)
+def logout_other_sessions(request):
+    from django.contrib.sessions.models import Session
+    from django.utils import timezone
+    
+    if request.method == 'POST':
+        current_session_key = request.session.session_key
+        all_sessions = Session.objects.filter(expire_date__gte=timezone.now())
+        
+        sessions_deleted = 0
+        for session in all_sessions:
+            session_data = session.get_decoded()
+            if (str(request.user.id) == session_data.get('_auth_user_id', '') and 
+                session.session_key != current_session_key):
+                session.delete()
+                sessions_deleted += 1
+        
+        if sessions_deleted > 0:
+            messages.success(request, f'Logged out of {sessions_deleted} other session(s).')
+        else:
+            messages.info(request, 'No other active sessions found.')
+    
+    return redirect('dashboard:security_settings')

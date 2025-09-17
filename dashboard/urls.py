@@ -57,4 +57,5 @@ urlpatterns = [
     path('settings/security/', views.security_settings, name='security_settings'),
 
     path('settings/security/generate-qr/', views.generate_qr_code, name='generate_qr_code'),
+    path('settings/security/logout-other-sessions/', views.logout_other_sessions, name='logout_other_sessions'),
 ]

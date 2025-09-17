@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
+from django.core.exceptions import ValidationError
 from .models import Teacher, Student, Course, Assignment
 
 User = get_user_model()
@@ -173,6 +174,9 @@ class CourseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Fix this line - use Teacher model instead of User
         self.fields['teachers'].queryset = Teacher.objects.all()  # Changed from User to Teacher
+
+# ---------------- Assignment Form ---------------- #
+
 class AssignmentForm(forms.ModelForm):
      class Meta:
         model = Assignment
@@ -198,7 +202,9 @@ class AssignmentForm(forms.ModelForm):
             if user.role == 'teacher':
                 self.fields['teacher'].initial = user
                 self.fields['teacher'].disabled = True
-# In your forms.py, update the TeacherStudentForm
+
+# ---------------- Teacher Student Form ---------------- #
+
 class TeacherStudentForm(forms.ModelForm):
     username = forms.CharField(
         max_length=150, 
@@ -256,6 +262,9 @@ class TeacherStudentForm(forms.ModelForm):
         if commit:
             student.save()
         return student
+
+# ---------------- Teacher Course Form ---------------- #
+
 class TeacherCourseForm(forms.ModelForm):
     class Meta:
         model = Course
@@ -265,3 +274,68 @@ class TeacherCourseForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Intro to CS'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Course description...'}),
         }
+
+# ---------------- Profile Update Form ---------------- #
+
+class ProfileUpdateForm(forms.ModelForm):
+    current_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter current password to change password'
+        }),
+        required=False
+    )
+    new_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter new password'
+        }),
+        required=False
+    )
+    confirm_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirm new password'
+        }),
+        required=False
+    )
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'username', 'email']
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+        }
+
+    def clean(self):
+        cleaned_data = super().clean()
+        current_password = cleaned_data.get('current_password')
+        new_password = cleaned_data.get('new_password')
+        confirm_password = cleaned_data.get('confirm_password')
+
+        if any([current_password, new_password, confirm_password]):
+            if not all([current_password, new_password, confirm_password]):
+                raise ValidationError('All password fields are required when changing password.')
+            
+            if new_password != confirm_password:
+                raise ValidationError('New passwords do not match.')
+            
+            if not self.instance.check_password(current_password):
+                raise ValidationError('Current password is incorrect.')
+
+        return cleaned_data
+
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        
+        new_password = self.cleaned_data.get('new_password')
+        if new_password:
+            user.set_password(new_password)
+        
+        if commit:
+            user.save()
+        
+        return user
