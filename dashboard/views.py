@@ -18,7 +18,7 @@ from .models import Teacher, Student, Course, Assignment, Submission, CourseMate
 from .forms import (
     TeacherForm, StudentForm, CourseForm, AssignmentForm,
     AdminCreationForm, AdminChangeForm, TeacherStudentForm,
-    TeacherCourseForm, CourseMaterialForm, MessageForm, ReplyForm
+    TeacherCourseForm, CourseMaterialForm, MessageForm, ReplyForm,ProfileSettingsForm
 )
 
 User = get_user_model()
@@ -359,6 +359,13 @@ def teacher_dashboard(request):
         messages.error(request, "Teacher profile not found.")
         return redirect('login')
 
+    # Get theme preference
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+        current_theme = profile.theme_preference
+    except UserProfile.DoesNotExist:
+        current_theme = 'light'
+
     # Get courses taught by this teacher
     courses = Course.objects.filter(teachers=teacher)
 
@@ -372,7 +379,7 @@ def teacher_dashboard(request):
 
     # Calculate statistics - filter by teacher's courses
     total_students = Student.objects.filter(
-        courses__in=courses  # FIXED: Use ManyToMany relationship
+        courses__in=courses
     ).distinct().count()
 
     # Count pending grading for this teacher's assignments
@@ -390,9 +397,9 @@ def teacher_dashboard(request):
         'pending_grading': pending_grading,
         'total_assignments': assignments.count(),
         'can_create_courses': True,
+        'current_theme': current_theme,  # Add theme to context
     }
     return render(request, 'dashboard/teacher_dashboard.html', context)
-
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_assignments(request):
@@ -629,21 +636,19 @@ def admin_settings(request):
 
 @user_passes_test(is_admin)
 def profile_settings(request):
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+
     if request.method == 'POST':
-        user = request.user
-        user.first_name = request.POST.get('first_name', user.first_name)
-        user.last_name = request.POST.get('last_name', user.last_name)
-        user.email = request.POST.get('email', user.email)
-
-        # Handle profile photo upload (you'll need to add this field to your User model)
-        # if 'profile_photo' in request.FILES:
-        #     user.profile_photo = request.FILES['profile_photo']
-
-        user.save()
-        messages.success(request, 'Profile updated successfully!')
-        return redirect('dashboard:profile_settings')
+        form = ProfileSettingsForm(request.POST, request.FILES, instance=profile, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('dashboard:profile_settings')
+    else:
+        form = ProfileSettingsForm(instance=profile, user=request.user)
 
     return render(request, 'dashboard/profile_settings.html', {
+        'form': form,
         'title': 'Profile Settings'
     })
 
@@ -1154,3 +1159,145 @@ def add_student_to_course(request, course_id):
         'available_students': available_students,
     }
     return render(request, 'dashboard/add_student_to_course.html', context)
+# -----------------------------
+# Teacher Settings Views
+# -----------------------------
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_settings(request):
+    context = {
+        'title': 'Teacher Settings',
+        'settings_options': [
+            {'name': 'Profile', 'icon': 'fas fa-user', 'description': 'Update your profile information', 'url': 'dashboard:teacher_profile_settings'},
+            {'name': 'Appearance', 'icon': 'fas fa-palette', 'description': 'Customize theme', 'url': 'dashboard:teacher_appearance_settings'},
+            {'name': 'Security', 'icon': 'fas fa-shield-alt', 'description': 'Security settings', 'url': 'dashboard:teacher_security_settings'},
+        ]
+    }
+    return render(request, 'dashboard/teacher_settings.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_profile_settings(request):
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        form = ProfileSettingsForm(request.POST, request.FILES, instance=profile, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('dashboard:teacher_profile_settings')
+    else:
+        form = ProfileSettingsForm(instance=profile, user=request.user)
+
+    return render(request, 'dashboard/teacher_profile_settings.html', {
+        'form': form,
+        'title': 'Profile Settings'
+    })
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_appearance_settings(request):
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        theme = request.POST.get('theme', 'light')
+        profile.theme_preference = theme
+        profile.save()
+
+        # Update localStorage via JavaScript in the template
+        messages.success(request, 'Appearance settings saved!')
+        return redirect('dashboard:teacher_appearance_settings')
+
+    return render(request, 'dashboard/teacher_appearance_settings.html', {
+        'title': 'Appearance Settings',
+        'themes': ['light', 'dark', 'auto'],
+        'current_theme': profile.theme_preference
+    })
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_security_settings(request):
+    if request.method == 'POST':
+        # Handle password change
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+
+        if current_password and new_password and 'password_change' in request.POST:
+            if request.user.check_password(current_password):
+                request.user.set_password(new_password)
+                request.user.save()
+                messages.success(request, 'Password updated successfully!')
+            else:
+                messages.error(request, 'Current password is incorrect')
+
+        # Handle 2FA enable
+        elif 'enable_2fa' in request.POST:
+            # Generate a secret key
+            secret = pyotp.random_base32()
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            profile.two_factor_secret = secret
+            profile.save()
+            messages.info(request, 'Please scan the QR code with your authenticator app')
+
+        # Handle 2FA verification
+        elif 'verify_2fa' in request.POST:
+            verification_code = request.POST.get('verification_code')
+            profile = UserProfile.objects.get(user=request.user)
+
+            totp = pyotp.TOTP(profile.two_factor_secret)
+            if totp.verify(verification_code):
+                profile.two_factor_enabled = True
+                profile.save()
+                messages.success(request, 'Two-factor authentication enabled successfully!')
+            else:
+                messages.error(request, 'Invalid verification code')
+
+        # Handle 2FA disable
+        elif 'disable_2fa' in request.POST:
+            profile = UserProfile.objects.get(user=request.user)
+            profile.two_factor_enabled = False
+            profile.two_factor_secret = None
+            profile.save()
+            messages.success(request, 'Two-factor authentication disabled')
+
+        return redirect('dashboard:teacher_security_settings')
+
+    # Get active sessions (simplified implementation)
+    active_sessions = 1  # You would implement proper session tracking
+
+    # Check if user has 2FA enabled
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+        two_factor_enabled = profile.two_factor_enabled
+        has_secret = bool(profile.two_factor_secret)
+    except UserProfile.DoesNotExist:
+        two_factor_enabled = False
+        has_secret = False
+
+    return render(request, 'dashboard/security_settings.html', {
+        'title': 'Security Settings',
+        'active_sessions': active_sessions,
+        'two_factor_enabled': two_factor_enabled,
+        'has_secret': has_secret
+    })
+@login_required
+@csrf_exempt
+def update_theme_preference(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            theme = data.get('theme', 'light')
+
+            # Validate theme value
+            if theme not in ['light', 'dark', 'auto']:
+                theme = 'light'
+
+            # Get or create user profile
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            profile.theme_preference = theme
+            profile.save()
+
+            return JsonResponse({'status': 'success', 'theme': theme})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})

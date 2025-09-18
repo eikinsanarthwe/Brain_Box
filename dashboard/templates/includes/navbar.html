@@ -1,73 +1,113 @@
-<nav class="navbar navbar-expand-lg mb-4">
-  <div class="container-fluid">
-    <!-- Sidebar Toggle (visible only on mobile) -->
-    <button class="btn btn-link d-md-none" id="sidebarToggle">
-      <i class="fas fa-bars"></i>
-    </button>
-
-    <!-- Left Side: Portal Name + Mode -->
-    <div class="d-flex align-items-center">
-      {% if user.role == 'admin' %}
-      <span class="navbar-brand fw-bold">Admin Portal</span>
-      <span class="mode-indicator">
-        <i class="fas fa-user-shield me-1"></i> Admin Mode
-      </span>
-      {% elif user.role == 'teacher' %}
-      <span class="navbar-brand fw-bold">Teacher Portal</span>
-      <span class="mode-indicator">
-        <i class="fas fa-user-tie me-1"></i> Teacher Mode
-      </span>
-      {% endif %}
-    </div>
-
-    <!-- Right Side: Messages Dropdown and User Profile -->
-    <div class="d-flex align-items-center">
-      <!-- Messages Dropdown -->
-      <div class="dropdown me-3">
-        <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button"
-           data-bs-toggle="dropdown" aria-expanded="false">
-          <i class="fas fa-envelope fa-fw"></i>
-          <span class="badge bg-danger badge-counter" id="unread-message-count" style="display: none;">0</span>
-        </a>
-        <div class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="messagesDropdown">
-          <h6 class="dropdown-header">Message Center</h6>
-          <div id="message-preview" style="max-height: 300px; overflow-y: auto;">
-            <div class="text-center py-3">
-              <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-              </div>
-            </div>
-          </div>
-          <a class="dropdown-item text-center small text-gray-500" href="{% url 'dashboard:message_list' %}">
-            <i class="fas fa-list me-1"></i> View All Messages
-          </a>
-          <a class="dropdown-item text-center small text-gray-500" href="{% url 'dashboard:message_compose' %}">
-            <i class="fas fa-edit me-1"></i> Compose New Message
-          </a>
-        </div>
-      </div>
-
-      <!-- User Profile Dropdown -->
-      <div class="dropdown">
-        <button class="btn dropdown-toggle" type="button" id="userDropdown"
-                data-bs-toggle="dropdown" aria-expanded="false">
-          <i class="fas fa-user-circle me-1"></i>
-          {{ request.user.get_full_name|default:request.user.username }}
+<nav class="navbar navbar-expand-lg main-navbar mb-4">
+    <div class="container-fluid">
+        <!-- Sidebar Toggle (visible only on mobile) -->
+        <button class="btn btn-link d-md-none" id="sidebarToggle">
+            <i class="fas fa-bars"></i>
         </button>
-        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-          <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Profile</a></li>
-          <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Settings</a></li>
-          <li><hr class="dropdown-divider"></li>
-          <li>
-            <form method="post" action="{% url 'logout' %}" class="d-inline">
-              {% csrf_token %}
-              <button type="submit" class="dropdown-item">
-                <i class="fas fa-sign-out-alt me-2"></i> Logout
-              </button>
-            </form>
-          </li>
-        </ul>
-      </div>
+
+        <!-- Left Side: Portal Name + Mode -->
+        <div class="d-flex align-items-center">
+            {% if user.role == 'admin' %}
+            <span class="navbar-brand fw-bold">Admin Portal</span>
+            <span class="mode-indicator ms-2" style="opacity: 0.8;">
+                <i class="fas fa-user-shield me-1"></i> Admin Mode
+            </span>
+            {% elif user.role == 'teacher' %}
+            <span class="navbar-brand fw-bold">Teacher Portal</span>
+            <span class="mode-indicator ms-2" style="opacity: 0.8;">
+                <i class="fas fa-user-tie me-1"></i> Teacher Mode
+            </span>
+            {% endif %}
+        </div>
+
+        <!-- Right Side: Messages Dropdown and User Profile -->
+        <div class="d-flex align-items-center">
+            <!-- Messages Dropdown -->
+            <div class="dropdown me-3">
+                <a class="nav-link dropdown-toggle" href="#" id="messagesDropdown" role="button"
+                   data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-envelope fa-fw"></i>
+                    {% if unread_messages_count > 0 %}
+                    <span class="badge bg-danger badge-counter">{{ unread_messages_count }}</span>
+                    {% endif %}
+                </a>
+                <div class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="messagesDropdown">
+                    <h6 class="dropdown-header">Message Center</h6>
+                    <div id="message-preview" style="max-height: 300px; overflow-y: auto;">
+                        <div class="text-center py-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    </div>
+                    <a class="dropdown-item text-center small" href="{% url 'dashboard:message_list' %}">
+                        <i class="fas fa-list me-1"></i> View All Messages
+                    </a>
+                    <a class="dropdown-item text-center small" href="{% url 'dashboard:message_compose' %}">
+                        <i class="fas fa-edit me-1"></i> Compose New Message
+                    </a>
+                </div>
+            </div>
+
+            <!-- User Profile Dropdown -->
+            <div class="dropdown">
+                <button class="btn dropdown-toggle" type="button" id="userDropdown"
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-user-circle me-1"></i>
+                    {{ request.user.get_full_name|default:request.user.username }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Profile</a></li>
+                    {% if user.role == 'admin' %}
+                    <li><a class="dropdown-item" href="{% url 'dashboard:admin_settings' %}"><i class="fas fa-cog me-2"></i> Settings</a></li>
+                    {% elif user.role == 'teacher' %}
+                    <li><a class="dropdown-item" href="{% url 'dashboard:teacher_settings' %}"><i class="fas fa-cog me-2"></i> Settings</a></li>
+                    {% endif %}
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <form method="post" action="{% url 'logout' %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
     </div>
-  </div>
 </nav>
+
+<script>
+// Load message preview when dropdown is shown
+document.getElementById('messagesDropdown').addEventListener('click', function() {
+    fetch('{% url "dashboard:message_list" %}?preview=true')
+        .then(response => response.text())
+        .then(html => {
+            document.getElementById('message-preview').innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error loading messages:', error);
+            document.getElementById('message-preview').innerHTML = '<div class="text-center py-3 text-muted">Error loading messages</div>';
+        });
+});
+
+// Update unread message count
+function updateUnreadCount() {
+    fetch('{% url "dashboard:unread_count" %}')
+        .then(response => response.json())
+        .then(data => {
+            const badge = document.querySelector('.badge-counter');
+            if (data.unread_count > 0) {
+                badge.textContent = data.unread_count;
+                badge.style.display = 'inline';
+            } else {
+                badge.style.display = 'none';
+            }
+        });
+}
+
+// Update count every 30 seconds
+setInterval(updateUnreadCount, 30000);
+updateUnreadCount(); // Initial load
+</script>

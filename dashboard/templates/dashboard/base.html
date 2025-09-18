@@ -1,17 +1,21 @@
-<!DOCTYPE html>
 {% load static %}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Brain Box | Admin Dashboard</title>
+    <title>Brain Box | {% if user.role == 'admin' %}Admin{% else %}Teacher{% endif %} Dashboard</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Bootstrap & Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <!-- Select2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="{% static 'css/styles.css' %}" rel="stylesheet">
+
     <style>
-        /* DEFAULT LIGHT THEME (applies when no data-theme is set) */
+        /* =============================
+           DEFAULT LIGHT THEME VARIABLES
+        ============================== */
         :root {
             --primary-color: #4e73df;
             --secondary-color: #1cc88a;
@@ -19,296 +23,289 @@
             --danger-color: #e74a3b;
             --dark-color: #5a5c69;
             --light-color: #f8f9fc;
-            --bg-color: #f8f9fc;
-            --text-color: #000000;
-            --card-bg: #ffffff;
+
+            --bg-color: #ffffff;
+            --text-color: #2c3e50;
+            --card-bg: #f8f9fc;
             --border-color: #e3e6f0;
-            --sidebar-bg: #343a40;
             --navbar-bg: #ffffff;
             --card-header-bg: #f8f9fc;
+            --table-bg: #ffffff;
+            --table-header-bg: #f8f9fc;
+            --table-border-color: #e3e6f0;
+            --input-bg: #ffffff;
+            --input-border-color: #d1d3e2;
+            --input-text-color: #2c3e50;
+            --dropdown-bg: #ffffff;
+            --dropdown-border: #e3e6f0;
         }
 
-        /* LIGHT THEME (explicit) */
-        :root[data-theme="light"] {
-            --primary-color: #4e73df;
-            --secondary-color: #1cc88a;
-            --accent-color: #f6c23e;
-            --danger-color: #e74a3b;
-            --dark-color: #5a5c69;
-            --light-color: #f8f9fc;
-            --bg-color: #f8f9fc;
-            --text-color: #ffffff;
-            --card-bg: #ffffff;
-            --border-color: #e3e6f0;
-            --sidebar-bg: #343a40;
-            --navbar-bg: #ffffff;
-            --card-header-bg: #f8f9fc;
-        }
-
-        /* DARK THEME with your blue color #136B7F */
-        :root[data-theme="dark"] {
-            --primary-color: #4e73df;
-            --secondary-color: #1cc88a;
-            --accent-color: #f6c23e;
-            --danger-color: #e74a3b;
-            --dark-color: #136B7F;
-            --light-color: #136B7F;
+        /* =============================
+           DARK THEME VARIABLES
+        ============================== */
+        body[data-theme="dark"] {
             --bg-color: #0a3d49;
             --text-color: #ffffff;
             --card-bg: #136B7F;
             --border-color: #0f5c6e;
-            --sidebar-bg: #08323d;
             --navbar-bg: #136B7F;
             --card-header-bg: #0f5c6e;
+            --table-bg: #136B7F;
+            --table-header-bg: #0a3d49;
+            --table-border-color: #0f5c6e;
+            --input-bg: #0a3d49;
+            --input-border-color: #0f5c6e;
+            --input-text-color: #ffffff;
+            --dropdown-bg: #136B7F;
+            --dropdown-border: #0f5c6e;
         }
 
-        /* Apply theme variables */
+        /* =============================
+           GLOBAL ELEMENTS
+        ============================== */
         body {
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .sidebar {
             min-height: 100vh;
-            background-color: var(--sidebar-bg) !important;
-            background: linear-gradient(180deg, var(--sidebar-bg) 0%, #212529 100%);
-            padding-top: 20px;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(33, 37, 41, 0.15);
-            transition: all 0.3s;
-        }
-
-        .sidebar a {
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            padding: 12px 15px;
-            display: block;
-            border-radius: 5px;
-            margin: 0 10px 5px 10px;
-            font-weight: 500;
-            transition: all 0.3s;
-        }
-
-        .sidebar a:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: #fff;
-            transform: translateX(5px);
-        }
-
-        .sidebar a.active {
-            background-color: rgba(255, 255, 255, 0.2);
-            color: #fff;
-            font-weight: 600;
-        }
-
-        .sidebar a i {
-            width: 20px;
-            text-align: center;
-            margin-right: 10px;
-        }
-
-        .sidebar-brand {
-            color: #fff !important;
-            font-size: 1.2rem;
-            font-weight: 800;
-            padding: 1.5rem 1rem;
-            text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 0.05rem;
-            margin-bottom: 1rem !important;
-        }
-
-        .sidebar-divider {
-            border-top: 1px solid rgba(255, 255, 255, 0.15);
-            margin: 1rem 1rem;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .content {
+            background-color: var(--bg-color);
+            min-height: calc(100vh - 76px);
             padding: 20px;
         }
 
+        /* Cards */
         .card {
-            border: none;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
             border-radius: 0.5rem;
             box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
-            transition: 0.3s;
+            transition: all 0.3s ease;
             margin-bottom: 1.5rem;
-            background-color: var(--card-bg);
-            border-color: var(--border-color);
         }
-
         .card:hover {
             box-shadow: 0 0.5rem 1.5rem 0 rgba(58, 59, 69, 0.2);
-            transform: translateY(-5px);
+            transform: translateY(-2px);
         }
-
         .card-header {
             background-color: var(--card-header-bg);
             border-bottom: 1px solid var(--border-color);
-            padding: 1rem 1.25rem;
+            color: var(--text-color);
             border-radius: 0.5rem 0.5rem 0 0 !important;
         }
 
-        .navbar {
+        /* Navbar */
+        .main-navbar {
             background-color: var(--navbar-bg);
+            border-bottom: 1px solid var(--border-color);
             box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
             padding: 0.5rem 1rem;
         }
-
-        .border-left-primary {
-            border-left: 0.25rem solid var(--primary-color) !important;
+        .main-navbar .navbar-brand,
+        .main-navbar .nav-link,
+        .main-navbar .dropdown-toggle {
+            color: var(--text-color) !important;
         }
-
-        .border-left-success {
-            border-left: 0.25rem solid var(--secondary-color) !important;
+        .main-navbar .dropdown-menu {
+            background-color: var(--dropdown-bg);
+            border: 1px solid var(--dropdown-border);
+            color: var(--text-color);
         }
-
-        .border-left-warning {
-            border-left: 0.25rem solid var(--accent-color) !important;
+        .main-navbar .dropdown-item {
+            color: var(--text-color);
         }
-
-        .border-left-danger {
-            border-left: 0.25rem solid var(--danger-color) !important;
-        }
-
-        .text-primary {
-            color: var(--primary-color) !important;
-        }
-
-        .text-success {
-            color: var(--secondary-color) !important;
-        }
-
-        .text-warning {
-            color: var(--accent-color) !important;
-        }
-
-        .text-danger {
-            color: var(--danger-color) !important;
-        }
-
-        .bg-primary {
-            background-color: var(--primary-color) !important;
-        }
-
-        .bg-success {
-            background-color: var(--secondary-color) !important;
-        }
-
-        .bg-warning {
-            background-color: var(--accent-color) !important;
-        }
-
-        .bg-danger {
-            background-color: var(--danger-color) !important;
-        }
-
-        .mode-indicator {
+        .main-navbar .dropdown-item:hover {
             background-color: var(--primary-color);
             color: white;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            margin-right: 15px;
         }
 
+        /* Tables */
+        .table {
+            background-color: var(--table-bg);
+            color: var(--text-color);
+            border-color: var(--table-border-color);
+        }
+        .table th {
+            background-color: var(--table-header-bg);
+            color: var(--text-color);
+            border-color: var(--table-border-color);
+        }
+        .table td {
+            background-color: var(--table-bg);
+            color: var(--text-color);
+            border-color: var(--table-border-color);
+        }
+
+        /* Forms */
+        .form-control {
+            background-color: var(--input-bg);
+            border-color: var(--input-border-color);
+            color: var(--input-text-color);
+        }
+        .form-control:focus {
+            border-color: var(--primary-color);
+            color: var(--input-text-color);
+            background-color: var(--input-bg);
+            box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+        }
+        .form-label,
+        .form-check-label {
+            color: var(--text-color);
+        }
+
+        /* Alerts */
+        .alert {
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+        .alert-primary { background-color: var(--primary-color); color: #fff; border-color: var(--primary-color); }
+        .alert-success { background-color: var(--secondary-color); color: #fff; border-color: var(--secondary-color); }
+        .alert-warning { background-color: var(--accent-color); color: #212529; border-color: var(--accent-color); }
+        .alert-danger  { background-color: var(--danger-color); color: #fff; border-color: var(--danger-color); }
+
+        /* Badges */
+        .badge { border-radius: 0.35rem; font-weight: 500; padding: 0.35em 0.65em; }
+        .badge-primary { background-color: var(--primary-color); color: #fff; }
+        .badge-secondary { background-color: var(--secondary-color); color: #fff; }
+        .badge-warning { background-color: var(--accent-color); color: #212529; }
+        .badge-danger { background-color: var(--danger-color); color: #fff; }
+
+        /* Buttons */
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        /* Text */
+        h1, h2, h3, h4, h5, h6, p, span, div, label {
+            color: var(--text-color);
+        }
+        .text-muted {
+            color: var(--text-color) !important;
+            opacity: 0.7;
+        }
+
+        /* Responsive sidebar */
         @media (max-width: 768px) {
             .sidebar {
                 position: fixed;
                 z-index: 1000;
-                width: 250px;
+                width: 280px;
                 transform: translateX(-100%);
             }
-            
-            .sidebar.show {
-                transform: translateX(0);
-            }
-            
-            .content {
-                margin-left: 0;
-            }
-            
-            .navbar-toggler {
-                display: block;
-            }
+            .sidebar.show { transform: translateX(0); }
+            .content { margin-left: 0; }
+        }
 
-            .card {
-                display: inline-block;
-                padding: 20px;
-                margin: 10px;
-                background: var(--card-bg);
-                border-radius: 8px;
-                text-decoration: none;
-                color: var(--text-color);
-                width: 200px;
-            }
+        /* =============================
+           DARK THEME OVERRIDES
+        ============================== */
+        body[data-theme="dark"] .card,
+        body[data-theme="dark"] .card-body,
+        body[data-theme="dark"] .list-group-item,
+        body[data-theme="dark"] .table,
+        body[data-theme="dark"] .form-control {
+            background-color: var(--card-bg) !important;
+            color: var(--text-color) !important;
+            border-color: var(--border-color) !important;
+        }
 
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 20px;
-            }
-            th, td {
-                padding: 12px;
-                text-align: left;
-                border-bottom: 1px solid var(--border-color);
-            }
-            th {
-                background-color: var(--primary-color);
-                color: white;
-            }
+        /* Unread messages (bg-light) */
+        body[data-theme="dark"] .list-group-item.bg-light {
+            background-color: #0f5c6e !important;
+            color: var(--text-color) !important;
+        }
+
+        /* Muted text in dark mode */
+        body[data-theme="dark"] .text-muted {
+            color: rgba(255, 255, 255, 0.7) !important;
+        }
+
+        /* Buttons */
+        body[data-theme="dark"] .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
         }
     </style>
 </head>
-<body>
-    <!-- Set initial theme to light if not set -->
-    <script>
-    if (!localStorage.getItem('theme')) {
-        localStorage.setItem('theme', 'light');
-        document.documentElement.setAttribute('data-theme', 'light');
-    }
-    </script>
-    
+<body data-theme="{{ current_theme|default:'light' }}">
     <div class="container-fluid">
         <div class="row">
             {% include 'includes/sidebar.html' %}
-            
+
             <div class="col-md-10 p-0">
                 {% include 'includes/navbar.html' %}
-                
-                {% block content %}{% endblock %}
+
+                <main class="content">
+                    {% block content %}{% endblock %}
+                </main>
             </div>
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="{% static 'js/scripts.js' %}"></script>
-    
-    <!-- Theme Switching JavaScript -->
-    <script>
-    // Apply theme on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
-        let themeToApply = savedTheme;
-        
-        if (savedTheme === 'auto') {
-            themeToApply = systemPrefersDark ? 'dark' : 'light';
-        }
-        
-        document.documentElement.setAttribute('data-theme', themeToApply);
-    });
 
-    // Listen for system theme changes
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'auto') {
-            const newTheme = e.matches ? 'dark' : 'light';
-            document.documentElement.setAttribute('data-theme', newTheme);
+    <script>
+        // Apply theme on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            applyTheme();
+        });
+
+        function applyTheme() {
+            const serverTheme = '{{ current_theme }}' || 'light';
+            const savedTheme = localStorage.getItem('theme') || serverTheme;
+            document.body.setAttribute('data-theme', savedTheme);
+            updateServerTheme(savedTheme);
         }
-    });
+
+        function updateServerTheme(theme) {
+            fetch('/dashboard/update-theme/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken'),
+                },
+                body: JSON.stringify({theme: theme})
+            }).catch(error => console.error('Error updating theme:', error));
+        }
+
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Mobile sidebar toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    document.querySelector('.sidebar').classList.toggle('show');
+                });
+            }
+        });
     </script>
 </body>
 </html>

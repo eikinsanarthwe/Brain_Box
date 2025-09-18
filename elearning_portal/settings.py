@@ -43,9 +43,15 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
+               'django.template.context_processors.debug',
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                # Add your custom context processors here
+                'dashboard.context_processors.theme_context',
+                'dashboard.context_processors.user_role_context',
+                'dashboard.context_processors.unread_messages_count',
+                'dashboard.context_processors.sidebar_context',
             ],
         },
     },
@@ -85,7 +91,7 @@ MEDIA_URL = '/media/'                                   # ✅ Added for uploads
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Custom user model
-AUTH_USER_MODEL = 'accounts.CustomUser'  
+AUTH_USER_MODEL = 'accounts.CustomUser'
 
 
 # Default primary key field type

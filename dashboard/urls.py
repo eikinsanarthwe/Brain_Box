@@ -56,11 +56,18 @@ path('assignments/add/', views.teacher_assignment_create, name='assignment_creat
     path('teacher/courses/<int:course_id>/remove-student/<int:student_id>/', views.remove_student_from_course, name='remove_student_from_course'),
     path('teacher/course/<int:course_id>/add-student/', views.add_student_to_course, name='add_student_to_course'),
     path('teacher/course/<int:course_id>/remove-student/<int:student_id>/', views.remove_student_from_course, name='remove_student_from_course'),
+    # Teacher Settings URLs
+    path('teacher/settings/', views.teacher_settings, name='teacher_settings'),
+    path('teacher/settings/profile/', views.teacher_profile_settings, name='teacher_profile_settings'),
+    path('teacher/settings/appearance/', views.teacher_appearance_settings, name='teacher_appearance_settings'),
+    path('teacher/settings/security/', views.teacher_security_settings, name='teacher_security_settings'),
 
 
 # Teacher Dashboard URLs
 
    path('teacher/assignments/<int:id>/edit/', views.edit_assignment, name='teacher_edit_assignment'),
+
+   path('update-theme/', views.update_theme_preference, name='update_theme'),
 
 
 

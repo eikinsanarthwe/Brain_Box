@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
-from .models import Teacher, Student, Course, Assignment,CourseMaterial,Message
+from .models import Teacher, Student, Course, Assignment,CourseMaterial,Message,UserProfile
 from django.db.models import Q
 
 User = get_user_model()
@@ -362,3 +362,37 @@ def clean(self):
     cleaned_data = super().clean()
     print(f"Form cleaned data: {cleaned_data}")  # Debug output
     return cleaned_data
+class ProfileSettingsForm(forms.ModelForm):
+    first_name = forms.CharField(max_length=30, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    last_name = forms.CharField(max_length=30, required=False, widget=forms.TextInput(attrs={'class': 'form-control'}))
+    email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={'class': 'form-control'}))
+    bio = forms.CharField(required=False, widget=forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Tell us about yourself...'}))
+
+    class Meta:
+        model = UserProfile
+        fields = ['profile_picture', 'bio']
+        widgets = {
+            'profile_picture': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+        if self.user:
+            self.fields['first_name'].initial = self.user.first_name
+            self.fields['last_name'].initial = self.user.last_name
+            self.fields['email'].initial = self.user.email
+            if hasattr(self.user, 'userprofile'):
+                self.fields['bio'].initial = self.user.userprofile.bio
+
+    def save(self, commit=True):
+        profile = super().save(commit=False)
+        if self.user:
+            self.user.first_name = self.cleaned_data['first_name']
+            self.user.last_name = self.cleaned_data['last_name']
+            self.user.email = self.cleaned_data['email']
+            self.user.save()
+        if commit:
+            profile.save()
+        return profile
