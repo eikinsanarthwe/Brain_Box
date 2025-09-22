@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Brain Box</title>
+    <!-- Inter Font from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-color: #1a73e8;
+            --secondary-color: #f5f5f5;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --text-muted: #666;
+            --border-color: #e0e0e0;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --transition-speed: 0.3s;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+        }
+
+        /* --- Sidebar Styling --- */
+        .sidebar {
+            min-height: 100vh;
+            padding: 0;
+            background: linear-gradient(135deg,
+                #136B7F 0%,
+                #2A7F94 25%,
+                #3D8FA3 50%,
+                #5A9DAD 75%,
+                #79B0BB 100%);
+            background-size: 400% 400%;
+            animation: softNorthernLights 25s ease infinite;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(3px);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .sidebar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at 20% 30%,
+                rgba(121, 176, 187, 0.3) 0%,
+                rgba(90, 157, 173, 0.2) 20%,
+                transparent 50%),
+                radial-gradient(circle at 80% 70%,
+                rgba(121, 176, 187, 0.2) 0%,
+                rgba(90, 157, 173, 0.1) 20%,
+                transparent 50%);
+            pointer-events: none;
+            animation: softGlow 10s ease-in-out infinite alternate;
+        }
+
+        .sidebar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.08) 25%,
+                rgba(255, 255, 255, 0.05) 50%,
+                rgba(255, 255, 255, 0.08) 75%,
+                transparent 100%);
+            pointer-events: none;
+            animation: softShimmer 15s ease-in-out infinite;
+        }
+
+        @keyframes softNorthernLights {
+            0% { background-position: 0% 0%; }
+            33% { background-position: 50% 50%; }
+            66% { background-position: 100% 100%; }
+            100% { background-position: 0% 0%; }
+        }
+
+        @keyframes softGlow {
+            0% { opacity: 0.2; transform: scale(1); }
+            50% { opacity: 0.3; transform: scale(1.02); }
+            100% { opacity: 0.25; transform: scale(1); }
+        }
+
+        @keyframes softShimmer {
+            0% { background-position: -100% 0%; }
+            100% { background-position: 200% 0%; }
+        }
+
+        .sidebar-brand {
+            padding: 1.5rem 1rem;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #ffffff !important;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            text-decoration: none;
+            position: relative;
+            z-index: 1;
+            background: rgba(19, 107, 127, 0.3);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            margin: 0;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .sidebar-divider {
+            border-top: 1px solid rgba(255, 255, 255, 0.25);
+            margin: 1rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .sidebar a {
+            color: rgba(255, 255, 255, 0.9);
+            padding: 1rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s ease;
+            border-radius: 6px;
+            margin: 0.25rem 1rem;
+            position: relative;
+            z-index: 1;
+            font-weight: 500;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+        }
+
+        .sidebar a:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            transform: translateX(4px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .sidebar a.active {
+            background: rgba(255, 255, 255, 0.2);
+            color: #ffffff;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border-color: rgba(255, 255, 255, 0.25);
+            transform: translateX(3px);
+        }
+
+        .sidebar a i {
+            margin-right: 0.75rem;
+            width: 1.5rem;
+            text-align: center;
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.8);
+            transition: color 0.3s ease;
+        }
+
+        .sidebar a:hover i {
+            color: #ffffff;
+        }
+
+        .sidebar-link-form {
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            z-index: 1;
+        }
+
+        .sidebar-link-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: left;
+            width: 100%;
+            padding: 1rem;
+            color: rgba(255, 255, 255, 0.9);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 6px;
+            margin: 0.25rem 1rem;
+            font-weight: 500;
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+        }
+
+        .sidebar-link-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            transform: translateX(4px);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .sidebar-link-btn i {
+            margin-right: 0.75rem;
+            width: 1.5rem;
+            text-align: center;
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.8);
+            transition: color 0.3s ease;
+        }
+
+        .sidebar-link-btn:hover i {
+            color: #ffffff;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                z-index: 1000;
+                width: 280px;
+                transform: translateX(-100%);
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .sidebar a {
+                margin: 0 15px 6px 15px;
+                padding: 1rem;
+            }
+
+            .sidebar-link-btn {
+                margin: 0 15px 6px 15px;
+                padding: 1rem;
+            }
+        }
+
+        /* --- New Main Content Styling --- */
+        .main-content {
+            padding: 2rem;
+            transition: all var(--transition-speed);
+        }
+
+        .navbar {
+            border-radius: 12px;
+            box-shadow: var(--box-shadow);
+            background-color: var(--card-bg) !important;
+            margin-top: 1rem;
+            padding: 0.5rem 1rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: var(--box-shadow);
+            transition: all var(--transition-speed);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .card-header {
+            background-color: transparent;
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 1.5rem;
+        }
+
+        .stat-card {
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        .stat-card .card-body {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 1.5rem;
+        }
+
+        .stat-card .stat-icon {
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            flex-shrink: 0;
+        }
+
+        .stat-card h3 {
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-card p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 0;
+        }
+
+        /* Welcome Banner with a subtle gradient */
+        .welcome-banner {
+            background: linear-gradient(45deg, #1e88e5, #00d4ff);
+            color: #fff;
+            border-radius: 12px;
+            box-shadow: var(--box-shadow);
+            padding: 2rem;
+        }
+
+        .welcome-banner h3 {
+            font-weight: 600;
+        }
+
+        /* Recent Activities and Deadlines styling */
+        .activity-item, .deadline-item {
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+            margin-bottom: 1rem !important;
+        }
+
+        .activity-item:last-child, .deadline-item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+            margin-bottom: 0 !important;
+        }
+
+        .activity-icon i {
+            width: 2.5rem;
+            text-align: center;
+            line-height: 2.5rem;
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: 50%;
+        }
+
+        .deadline-date {
+            background-color: #f0f4f7;
+            border-radius: 8px;
+            padding: 0.5rem;
+            width: 4rem;
+            flex-shrink: 0;
+            font-weight: 600;
+        }
+
+        .deadline-date span.d-block.fw-bold {
+            font-size: 1.25rem;
+        }
+
+        .deadline-date span.d-block.text-muted {
+            font-size: 0.8rem;
+        }
+
+        /* Course Cards */
+        .course-card .progress-bar {
+            border-radius: 50px;
+            background-color: var(--primary-color);
+        }
+
+        /* General element spacing and radius */
+        .btn {
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .dropdown-menu {
+            border-radius: 8px;
+            box-shadow: var(--box-shadow);
+            border: 1px solid var(--border-color);
+        }
+
+        /* Notification badge styling */
+        .notification-badge {
+            position: relative;
+            top: -10px;
+            right: -5px;
+            font-size: 0.7rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        /* Empty notifications message */
+        .empty-notifications {
+            padding: 1rem;
+            text-align: center;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-2 sidebar d-flex flex-column">
+
+                <!-- Brand Logo -->
+                <a class="sidebar-brand" href="#">
+                    <i class="fas fa-brain me-2"></i> Brain Box
+                </a>
+
+                <hr style="border-top:1px solid rgba(255,255,255,0.3); margin:1rem;">
+
+                <!-- Student Links -->
+                <a href="#" class="active" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+                    <i class="fas fa-tachometer-alt" style="margin-right:0.75rem;"></i> Dashboard
+                </a>
+                <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+                    <i class="fas fa-book" style="margin-right:0.75rem;"></i> My Courses
+                </a>
+                <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1;">
+                    <i class="fas fa-tasks" style="margin-right:0.75rem;"></i> Assignments
+                </a>
+                <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+                    <i class="fas fa-chart-line" style="margin-right:0.75rem;"></i> Progress Track
+                </a>
+                <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+                    <i class="fas fa-envelope" style="margin-right:0.75rem;"></i> Messages
+                </a>
+
+                <hr style="border-top:1px solid rgba(255,255,255,0.3); margin:1rem;">
+
+                <!-- Settings -->
+                <a href="#" class="" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+                    <i class="fas fa-cog" style="margin-right:0.75rem;"></i> Settings
+                </a>
+
+                <!-- Profile -->
+                <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+                    <i class="fas fa-user" style="margin-right:0.75rem;"></i> Profile
+                </a>
+
+                <!-- Logout -->
+                <form method="post" action="/accounts/logout/" style="margin:0;">
+                    {% csrf_token %}
+                    <button type="submit" class="sidebar-link-btn">
+                        <i class="fas fa-sign-out-alt" style="margin-right:0.75rem;"></i> Logout
+                    </button>
+                </form>
+
+            </div>
+
+            <!-- Main Content -->
+            <div class="col-md-10 ms-sm-auto px-4 main-content">
+                <!-- Navbar -->
+                <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4">
+                    <div class="container-fluid">
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarContent">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+                        <div class="collapse navbar-collapse" id="navbarContent">
+                            <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
+                                        <i class="fas fa-bell"></i>
+                                        {% if notifications_count > 0 %}
+                                        <span class="badge bg-danger notification-badge">{{ notifications_count }}</span>
+                                        {% endif %}
+                                    </a>
+                                    <ul class="dropdown-menu dropdown-menu-end" id="notifications-dropdown">
+                                        {% if notifications %}
+                                            {% for notification in notifications %}
+                                            <li><a class="dropdown-item" href="#">{{ notification.message }}</a></li>
+                                            {% endfor %}
+                                        {% else %}
+                                            <li><div class="empty-notifications">No notifications</div></li>
+                                        {% endif %}
+                                    </ul>
+                                </li>
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+
+    <i class="fas fa-user text-muted"></i>
+
+                                        <span id="navUser">{{ user.first_name }} {{ user.last_name }}</span>
+                                    </a>
+
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <form method="post" action="/accounts/logout/" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="dropdown-item"><i class="fas fa-sign-out-alt me-2"></i>Logout</button>
+                                            </form>
+                                        </li>
+                                    </ul>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </nav>
+
+                <!-- Dashboard Content -->
+                <div class="row">
+                    <div class="col-12">
+                        <h2 class="mb-4">Student Dashboard</h2>
+                    </div>
+                </div>
+
+                <!-- Welcome Banner -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card welcome-banner text-white">
+                            <div class="card-body">
+                                <h3 class="card-title">Welcome back, {{ user.first_name }}!</h3>
+                                <p class="card-text">You have {{ pending_assignments }} pending assignments and {{ new_messages }} new messages</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-4 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <i class="fas fa-book stat-icon text-primary"></i>
+                                <div>
+                                    <h3>{{ enrolled_courses_count }}</h3>
+                                    <p class="text-muted">Enrolled Courses</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <i class="fas fa-tasks stat-icon text-warning"></i>
+                                <div>
+                                    <h3>{{ pending_assignments }}</h3>
+                                    <p class="text-muted">Pending Assignments</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="card stat-card">
+                            <div class="card-body">
+                                <i class="fas fa-chart-line stat-icon text-success"></i>
+                                <div>
+                                    <h3>{{ overall_progress }}%</h3>
+                                    <p class="text-muted">Overall Progress</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Sections -->
+                <div class="row">
+                    <!-- Recent Activities -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">Recent Activities</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="activity-list">
+                                    {% for activity in recent_activities %}
+                                    <div class="activity-item d-flex align-items-center mb-3">
+                                        <div class="activity-icon me-3">
+                                            <i class="fas fa-{{ activity.icon }} fa-2x text-{{ activity.color }}"></i>
+                                        </div>
+                                        <div class="activity-details">
+                                            <p class="mb-0">{{ activity.description }}</p>
+                                            <small class="text-muted">{{ activity.time }}</small>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Upcoming Deadlines -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">Upcoming Deadlines</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="deadline-list">
+                                    {% for deadline in upcoming_deadlines %}
+                                    <div class="deadline-item d-flex align-items-center mb-3">
+                                        <div class="deadline-date me-3 text-center">
+                                            <span class="d-block fw-bold text-primary">{{ deadline.day }}</span>
+                                            <span class="d-block text-muted">{{ deadline.month }}</span>
+                                        </div>
+                                        <div class="deadline-details">
+                                            <p class="mb-0">{{ deadline.title }}</p>
+                                            <small class="text-muted">{{ deadline.course }}</small>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Courses -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content between align-items-center">
+                                <h5 class="card-title mb-0">Recent Courses</h5>
+                                <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    {% for course in recent_courses %}
+                                    <div class="col-md-4 mb-3">
+                                        <div class="card h-100 course-card">
+                                            <div class="card-body">
+                                                <h5 class="card-title">{{ course.title }}</h5>
+                                                <p class="card-text text-muted">{{ course.description|truncatewords:15 }}</p>
+                                                <div class="progress mb-2">
+                                                    <div class="progress-bar" role="progressbar" style="width: {{ course.progress }}%;"
+                                                         aria-valuenow="{{ course.progress }}" aria-valuemin="0" aria-valuemax="100">
+                                                         {{ course.progress }}%
+                                                    </div>
+                                                </div>
+                                                <a href="#" class="btn btn-sm btn-primary">Continue</a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

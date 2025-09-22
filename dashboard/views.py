@@ -8,6 +8,10 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.template.loader import render_to_string
 from datetime import datetime, timedelta
+from accounts.models import CustomUser
+
+
+
 import json
 import pyotp
 import qrcode
@@ -51,9 +55,184 @@ def dashboard(request):
         return render(request, 'dashboard/index.html', context)
     elif request.user.role == 'teacher':
         return teacher_dashboard(request)
+    elif request.user.is_student():
+        return redirect('dashboard:student_dashboard')
     else:
         # Handle student role or others
         return redirect('login')
+
+
+
+# -------------------------------
+# Student Dashboard
+# -------------------------------
+@login_required
+def student_dashboard(request):
+    if not request.user.is_student():
+        return redirect('dashboard')
+
+    student = get_object_or_404(Student, user=request.user)
+
+    # Fetch student-specific data
+    courses = student.courses.all()
+    assignments = Assignment.objects.filter(students=student).order_by('due_date')
+    unread_messages_count = Message.objects.filter(recipient=request.user, is_read=False).count()
+
+    context = {
+        'student': student,
+        'courses': courses,
+        'assignments': assignments,
+        'unread_messages_count': unread_messages_count,
+    }
+    return render(request, 'dashboard/student_dashboard.html', context)
+
+@login_required
+def student_courses(request):
+    if not request.user.is_student():
+        return redirect('dashboard')
+
+    student = get_object_or_404(Student, user=request.user)
+    courses = student.courses.all().prefetch_related('teachers')
+
+    context = {
+        'student': student,
+        'courses': courses,
+    }
+    return render(request, 'dashboard/student_my_courses.html', context)
+
+@login_required
+def student_course_detail(request, course_id):
+    if not request.user.is_student():
+        return redirect('dashboard')
+
+    student = get_object_or_404(Student, user=request.user)
+    course = get_object_or_404(student.courses, id=course_id)
+    assignments = Assignment.objects.filter(course=course, students=student)
+    materials = CourseMaterial.objects.filter(course=course).order_by('-uploaded_at')
+
+    context = {
+        'course': course,
+        'assignments': assignments,
+        'materials': materials,
+    }
+    return render(request, 'dashboard/student_course_detail.html', context)
+
+@login_required
+def student_assignments(request):
+    if not request.user.is_student():
+        return redirect('dashboard')
+
+    student = get_object_or_404(Student, user=request.user)
+    assignments = Assignment.objects.filter(students=student).order_by('due_date')
+
+    # Get submission status for each assignment
+    for assignment in assignments:
+        assignment.submission_status = Submission.objects.filter(student=student, assignment=assignment).exists()
+
+    context = {
+        'student': student,
+        'assignments': assignments,
+    }
+    return render(request, 'dashboard/student_assignments.html', context)
+
+@login_required
+def student_assignment_detail(request, assignment_id):
+    if not request.user.is_student():
+        return redirect('dashboard')
+
+    student = get_object_or_404(Student, user=request.user)
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+
+    # Check if a submission already exists
+    try:
+        submission = Submission.objects.get(student=student, assignment=assignment)
+    except Submission.DoesNotExist:
+        submission = None
+
+    context = {
+        'assignment': assignment,
+        'submission': submission,
+    }
+    return render(request, 'dashboard/student_assignment_detail.html', context)
+@login_required
+def student_submit_assignment(request, assignment_id):
+    if not request.user.is_student():
+        return redirect('dashboard')
+
+    assignment = get_object_or_404(Assignment, id=assignment_id)
+    student = get_object_or_404(Student, user=request.user)
+
+    if request.method == 'POST':
+        # Check if a file was uploaded
+        if 'submitted_file' in request.FILES:
+            # Check if a submission already exists for this student and assignment
+            try:
+                submission = Submission.objects.get(student=student, assignment=assignment)
+                submission.submitted_file = request.FILES['submitted_file']
+                submission.save()
+            except Submission.DoesNotExist:
+                # Create a new submission
+                Submission.objects.create(
+                    assignment=assignment,
+                    student=student,
+                    submitted_file=request.FILES['submitted_file']
+                )
+
+            # Redirect back to the assignment detail page
+            return redirect('dashboard:student_assignment_detail', assignment_id=assignment.id)
+
+    # Render the form if not a POST request
+    context = {
+        'assignment': assignment,
+    }
+    return render(request, 'dashboard/student_submit_assignment.html', context)
+
+
+# ---------------------------------------------
+# Placeholder views (add your logic as needed)
+# ---------------------------------------------
+@login_required
+def student_progress(request):
+    if not request.user.is_student():
+        return redirect('dashboard')
+
+    # Example: fetch student progress data
+    student = get_object_or_404(Student, user=request.user)
+    submissions = Submission.objects.filter(student=student, grade__isnull=False)
+
+    context = {
+        'student': student,
+        'submissions': submissions,
+    }
+    return render(request, 'dashboard/student_progress.html', context)
+
+@login_required
+def student_messages(request):
+    if not request.user.is_student():
+        return redirect('dashboard')
+
+    # Fetch messages received by the current student user
+    messages = Message.objects.filter(recipient=request.user).order_by('-sent_at')
+
+    context = {
+        'messages': messages,
+    }
+    return render(request, 'dashboard/student_messages.html', context)
+
+@login_required
+def student_aboutus(request):
+    if not request.user.is_student():
+        return redirect('dashboard')
+
+    return render(request, 'dashboard/student_aboutus.html')
+
+@login_required
+def student_settings(request):
+    if not request.user.is_student():
+        return redirect('dashboard')
+
+    return render(request, 'dashboard/student_settings.html')
+
 
 # -----------------------------
 # Admin Views
@@ -857,154 +1036,6 @@ def message_compose(request, recipient_id=None):
         print(f"Form is valid: {form.is_valid()}")
         if not form.is_valid():
             print(f"Form errors: {form.errors}")
-
-        if form.is_valid():
-            message = form.save(commit=False)
-            message.sender = request.user
-            message.save()
-            print(f"Message saved: {message.id}, From: {message.sender}, To: {message.recipient}")
-            messages.success(request, 'Message sent successfully!')
-            return redirect('dashboard:message_list')
-        else:
-            messages.error(request, 'Please correct the errors below.')
-    else:
-        initial = {}
-        if recipient_id:
-            recipient = get_object_or_404(User, id=recipient_id)
-            initial['recipient'] = recipient
-
-        form = MessageForm(initial=initial, sender=request.user)
-        print(f"Recipient choices: {form.fields['recipient'].queryset.count()}")
-
-    return render(request, 'dashboard/message_compose.html', {
-        'form': form,
-        'title': 'Compose Message'
-    })
-
-@login_required
-def message_detail(request, message_id):
-    message = get_object_or_404(Message, id=message_id)
-
-    # Ensure the current user is either sender or recipient
-    if message.recipient != request.user and message.sender != request.user:
-        messages.error(request, "You don't have permission to view this message.")
-        return redirect('dashboard:message_list')
-
-    # Mark as read if recipient is viewing
-    if message.recipient == request.user and not message.is_read:
-        message.mark_as_read()
-
-    if request.method == 'POST':
-        form = ReplyForm(request.POST)
-        if form.is_valid():
-            reply = form.save(commit=False)
-            reply.sender = request.user
-            reply.recipient = message.sender if request.user == message.recipient else message.recipient
-            reply.subject = f"Re: {message.subject}"
-            reply.parent_message = message
-            reply.save()
-            messages.success(request, 'Reply sent successfully!')
-            return redirect('dashboard:message_detail', message_id=message.id)
-    else:
-        form = ReplyForm()
-
-    # Get conversation thread
-    conversation = Message.objects.filter(
-        models.Q(parent_message=message) |
-        models.Q(id=message.parent_message.id) if message.parent_message else models.Q(id=message.id)
-    ).order_by('sent_at')
-
-    context = {
-        'message': message,
-        'form': form,
-        'conversation': conversation,
-    }
-    return render(request, 'dashboard/message_detail.html', context)
-
-@login_required
-def message_delete(request, message_id):
-    message = get_object_or_404(Message, id=message_id)
-
-    # Ensure the current user is the recipient
-    if message.recipient != request.user:
-        messages.error(request, "You can only delete messages you received.")
-        return redirect('dashboard:message_list')
-
-    if request.method == 'POST':
-        message.delete()
-        messages.success(request, 'Message deleted successfully!')
-        return redirect('dashboard:message_list')
-
-    return render(request, 'dashboard/message_confirm_delete.html', {'message': message})
-
-@login_required
-def get_unread_count(request):
-    if request.user.is_authenticated:
-        unread_count = Message.objects.filter(recipient=request.user, is_read=False).count()
-        return JsonResponse({'unread_count': unread_count})
-    return JsonResponse({'unread_count': 0})
-
-@login_required
-@user_passes_test(lambda u: u.role == 'teacher')
-def add_student_to_course(request, course_id):
-    course = get_object_or_404(Course, id=course_id)
-    teacher = get_object_or_404(Teacher, user=request.user)
-
-    # Check if the current teacher teaches this course
-    if teacher not in course.teachers.all():
-        messages.error(request, "You don't have permission to modify this course.")
-        return redirect('dashboard:teacher_courses')
-
-    if request.method == 'POST':
-        student_id = request.POST.get('student_id')
-        if student_id:
-            student = get_object_or_404(Student, id=student_id)
-
-            # Add student to the course
-            if course not in student.courses.all():
-                student.courses.add(course)
-                messages.success(request, f'Student {student.user.username} added to the course.')
-            else:
-                messages.warning(request, 'Student is already enrolled in this course.')
-
-            return redirect('dashboard:teacher_course_detail', course_id=course_id)
-
-    # Get all students not enrolled in this course
-    enrolled_students = Student.objects.filter(courses=course)
-    available_students = Student.objects.exclude(id__in=enrolled_students.values('id'))
-
-    context = {
-        'course': course,
-        'available_students': available_students,
-    }
-    return render(request, 'dashboard/add_student_to_course.html', context)
-
-@login_required
-def message_list(request):
-    messages = Message.objects.filter(recipient=request.user).order_by('-sent_at')
-    unread_count = messages.filter(is_read=False).count()
-
-    # Handle preview request for dropdown
-    if request.GET.get('preview'):
-        preview_messages = messages[:3]  # Get latest 3 messages
-        html = render_to_string('dashboard/message_preview.html', {
-            'preview_messages': preview_messages
-        })
-        return HttpResponse(html)
-
-    # Regular page request - render the full message list
-    context = {
-        'messages': messages,
-        'unread_count': unread_count,
-    }
-    return render(request, 'dashboard/message_list.html', context)  # This line was missing!
-@login_required
-def message_compose(request, recipient_id=None):
-    if request.method == 'POST':
-        form = MessageForm(request.POST, sender=request.user)
-        print(f"Form is valid: {form.is_valid()}")
-        if not form.is_valid():
-            print(f"Form errors: {form.errors}")
             # Add this to see the errors in the template
             for field, errors in form.errors.items():
                 for error in errors:
@@ -1032,6 +1063,7 @@ def message_compose(request, recipient_id=None):
         'form': form,
         'title': 'Compose Message'
     })
+
 @login_required
 def message_detail(request, message_id):
     message = get_object_or_404(Message, id=message_id)
@@ -1129,3 +1161,23 @@ def add_student_to_course(request, course_id):
         'available_students': available_students,
     }
     return render(request, 'dashboard/add_student_to_course.html', context)
+
+
+@login_required
+def student_profile(request):
+    """
+    View to display the student's profile page.
+    """
+    context = {
+        'student': request.user.student  # Assuming a one-to-one relationship
+    }
+    return render(request, 'dashboard/student_profile.html', context)
+
+
+@login_required
+def student_settings(request):
+    """
+    View to display the student's settings page.
+    """
+    return render(request, 'dashboard/student_settings.html')
+

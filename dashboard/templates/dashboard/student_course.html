@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Courses - Brain Box</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            {% include 'partials/sidebar.html' %}
+
+            <!-- Main Content -->
+            <div class="col-md-10 ms-sm-auto px-4">
+                <!-- Navbar (same as dashboard) -->
+                {% include 'partials/navbar.html' %}
+
+                <!-- Page Content -->
+                <div class="row">
+                    <div class="col-12">
+                        <h2 class="mb-4">My Courses</h2>
+                    </div>
+                </div>
+
+                <!-- Search and Filter -->
+                <div class="row mb-4">
+                    <div class="col-md-8">
+                        <div class="input-group">
+                            <input type="text" class="form-control" placeholder="Search courses...">
+                            <button class="btn btn-primary" type="button">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select">
+                            <option selected>All Categories</option>
+                            <option>Mathematics</option>
+                            <option>Science</option>
+                            <option>Language</option>
+                            <option>History</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Courses Grid -->
+                <div class="row">
+                    {% for course in enrolled_courses %}
+                    <div class="col-md-4 mb-4">
+                        <div class="card course-card h-100">
+                            <div class="card-img-top bg-secondary position-relative" style="height: 160px;">
+                                <div class="position-absolute top-0 end-0 m-2">
+                                    <span class="badge bg-primary">{{ course.category }}</span>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <h5 class="card-title">{{ course.title }}</h5>
+                                <p class="card-text text-muted">{{ course.description|truncatewords:20 }}</p>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <small class="text-muted">By {{ course.teacher.get_full_name }}</small>
+                                    <small class="text-muted">{{ course.duration }} weeks</small>
+                                </div>
+                                <div class="progress mb-3">
+                                    <div class="progress-bar" role="progressbar" style="width: {{ course.progress }}%;"
+                                         aria-valuenow="{{ course.progress }}" aria-valuemin="0" aria-valuemax="100">
+                                        {{ course.progress }}%
+                                    </div>
+                                </div>
+                                <div class="d-grid gap-2">
+                                    <a href="{% url 'dashboard:course_detail' course.id %}" class="btn btn-primary">Continue Learning</a>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <small class="text-muted">Last accessed: {{ course.last_accessed|date:"M d, Y" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12">
+                        <div class="alert alert-info text-center">
+                            <i class="fas fa-info-circle me-2"></i>
+                            You are not enrolled in any courses yet.
+                            <a href="{% url 'dashboard:course_catalog' %}" class="alert-link">Browse courses</a> to get started.
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- Pagination -->
+                {% if enrolled_courses.has_other_pages %}
+                <nav aria-label="Course pagination">
+                    <ul class="pagination justify-content-center">
+                        {% if enrolled_courses.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ enrolled_courses.previous_page_number }}">Previous</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Previous</span>
+                        </li>
+                        {% endif %}
+
+                        {% for i in enrolled_courses.paginator.page_range %}
+                        <li class="page-item {% if enrolled_courses.number == i %}active{% endif %}">
+                            <a class="page-link" href="?page={{ i }}">{{ i }}</a>
+                        </li>
+                        {% endfor %}
+
+                        {% if enrolled_courses.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ enrolled_courses.next_page_number }}">Next</a>
+                        </li>
+                        {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">Next</span>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="../assets/js/script.js"></script>
+</body>
+</html>

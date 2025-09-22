@@ -51,12 +51,16 @@ urlpatterns = [
     path('teacher/course/<int:course_id>/add-student/', views.add_student_to_course, name='add_student_to_course'),
     path('teacher/course/<int:course_id>/remove-student/<int:student_id>/', views.remove_student_from_course, name='remove_student_from_course'),
 
-
-    # Course Materials URLs
-    path('teacher/courses/<int:course_id>/materials/', views.teacher_course_materials, name='teacher_course_materials'),
-    path('teacher/courses/<int:course_id>/materials/add/', views.add_course_material, name='add_course_material'),
-    path('teacher/courses/materials/<int:material_id>/delete/', views.delete_course_material, name='delete_course_material'),
+    # Student Dashboard URLs
+    path('student/dashboard/', views.student_dashboard, name='student_dashboard'),
+    path('student/courses/', views.student_courses, name='student_courses'),
+    path('student/courses/<int:course_id>/', views.student_course_detail, name='student_course_detail'),
+    path('student/assignments/', views.student_assignments, name='student_assignments'),
+    path('student/assignments/<int:assignment_id>/', views.student_assignment_detail, name='student_assignment_detail'),
+    path('student/assignments/<int:assignment_id>/submit/', views.student_submit_assignment, name='student_submit_assignment'),
     path('student/courses/<int:course_id>/materials/', views.student_course_materials, name='student_course_materials'),
+    path('student/profile/', views.student_profile, name='student_profile'),
+    path('student/settings/', views.student_settings, name='student_settings'),
 
     # Settings URLs
     path('settings/', views.admin_settings, name='admin_settings'),
@@ -74,4 +78,3 @@ urlpatterns = [
     path('messages/unread-count/', views.get_unread_count, name='unread_count'),
 
 ]
-
