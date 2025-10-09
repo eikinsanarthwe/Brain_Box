@@ -3,32 +3,18 @@
 
 {% block content %}
 <style>
-    .profile-picture-container {
-        position: relative;
-        display: inline-block;
+    .current-image {
+        max-width: 200px;
+        max-height: 150px;
+        border: 2px solid #dee2e6;
+        border-radius: 0.375rem;
     }
-    .profile-picture-upload {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
-        background: rgba(0,0,0,0.7);
-        color: white;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-    }
-    .file-input {
+    .image-preview {
+        max-width: 200px;
+        max-height: 150px;
+        border: 2px dashed #dee2e6;
+        border-radius: 0.375rem;
         display: none;
-    }
-    .profile-picture-preview {
-        width: 150px;
-        height: 150px;
-        object-fit: cover;
-        border: 3px solid #e3e6f0;
     }
 </style>
 
@@ -37,7 +23,6 @@
         <h1 class="h3 mb-0 text-gray-800">
             <i class="fas fa-edit me-2"></i>Edit Course - {{ course.name }}
         </h1>
-        <!-- FIXED: Goes to courses list -->
         <a href="{% url 'dashboard:teacher_courses' %}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left me-2"></i>Back to Courses
         </a>
@@ -47,56 +32,71 @@
         <div class="col-md-8">
             <div class="card shadow">
                 <div class="card-body">
-                    <form method="post" enctype="multipart/form-data">
+                    <form method="post" enctype="multipart/form-data" id="courseForm">
                         {% csrf_token %}
+
+                        <!-- Display form errors at the top -->
+                        {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
 
                         <!-- Course Code -->
                         <div class="mb-3">
-                            <label for="{{ form.code.id_for_label }}" class="form-label fw-bold">Course Code*</label>
+                            <label for="id_code" class="form-label fw-bold">Course Code*</label>
                             <input type="text"
                                    class="form-control"
-                                   id="{{ form.code.id_for_label }}"
-                                   name="{{ form.code.name }}"
+                                   id="id_code"
+                                   name="code"
                                    value="{{ form.code.value|default:'' }}"
                                    required>
                             {% if form.code.errors %}
                                 <div class="text-danger small mt-1">
-                                    {{ form.code.errors }}
+                                    {% for error in form.code.errors %}
+                                        {{ error }}
+                                    {% endfor %}
                                 </div>
                             {% endif %}
                         </div>
 
                         <!-- Course Name -->
                         <div class="mb-3">
-                            <label for="{{ form.name.id_for_label }}" class="form-label fw-bold">Course Name*</label>
+                            <label for="id_name" class="form-label fw-bold">Course Name*</label>
                             <input type="text"
                                    class="form-control"
-                                   id="{{ form.name.id_for_label }}"
-                                   name="{{ form.name.name }}"
+                                   id="id_name"
+                                   name="name"
                                    value="{{ form.name.value|default:'' }}"
                                    required>
                             {% if form.name.errors %}
                                 <div class="text-danger small mt-1">
-                                    {{ form.name.errors }}
+                                    {% for error in form.name.errors %}
+                                        {{ error }}
+                                    {% endfor %}
                                 </div>
                             {% endif %}
                         </div>
 
                         <!-- Description -->
                         <div class="mb-3">
-                            <label for="{{ form.description.id_for_label }}" class="form-label fw-bold">Description</label>
+                            <label for="id_description" class="form-label fw-bold">Description</label>
                             <textarea class="form-control"
-                                      id="{{ form.description.id_for_label }}"
-                                      name="{{ form.description.name }}"
+                                      id="id_description"
+                                      name="description"
                                       rows="4">{{ form.description.value|default:'' }}</textarea>
                             {% if form.description.errors %}
                                 <div class="text-danger small mt-1">
-                                    {{ form.description.errors }}
+                                    {% for error in form.description.errors %}
+                                        {{ error }}
+                                    {% endfor %}
                                 </div>
                             {% endif %}
                         </div>
 
-                        <!-- Course Image -->
+                        <!-- Course Image Section -->
                         <div class="mb-4">
                             <label class="form-label fw-bold">Course Image</label>
 
@@ -104,42 +104,46 @@
                             <div class="mb-3">
                                 <input type="file"
                                        class="form-control"
-                                       id="{{ form.image.id_for_label }}"
-                                       name="{{ form.image.name }}"
+                                       id="course_image_input"
+                                       name="image"
                                        accept="image/*">
                                 <div class="form-text text-muted mt-1">
                                     <i class="fas fa-info-circle me-1"></i>
-                                    Upload an image for this course. Recommended size: 300x200 pixels.
+                                    Upload an image for this course. Recommended size: 300x200 pixels. Max: 2MB
                                 </div>
                                 {% if form.image.errors %}
                                     <div class="text-danger small mt-1">
-                                        {{ form.image.errors }}
+                                        {% for error in form.image.errors %}
+                                            {{ error }}
+                                        {% endfor %}
                                     </div>
                                 {% endif %}
                             </div>
 
-                            <!-- Current Image Display -->
+                            <!-- Image Preview for New Upload -->
+                            <div class="mb-3" id="image_preview_container" style="display: none;">
+                                <p class="fw-bold mb-2">New Image Preview:</p>
+                                <img id="image_preview" class="image-preview" alt="New image preview">
+                            </div>
+
+                            <!-- Current Image Display with Remove Option -->
                             {% if course.image %}
                             <div class="current-image-section">
                                 <p class="fw-bold mb-2">Current Image:</p>
                                 <div class="d-flex align-items-start gap-3">
                                     <img src="{{ course.image.url }}"
                                          alt="{{ course.name }}"
-                                         class="img-thumbnail"
-                                         style="max-width: 200px; max-height: 150px;">
+                                         class="current-image">
 
                                     <!-- Remove Image Checkbox -->
                                     <div class="form-check mt-2">
                                         <input class="form-check-input"
                                                type="checkbox"
-                                               id="remove_image"
+                                               id="remove_image_checkbox"
                                                name="remove_image">
-                                        <label class="form-check-label text-danger fw-bold" for="remove_image">
+                                        <label class="form-check-label text-danger" for="remove_image_checkbox">
                                             Remove current image
                                         </label>
-                                        <div class="form-text text-muted">
-                                            Check this to remove the current image
-                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -160,7 +164,6 @@
                                 <button type="submit" class="btn btn-primary px-4">
                                     <i class="fas fa-save me-2"></i>Save Changes
                                 </button>
-                                <!-- FIXED: Cancel also goes to courses list -->
                                 <a href="{% url 'dashboard:teacher_courses' %}" class="btn btn-outline-secondary">
                                     Cancel
                                 </a>
@@ -257,7 +260,6 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <!-- FIXED: Using existing delete_course URL instead of teacher_course_delete -->
                 <form method="post" action="{% url 'dashboard:delete_course' course.id %}" style="display: inline;">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-danger">Delete Course</button>
@@ -268,48 +270,47 @@
 </div>
 
 <script>
-    // Handle image removal checkbox
     document.addEventListener('DOMContentLoaded', function() {
-        const removeImageCheckbox = document.getElementById('remove_image');
+        const removeImageCheckbox = document.getElementById('remove_image_checkbox');
         const imageRemovedField = document.getElementById('image_removed');
-        const fileInput = document.getElementById('{{ form.image.id_for_label }}');
+        const fileInput = document.getElementById('course_image_input');
+        const imagePreview = document.getElementById('image_preview');
+        const imagePreviewContainer = document.getElementById('image_preview_container');
+        const form = document.getElementById('courseForm');
 
+        console.log('DEBUG: JavaScript loaded successfully');
+
+        // Handle image removal checkbox
         if (removeImageCheckbox) {
             removeImageCheckbox.addEventListener('change', function() {
+                console.log('DEBUG: Remove image checkbox changed - checked:', this.checked);
                 imageRemovedField.value = this.checked ? 'true' : 'false';
 
                 // Disable file input when removing image
                 if (this.checked) {
                     fileInput.disabled = true;
                     fileInput.value = '';
+                    imagePreviewContainer.style.display = 'none';
                 } else {
                     fileInput.disabled = false;
                 }
             });
         }
 
-        // Form validation
-        const form = document.querySelector('form');
-        form.addEventListener('submit', function(e) {
-            const code = document.getElementById('{{ form.code.id_for_label }}').value.trim();
-            const name = document.getElementById('{{ form.name.id_for_label }}').value.trim();
-
-            if (!code || !name) {
-                e.preventDefault();
-                alert('Please fill in all required fields (marked with *).');
-                return false;
-            }
-        });
-
-        // Image preview for new upload
+        // Handle image preview for new uploads
         if (fileInput) {
             fileInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
+                console.log('DEBUG: File input changed - file:', file ? file.name : 'none');
+
                 if (file) {
+                    console.log('DEBUG: File details - name:', file.name, 'size:', file.size, 'type:', file.type);
+
                     // Check file size (2MB limit)
                     if (file.size > 2 * 1024 * 1024) {
                         alert('File size must be less than 2MB.');
                         this.value = '';
+                        imagePreviewContainer.style.display = 'none';
                         return;
                     }
 
@@ -318,7 +319,52 @@
                     if (!validTypes.includes(file.type)) {
                         alert('Please select a valid image file (JPG, PNG, GIF).');
                         this.value = '';
+                        imagePreviewContainer.style.display = 'none';
                         return;
+                    }
+
+                    // Show preview
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        imagePreview.src = e.target.result;
+                        imagePreviewContainer.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+
+                    // Uncheck remove image if a new file is selected
+                    if (removeImageCheckbox) {
+                        removeImageCheckbox.checked = false;
+                        imageRemovedField.value = 'false';
+                        removeImageCheckbox.disabled = false;
+                    }
+                } else {
+                    imagePreviewContainer.style.display = 'none';
+                }
+            });
+        }
+
+        // Form validation
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const code = document.getElementById('id_code').value.trim();
+                const name = document.getElementById('id_name').value.trim();
+
+                console.log('DEBUG: Form submission - code:', code, 'name:', name);
+
+                if (!code || !name) {
+                    e.preventDefault();
+                    alert('Please fill in all required fields (marked with *).');
+                    return false;
+                }
+
+                // Debug: Log all form data
+                const formData = new FormData(form);
+                console.log('DEBUG: Form data before submission:');
+                for (let [key, value] of formData.entries()) {
+                    if (key === 'image' && value instanceof File) {
+                        console.log(key + ': File - ' + value.name + ' (' + value.size + ' bytes)');
+                    } else {
+                        console.log(key + ': ' + value);
                     }
                 }
             });

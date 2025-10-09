@@ -121,6 +121,7 @@
                             </td>
                             <td>{{ summary.enrolled_students }}</td>
                             <td>
+                                {% if summary.enrolled_students > 0 %}
                                 <div class="progress" style="height: 20px;">
                                     <div class="progress-bar
                                         {% if summary.average_progress >= 80 %}bg-success
@@ -134,6 +135,9 @@
                                         {{ summary.average_progress }}%
                                     </div>
                                 </div>
+                                {% else %}
+                                <span class="text-muted">No students enrolled</span>
+                                {% endif %}
                             </td>
                             <td>{{ summary.completed_students }}</td>
                             <td>

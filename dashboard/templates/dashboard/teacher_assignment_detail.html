@@ -66,9 +66,6 @@
                     <h5 class="m-0 font-weight-bold"><i class="fas fa-chart-bar me-2"></i>Submission Stats</h5>
                 </div>
                 <div class="card-body text-center">
-                    {% with total_students=assignment.students.count %}
-                    {% with graded_count=submissions|length %}
-                    {% with submission_count=submissions.count %}
                     <div class="row mb-3">
                         <div class="col-4">
                             <div class="border rounded p-2">
@@ -84,7 +81,7 @@
                         </div>
                         <div class="col-4">
                             <div class="border rounded p-2">
-                                <h4 class="text-warning mb-0">{{ total_students|add:-submission_count }}</h4>
+                                <h4 class="text-warning mb-0">{{ pending_count }}</h4>
                                 <small class="text-muted">Pending</small>
                             </div>
                         </div>
@@ -97,8 +94,8 @@
                         </div>
                         <div class="progress mb-2" style="height: 8px;">
                             <div class="progress-bar bg-primary" role="progressbar"
-                                 style="width: {% widthratio submission_count total_students 100 %}%"
-                                 aria-valuenow="{% widthratio submission_count total_students 100 %}"
+                                 style="width: {% if total_students > 0 %}{% widthratio submission_count total_students 100 %}%{% else %}0%{% endif %}"
+                                 aria-valuenow="{% if total_students > 0 %}{% widthratio submission_count total_students 100 %}{% else %}0{% endif %}"
                                  aria-valuemin="0" aria-valuemax="100">
                             </div>
                         </div>
@@ -115,15 +112,12 @@
                         </div>
                         <div class="progress" style="height: 8px;">
                             <div class="progress-bar bg-success" role="progressbar"
-                                 style="width: {% if submission_count > 0 %}{% widthratio graded_count submission_count 100 %}{% else %}0{% endif %}%"
+                                 style="width: {% if submission_count > 0 %}{% widthratio graded_count submission_count 100 %}%{% else %}0%{% endif %}"
                                  aria-valuenow="{% if submission_count > 0 %}{% widthratio graded_count submission_count 100 %}{% else %}0{% endif %}"
                                  aria-valuemin="0" aria-valuemax="100">
                             </div>
                         </div>
                     </div>
-                    {% endwith %}
-                    {% endwith %}
-                    {% endwith %}
                 </div>
             </div>
 
@@ -373,7 +367,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
 
-            // Fetch submission details (you'll need to implement this view)
+            // Fetch submission details
             fetch(`/dashboard/teacher/submission/${submissionId}/details/`)
                 .then(response => response.text())
                 .then(html => {

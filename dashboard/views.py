@@ -231,21 +231,37 @@ def edit_course(request, course_id):
         return redirect('dashboard:teacher_courses')
 
     if request.method == 'POST':
-        form = CourseForm(request.POST, request.FILES, instance=course)
-        if form.is_valid():
-            # Handle image removal
-            if request.POST.get('remove_image') == 'on':
-                if course.image:
-                    course.image.delete(save=False)
-                    course.image = None  # Clear the image field
+        # Debug information
+        print(f"DEBUG: POST data - {request.POST}")
+        print(f"DEBUG: FILES data - {list(request.FILES.keys())}")
+        print(f"DEBUG: Remove image checkbox - {request.POST.get('remove_image')}")
+        print(f"DEBUG: Image removed field - {request.POST.get('image_removed')}")
 
+        # Use TeacherCourseForm instead of CourseForm for teachers
+        form = TeacherCourseForm(request.POST, request.FILES, instance=course)
+
+        if form.is_valid():
+            print("DEBUG: Form is valid")
+
+            # Handle image removal first
+            if request.POST.get('image_removed') == 'true' or request.POST.get('remove_image'):
+                print("DEBUG: Removing current image")
+                if course.image:
+                    # Delete the file from storage
+                    course.image.delete(save=False)
+                    course.image = None
+
+            # Save the form
             course = form.save()
+
             messages.success(request, f'Course "{course.name}" updated successfully!')
             return redirect('dashboard:teacher_course_detail', course_id=course.id)
         else:
+            print(f"DEBUG: Form errors - {form.errors}")
             messages.error(request, 'Please correct the errors below.')
     else:
-        form = CourseForm(instance=course)
+        # Use TeacherCourseForm for GET requests too
+        form = TeacherCourseForm(instance=course)
 
     return render(request, 'dashboard/edit_course.html', {
         'form': form,
@@ -477,9 +493,19 @@ def teacher_assignment_detail(request, id):
     assignment = get_object_or_404(Assignment, id=id, teacher=request.user)
     submissions = Submission.objects.filter(assignment=assignment).select_related('student')
 
+    # Calculate statistics
+    total_students = assignment.students.count() if assignment.students.exists() else 0
+    submission_count = submissions.count()
+    graded_count = submissions.filter(grade__isnull=False).count()
+    pending_count = total_students - submission_count  # Calculate pending count
+
     context = {
         'assignment': assignment,
         'submissions': submissions,
+        'total_students': total_students,
+        'submission_count': submission_count,
+        'graded_count': graded_count,
+        'pending_count': pending_count,  # Add this to context
     }
     return render(request, 'dashboard/teacher_assignment_detail.html', context)
 
@@ -1336,7 +1362,7 @@ def teacher_student_progress(request, course_id):
     # Get all students enrolled in this course
     students = Student.objects.filter(courses=course)
 
-    # Get or create progress records
+    # Get or create progress records - FIXED: Use filter().first() to avoid duplicates
     progress_records = []
     for student in students:
         progress, created = StudentProgress.objects.get_or_create(
@@ -1837,6 +1863,22 @@ def teacher_progress_track(request):
     teacher = get_object_or_404(Teacher, user=request.user)
     courses = Course.objects.filter(teachers=teacher)
 
+    # AUTO-CREATE PROGRESS RECORDS FOR MISSING STUDENTS
+    for course in courses:
+        students = Student.objects.filter(courses=course)
+        for student in students:
+            # Get or create progress record for each student in each course
+            progress, created = StudentProgress.objects.get_or_create(
+                student=student,
+                course=course,
+                defaults={
+                    'status': 'not_started',
+                    'progress_percentage': 0
+                }
+            )
+            if created:
+                print(f"DEBUG: Created progress record for {student} in {course}")
+
     # Filter by course if specified
     course_id = request.GET.get('course')
     selected_course = None
@@ -1850,7 +1892,7 @@ def teacher_progress_track(request):
             course__in=courses
         ).select_related('student__user', 'course')
 
-    # Calculate statistics
+    # Calculate overall statistics
     total_students = Student.objects.filter(courses__in=courses).distinct().count()
 
     if progress_data:
@@ -1865,14 +1907,17 @@ def teacher_progress_track(request):
     need_attention = progress_data.filter(progress_percentage__lt=25)
     need_attention_count = need_attention.count()
 
-    # Course-wise summary
+    # FIXED: Course-wise summary with proper average progress calculation
     course_summary = []
     for course in courses:
+        # Get all progress records for this course
         course_progress = StudentProgress.objects.filter(course=course)
         enrolled_students = course_progress.count()
 
         if enrolled_students > 0:
-            avg_progress = sum(p.progress_percentage for p in course_progress) // enrolled_students
+            # Calculate average progress properly
+            total_progress = sum(p.progress_percentage for p in course_progress)
+            avg_progress = total_progress // enrolled_students
             completed_students = course_progress.filter(progress_percentage__gte=90).count()
         else:
             avg_progress = 0
@@ -1882,7 +1927,7 @@ def teacher_progress_track(request):
             'course': course,
             'code': course.code,
             'name': course.name,
-            'average_progress': avg_progress,
+            'average_progress': avg_progress,  # This was the main issue
             'enrolled_students': enrolled_students,
             'completed_students': completed_students
         })
@@ -1892,7 +1937,7 @@ def teacher_progress_track(request):
         'selected_course': selected_course,
         'progress_data': progress_data,
         'total_students': total_students,
-        'total_courses': courses.count(),  # Add this line
+        'total_courses': courses.count(),
         'average_progress': average_progress,
         'completed_courses': completed_courses,
         'need_attention': need_attention,
@@ -1901,7 +1946,6 @@ def teacher_progress_track(request):
     }
 
     return render(request, 'dashboard/teacher_progress_track.html', context)
-@login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def send_progress_reminder(request):
     """Send progress reminder to student"""

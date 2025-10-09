@@ -191,9 +191,6 @@ class StudentForm(forms.ModelForm):
 
 # In your CourseForm class in forms.py
 class CourseForm(forms.ModelForm):
-    # Add a clear image field
-    clear_image = forms.BooleanField(required=False, widget=forms.CheckboxInput())
-
     class Meta:
         model = Course
         fields = ['code', 'name', 'description', 'teachers', 'image']
@@ -208,21 +205,11 @@ class CourseForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['teachers'].queryset = Teacher.objects.all()
-
         # Make image field not required
         self.fields['image'].required = False
 
-        # Hide the clear_image field as we'll handle it in the template
-        self.fields['clear_image'].widget = forms.HiddenInput()
-
     def save(self, commit=True):
         instance = super().save(commit=False)
-
-        # Handle image clearing
-        if self.cleaned_data.get('clear_image'):
-            if instance.image:
-                instance.image.delete(save=False)
-            instance.image = None
 
         if commit:
             instance.save()
@@ -324,9 +311,7 @@ class TeacherStudentForm(forms.ModelForm):
             student.save()
         return student
 class TeacherCourseForm(forms.ModelForm):
-    # Add clear image field
-    clear_image = forms.BooleanField(required=False, widget=forms.HiddenInput())
-
+    # Remove the clear_image field as we're handling it in the template
     class Meta:
         model = Course
         fields = ['code', 'name', 'description', 'image']
@@ -341,27 +326,15 @@ class TeacherCourseForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Make image field not required
         self.fields['image'].required = False
+        # Add help text for image field
+        self.fields['image'].help_text = "Upload an image for this course. Recommended size: 300x200 pixels. Max: 2MB"
 
     def save(self, commit=True):
         instance = super().save(commit=False)
 
-        # Handle image clearing - this is the crucial part
-        if self.cleaned_data.get('clear_image'):
-            print("DEBUG: Clearing image...")
-            # Delete the current image file from storage
-            if instance.image:
-                # Store the path before deletion for debugging
-                old_image_path = instance.image.path if instance.image else None
-                print(f"DEBUG: Deleting image at: {old_image_path}")
-
-                # Delete the file from storage
-                instance.image.delete(save=False)
-
-            # Set the image field to None/empty
-            instance.image = None
-
-        # If a new image is uploaded, it will automatically replace the old one
-        # Django's FileField handles this automatically
+        # Debug image upload
+        if self.cleaned_data.get('image'):
+            print(f"DEBUG: New image uploaded - {self.cleaned_data['image'].name}")
 
         if commit:
             instance.save()

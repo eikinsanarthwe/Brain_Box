@@ -98,4 +98,14 @@ urlpatterns = [
     # Progress Tracking URLs
     path('teacher/progress-track/', views.teacher_progress_track, name='teacher_progress_track'),
     path('teacher/send-progress-reminder/', views.send_progress_reminder, name='send_progress_reminder'),
+      path('teacher/progress/update/<int:progress_id>/',
+         views.update_student_progress,
+         name='update_student_progress'),
+
+           # Add these lines to your urlpatterns:
+
+# Course Modules URLs
+path('teacher/courses/<int:course_id>/modules/', views.course_modules, name='course_modules'),
+path('teacher/courses/<int:course_id>/modules/add/', views.add_course_module, name='add_course_module'),
+
 ]
