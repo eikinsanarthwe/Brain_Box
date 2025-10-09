@@ -1,0 +1,302 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-chart-line me-2"></i>Progress Tracking
+        </h1>
+    </div>
+
+    <!-- Progress Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Courses
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_courses }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-book fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Total Students
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_students }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Average Progress
+                            </div>
+                            <div class="row no-gutters align-items-center">
+                                <div class="col-auto">
+                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">{{ average_progress }}%</div>
+                                </div>
+                                <div class="col">
+                                    <div class="progress progress-sm mr-2">
+                                        <div class="progress-bar bg-info" role="progressbar"
+                                             style="width: {{ average_progress }}%"
+                                             aria-valuenow="{{ average_progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Need Attention
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ need_attention_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Progress Summary -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Course Progress Summary</h6>
+        </div>
+        <div class="card-body">
+            {% if course_summary %}
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Course</th>
+                            <th>Enrolled Students</th>
+                            <th>Average Progress</th>
+                            <th>Completed Students</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for summary in course_summary %}
+                        <tr>
+                            <td>
+                                <strong>{{ summary.code }}</strong> - {{ summary.name }}
+                            </td>
+                            <td>{{ summary.enrolled_students }}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar
+                                        {% if summary.average_progress >= 80 %}bg-success
+                                        {% elif summary.average_progress >= 50 %}bg-info
+                                        {% else %}bg-warning{% endif %}"
+                                        role="progressbar"
+                                        style="width: {{ summary.average_progress }}%;"
+                                        aria-valuenow="{{ summary.average_progress }}"
+                                        aria-valuemin="0"
+                                        aria-valuemax="100">
+                                        {{ summary.average_progress }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ summary.completed_students }}</td>
+                            <td>
+                                <a href="{% url 'dashboard:teacher_student_progress' summary.course.id %}"
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-chart-bar"></i> Details
+                                </a>
+                                <a href="{% url 'dashboard:teacher_course_detail' summary.course.id %}"
+                                   class="btn btn-sm btn-info">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4">
+                <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                <p class="text-muted">No courses found for progress tracking.</p>
+                <a href="{% url 'dashboard:teacher_course_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>Create Your First Course
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Students Needing Attention -->
+    {% if need_attention %}
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 bg-warning">
+            <h6 class="m-0 font-weight-bold text-white">
+                <i class="fas fa-exclamation-triangle me-2"></i>Students Needing Attention (Progress < 25%)
+            </h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Student</th>
+                            <th>Course</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for progress in need_attention %}
+                        <tr>
+                            <td>{{ progress.student.user.get_full_name|default:progress.student.user.username }}</td>
+                            <td>{{ progress.course.name }}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar bg-warning"
+                                         role="progressbar"
+                                         style="width: {{ progress.progress_percentage }}%;"
+                                         aria-valuenow="{{ progress.progress_percentage }}"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100">
+                                        {{ progress.progress_percentage }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge bg-warning">{{ progress.get_status_display }}</span>
+                            </td>
+                            <td>
+                                <a href="{% url 'dashboard:update_student_progress' progress.id %}"
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-edit"></i> Update
+                                </a>
+                                <button type="button" class="btn btn-sm btn-info send-reminder-btn"
+                                        data-student-id="{{ progress.student.id }}"
+                                        data-course-id="{{ progress.course.id }}">
+                                    <i class="fas fa-envelope"></i> Remind
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Send Reminder Modal -->
+<div class="modal fade" id="reminderModal" tabindex="-1" aria-labelledby="reminderModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reminderModalLabel">Send Progress Reminder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="reminderForm">
+                    {% csrf_token %}
+                    <input type="hidden" id="reminderStudentId" name="student_id">
+                    <input type="hidden" id="reminderCourseId" name="course_id">
+                    <div class="mb-3">
+                        <label for="reminderMessage" class="form-label">Custom Message (Optional)</label>
+                        <textarea class="form-control" id="reminderMessage" name="message" rows="4"
+                                  placeholder="Add a custom message for the student..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="sendReminderBtn">Send Reminder</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Send reminder functionality
+    const sendReminderBtns = document.querySelectorAll('.send-reminder-btn');
+    const reminderModal = new bootstrap.Modal(document.getElementById('reminderModal'));
+    const reminderForm = document.getElementById('reminderForm');
+    const sendReminderBtn = document.getElementById('sendReminderBtn');
+
+    sendReminderBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const studentId = this.getAttribute('data-student-id');
+            const courseId = this.getAttribute('data-course-id');
+
+            document.getElementById('reminderStudentId').value = studentId;
+            document.getElementById('reminderCourseId').value = courseId;
+
+            reminderModal.show();
+        });
+    });
+
+    sendReminderBtn.addEventListener('click', function() {
+        const formData = new FormData(reminderForm);
+
+        fetch('{% url "dashboard:send_progress_reminder" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('Reminder sent successfully!');
+                reminderModal.hide();
+                reminderForm.reset();
+            } else {
+                alert('Error sending reminder: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error sending reminder');
+        });
+    });
+});
+</script>
+{% endblock %}

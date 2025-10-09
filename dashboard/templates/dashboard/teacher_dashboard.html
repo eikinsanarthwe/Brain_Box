@@ -144,19 +144,25 @@
             <div class="card shadow">
                 <div class="card-body">
                     <div class="row text-center">
-                        <div class="col-md-4 mb-3 mb-md-0">
+                        <div class="col-md-3 mb-3 mb-md-0">
                             <a href="{% url 'dashboard:teacher_course_create' %}" class="btn btn-primary quick-action-btn">
                                 <i class="fas fa-plus-circle fa-2x mb-2"></i><br>
                                 New Course
                             </a>
                         </div>
-                        <div class="col-md-4 mb-3 mb-md-0">
+                        <div class="col-md-3 mb-3 mb-md-0">
                             <a href="{% url 'dashboard:teacher_assignment_create' %}" class="btn btn-success quick-action-btn">
                                 <i class="fas fa-tasks fa-2x mb-2"></i><br>
                                 New Assignment
                             </a>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3 mb-3 mb-md-0">
+                            <a href="{% url 'dashboard:teacher_progress_track' %}" class="btn btn-warning quick-action-btn">
+                                <i class="fas fa-chart-line fa-2x mb-2"></i><br>
+                                Progress Track
+                            </a>
+                        </div>
+                        <div class="col-md-3">
                             <a href="{% url 'dashboard:message_compose' %}" class="btn btn-info quick-action-btn">
                                 <i class="fas fa-envelope fa-2x mb-2"></i><br>
                                 Send Message
@@ -191,7 +197,7 @@
                                     <p class="card-text mb-1">credit {{ course.credit|default:"3" }}</p>
                                     <div class="d-flex justify-content-between align-items-center mt-3">
                                         <a href="{% url 'dashboard:teacher_course_detail' course.id %}" class="btn btn-sm btn-outline-primary">View</a>
-                                        <small class="text-muted">{{ course.created_at|date:"M d, Y" }}</small>
+                                        <a href="{% url 'dashboard:teacher_progress_track' %}?course={{ course.id }}" class="btn btn-sm btn-outline-warning">Track Progress</a>
                                     </div>
                                 </div>
                             </div>
@@ -273,6 +279,9 @@
                         </a>
                         <a href="{% url 'dashboard:teacher_course_create' %}" class="btn btn-success">
                             <i class="fas fa-book me-2"></i>Create Course
+                        </a>
+                        <a href="{% url 'dashboard:teacher_progress_track' %}" class="btn btn-warning">
+                            <i class="fas fa-chart-line me-2"></i>Track Progress
                         </a>
                         <a href="{% url 'dashboard:message_compose' %}" class="btn btn-info">
                             <i class="fas fa-envelope me-2"></i>Send Message

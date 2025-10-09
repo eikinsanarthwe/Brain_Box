@@ -1,0 +1,128 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-chart-line me-2"></i>Student Progress - {{ course.name }}
+        </h1>
+        <a href="{% url 'dashboard:teacher_course_detail' course.id %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Course
+        </a>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                Student Progress Overview
+            </h6>
+            <a href="{% url 'dashboard:course_modules' course.id %}" class="btn btn-info">
+                <i class="fas fa-list me-1"></i> Manage Modules
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead class="thead-light">
+                        <tr>
+                            <th>Student</th>
+                            <th>Progress</th>
+                            <th>Status</th>
+                            <th>Last Updated</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for progress in progress_records %}
+                        <tr>
+                            <td>{{ progress.student.user.get_full_name|default:progress.student.user.username }}</td>
+                            <td>
+                                <div class="progress" style="height: 20px;">
+                                    <div class="progress-bar
+                                        {% if progress.progress_percentage == 100 %}bg-success
+                                        {% elif progress.progress_percentage >= 50 %}bg-info
+                                        {% else %}bg-warning{% endif %}"
+                                        role="progressbar"
+                                        style="width: {{ progress.progress_percentage }}%;"
+                                        aria-valuenow="{{ progress.progress_percentage }}"
+                                        aria-valuemin="0"
+                                        aria-valuemax="100">
+                                        {{ progress.progress_percentage }}%
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge
+                                    {% if progress.status == 'completed' %}bg-success
+                                    {% elif progress.status == 'in_progress' %}bg-primary
+                                    {% elif progress.status == 'needs_review' %}bg-warning
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ progress.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ progress.last_updated|date:"M d, Y H:i" }}</td>
+                            <td>
+                                <a href="{% url 'dashboard:update_student_progress' progress.id %}"
+                                   class="btn btn-sm btn-primary">
+                                    <i class="fas fa-edit"></i> Update
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No students enrolled in this course.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="mt-4">
+                <h4>Progress Statistics</h4>
+                <div class="row">
+                    <!-- Total Students Card -->
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-primary text-white text-center">
+                            <div class="card-body">
+                                <h5>{{ progress_records|length }}</h5>
+                                <p>Total Students</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Completed Card -->
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-success text-white text-center">
+                            <div class="card-body">
+                                <h5>{{ completed_count }}</h5>
+                                <p>Completed</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- In Progress Card -->
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-info text-white text-center">
+                            <div class="card-body">
+                                <h5>{{ in_progress_count }}</h5>
+                                <p>In Progress</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Not Started Card -->
+                    <div class="col-md-3 mb-3">
+                        <div class="card bg-warning text-white text-center">
+                            <div class="card-body">
+                                <h5>{{ not_started_count }}</h5>
+                                <p>Not Started</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

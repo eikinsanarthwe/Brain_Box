@@ -1,0 +1,121 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-chart-bar me-2"></i>{{ course.name }} - Progress Details
+        </h1>
+        <div>
+            <a href="{% url 'dashboard:progress_track' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back to Overview
+            </a>
+        </div>
+    </div>
+
+    <!-- Course Summary -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0 font-weight-bold"><i class="fas fa-info-circle me-2"></i>Course Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Course Code:</strong> {{ course.code }}</p>
+                            <p><strong>Course Name:</strong> {{ course.name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Total Students:</strong> {{ total_students }}</p>
+                            <p><strong>Total Modules:</strong> {{ modules.count }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h5 class="m-0 font-weight-bold"><i class="fas fa-chart-pie me-2"></i>Progress Summary</h5>
+                </div>
+                <div class="card-body text-center">
+                    {% with avg_progress=student_progress|mapattribute:'overall_percentage'|avg %}
+                    <h2 class="text-primary">{{ avg_progress|default:0|floatformat:1 }}%</h2>
+                    <p class="mb-0">Average Completion</p>
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Student Progress Table -->
+    <div class="card shadow">
+        <div class="card-header bg-success text-white">
+            <h5 class="m-0 font-weight-bold"><i class="fas fa-users me-2"></i>Student Progress ({{ total_students }} students)</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Student</th>
+                            <th>Enrollment ID</th>
+                            <th>Modules Completed</th>
+                            <th>Overall Progress</th>
+                            <th>Status</th>
+                            <th>Last Activity</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for student_data in student_progress %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm bg-primary rounded-circle text-white d-flex align-items-center justify-content-center me-2"
+                                         style="width: 32px; height: 32px;">
+                                        {{ student_data.student.user.get_full_name|default:student_data.student.user.username|first|upper }}
+                                    </div>
+                                    <div>
+                                        <strong>{{ student_data.student.user.get_full_name|default:student_data.student.user.username }}</strong>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>{{ student_data.student.enrollment_id }}</td>
+                            <td>
+                                {{ student_data.modules_completed }}/{{ student_data.total_modules }}
+                                <div class="progress mt-1" style="height: 5px;">
+                                    <div class="progress-bar bg-info"
+                                         style="width: {% widthratio student_data.modules_completed student_data.total_modules 100 %}%">
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-2" style="height: 8px;">
+                                        <div class="progress-bar
+                                            {% if student_data.overall_percentage >= 80 %}bg-success
+                                            {% elif student_data.overall_percentage >= 50 %}bg-warning
+                                            {% else %}bg-danger{% endif %}"
+                                            style="width: {{ student_data.overall_percentage }}%">
+                                        </div>
+                                    </div>
+                                    <span class="text-sm font-weight-bold">{{ student_data.overall_percentage }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge
+                                    {% if student_data.overall_percentage >= 80 %}bg-success
+                                    {% elif student_data.overall_percentage >= 50 %}bg-warning
+                                    {% else %}bg-danger{% endif %}">
+                                    {% if student_data.overall_percentage >= 80 %}Completed
+                                    {% elif student_data.overall_percentage >= 50 %}In Progress
+                                    {% else %}Not Started
+                                    {% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {% with last_progress=student_data.student.progress.filter

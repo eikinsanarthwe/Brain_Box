@@ -1,0 +1,328 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .profile-picture-container {
+        position: relative;
+        display: inline-block;
+    }
+    .profile-picture-upload {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+    .file-input {
+        display: none;
+    }
+    .profile-picture-preview {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border: 3px solid #e3e6f0;
+    }
+</style>
+
+<div class="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-edit me-2"></i>Edit Course - {{ course.name }}
+        </h1>
+        <!-- FIXED: Goes to courses list -->
+        <a href="{% url 'dashboard:teacher_courses' %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Courses
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <!-- Course Code -->
+                        <div class="mb-3">
+                            <label for="{{ form.code.id_for_label }}" class="form-label fw-bold">Course Code*</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="{{ form.code.id_for_label }}"
+                                   name="{{ form.code.name }}"
+                                   value="{{ form.code.value|default:'' }}"
+                                   required>
+                            {% if form.code.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.code.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Course Name -->
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label fw-bold">Course Name*</label>
+                            <input type="text"
+                                   class="form-control"
+                                   id="{{ form.name.id_for_label }}"
+                                   name="{{ form.name.name }}"
+                                   value="{{ form.name.value|default:'' }}"
+                                   required>
+                            {% if form.name.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.name.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label fw-bold">Description</label>
+                            <textarea class="form-control"
+                                      id="{{ form.description.id_for_label }}"
+                                      name="{{ form.description.name }}"
+                                      rows="4">{{ form.description.value|default:'' }}</textarea>
+                            {% if form.description.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.description.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Course Image -->
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">Course Image</label>
+
+                            <!-- File Upload -->
+                            <div class="mb-3">
+                                <input type="file"
+                                       class="form-control"
+                                       id="{{ form.image.id_for_label }}"
+                                       name="{{ form.image.name }}"
+                                       accept="image/*">
+                                <div class="form-text text-muted mt-1">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Upload an image for this course. Recommended size: 300x200 pixels.
+                                </div>
+                                {% if form.image.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.image.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+
+                            <!-- Current Image Display -->
+                            {% if course.image %}
+                            <div class="current-image-section">
+                                <p class="fw-bold mb-2">Current Image:</p>
+                                <div class="d-flex align-items-start gap-3">
+                                    <img src="{{ course.image.url }}"
+                                         alt="{{ course.name }}"
+                                         class="img-thumbnail"
+                                         style="max-width: 200px; max-height: 150px;">
+
+                                    <!-- Remove Image Checkbox -->
+                                    <div class="form-check mt-2">
+                                        <input class="form-check-input"
+                                               type="checkbox"
+                                               id="remove_image"
+                                               name="remove_image">
+                                        <label class="form-check-label text-danger fw-bold" for="remove_image">
+                                            Remove current image
+                                        </label>
+                                        <div class="form-text text-muted">
+                                            Check this to remove the current image
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                No image currently set for this course.
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Hidden field to track image removal -->
+                        <input type="hidden" name="image_removed" id="image_removed" value="false">
+
+                        <!-- Action Buttons -->
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <div>
+                                <button type="submit" class="btn btn-primary px-4">
+                                    <i class="fas fa-save me-2"></i>Save Changes
+                                </button>
+                                <!-- FIXED: Cancel also goes to courses list -->
+                                <a href="{% url 'dashboard:teacher_courses' %}" class="btn btn-outline-secondary">
+                                    Cancel
+                                </a>
+                            </div>
+
+                            <!-- Delete Course Button -->
+                            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteCourseModal">
+                                <i class="fas fa-trash me-2"></i>Delete Course
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar Information -->
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Course Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Created:</strong>
+                        <br>
+                        <span class="text-muted">{{ course.created_at|date:"F d, Y" }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Last Updated:</strong>
+                        <br>
+                        <span class="text-muted">{{ course.updated_at|date:"F d, Y H:i" }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Students Enrolled:</strong>
+                        <br>
+                        <span class="text-muted">{{ course.enrollments.count }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Assignments:</strong>
+                        <br>
+                        <span class="text-muted">{{ course.assignments.count }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Image Guidelines -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-image me-2"></i>Image Guidelines
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled small">
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Recommended size: 300x200 pixels
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Supported formats: JPG, PNG, GIF
+                        </li>
+                        <li class="mb-2">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Max file size: 2MB
+                        </li>
+                        <li>
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            Clear, relevant images work best
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Course Modal -->
+<div class="modal fade" id="deleteCourseModal" tabindex="-1" aria-labelledby="deleteCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCourseModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the course "<strong>{{ course.name }}</strong>"?</p>
+                <p class="text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    This action cannot be undone. All assignments, materials, and student enrollments will be removed.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <!-- FIXED: Using existing delete_course URL instead of teacher_course_delete -->
+                <form method="post" action="{% url 'dashboard:delete_course' course.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete Course</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Handle image removal checkbox
+    document.addEventListener('DOMContentLoaded', function() {
+        const removeImageCheckbox = document.getElementById('remove_image');
+        const imageRemovedField = document.getElementById('image_removed');
+        const fileInput = document.getElementById('{{ form.image.id_for_label }}');
+
+        if (removeImageCheckbox) {
+            removeImageCheckbox.addEventListener('change', function() {
+                imageRemovedField.value = this.checked ? 'true' : 'false';
+
+                // Disable file input when removing image
+                if (this.checked) {
+                    fileInput.disabled = true;
+                    fileInput.value = '';
+                } else {
+                    fileInput.disabled = false;
+                }
+            });
+        }
+
+        // Form validation
+        const form = document.querySelector('form');
+        form.addEventListener('submit', function(e) {
+            const code = document.getElementById('{{ form.code.id_for_label }}').value.trim();
+            const name = document.getElementById('{{ form.name.id_for_label }}').value.trim();
+
+            if (!code || !name) {
+                e.preventDefault();
+                alert('Please fill in all required fields (marked with *).');
+                return false;
+            }
+        });
+
+        // Image preview for new upload
+        if (fileInput) {
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    // Check file size (2MB limit)
+                    if (file.size > 2 * 1024 * 1024) {
+                        alert('File size must be less than 2MB.');
+                        this.value = '';
+                        return;
+                    }
+
+                    // Check file type
+                    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+                    if (!validTypes.includes(file.type)) {
+                        alert('Please select a valid image file (JPG, PNG, GIF).');
+                        this.value = '';
+                        return;
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

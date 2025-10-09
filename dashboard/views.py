@@ -13,12 +13,16 @@ import pyotp
 import qrcode
 import io
 import base64
+import zipfile
+from io import BytesIO
+import os
+from django.utils import timezone
 
-from .models import Teacher, Student, Course, Assignment, Submission, CourseMaterial, UserProfile, Message
+from .models import Teacher, Student, Course, Assignment, Submission, CourseMaterial, UserProfile, Message,CourseModule,StudentProgress
 from .forms import (
     TeacherForm, StudentForm, CourseForm, AssignmentForm,
     AdminCreationForm, AdminChangeForm, TeacherStudentForm,
-    TeacherCourseForm, CourseMaterialForm, MessageForm, ReplyForm,ProfileSettingsForm
+    TeacherCourseForm, CourseMaterialForm, MessageForm, ReplyForm,ProfileSettingsForm,CourseModuleForm,StudentProgressForm
 )
 
 User = get_user_model()
@@ -216,21 +220,37 @@ def course_create(request):
     return edit_course(request)
 
 @login_required
-def edit_course(request, id=None):
-    course = get_object_or_404(Course, id=id) if id else None
+@user_passes_test(lambda u: u.role == 'teacher')
+def edit_course(request, course_id):
+    course = get_object_or_404(Course, id=course_id)
+
+    # Check if the current user is a teacher of this course
+    teacher = get_object_or_404(Teacher, user=request.user)
+    if teacher not in course.teachers.all():
+        messages.error(request, "You don't have permission to edit this course.")
+        return redirect('dashboard:teacher_courses')
+
     if request.method == 'POST':
-        form = CourseForm(request.POST, instance=course)
+        form = CourseForm(request.POST, request.FILES, instance=course)
         if form.is_valid():
+            # Handle image removal
+            if request.POST.get('remove_image') == 'on':
+                if course.image:
+                    course.image.delete(save=False)
+                    course.image = None  # Clear the image field
+
             course = form.save()
-            messages.success(request, f'Course {"updated" if id else "created"} successfully!')
-            return redirect('dashboard:course_list')
+            messages.success(request, f'Course "{course.name}" updated successfully!')
+            return redirect('dashboard:teacher_course_detail', course_id=course.id)
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
         form = CourseForm(instance=course)
-    return render(request, 'dashboard/course_form.html', {
-        'form': form,
-        'title': 'Edit Course' if id else 'Add Course'
-    })
 
+    return render(request, 'dashboard/edit_course.html', {
+        'form': form,
+        'course': course
+    })
 @login_required
 def delete_course(request, id):
     course = get_object_or_404(Course, id=id)
@@ -503,7 +523,8 @@ def get_teachers_by_course(request):
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_course_create(request):
     if request.method == 'POST':
-        form = TeacherCourseForm(request.POST)
+        # Include request.FILES to handle file uploads
+        form = TeacherCourseForm(request.POST, request.FILES)
         if form.is_valid():
             course = form.save()
             # Add the current teacher to the course
@@ -518,7 +539,6 @@ def teacher_course_create(request):
         'form': form,
         'title': 'Create Course'
     })
-
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_student_create(request):
@@ -1301,3 +1321,628 @@ def update_theme_preference(request):
             return JsonResponse({'status': 'error', 'message': str(e)})
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_student_progress(request, course_id):
+    """View student progress for a specific course"""
+    course = get_object_or_404(Course, id=course_id)
+    teacher = get_object_or_404(Teacher, user=request.user)
+
+    # Check if teacher teaches this course
+    if teacher not in course.teachers.all():
+        messages.error(request, "You don't have permission to view progress for this course.")
+        return redirect('dashboard:teacher_courses')
+
+    # Get all students enrolled in this course
+    students = Student.objects.filter(courses=course)
+
+    # Get or create progress records
+    progress_records = []
+    for student in students:
+        progress, created = StudentProgress.objects.get_or_create(
+            student=student,
+            course=course,
+            defaults={'status': 'not_started', 'progress_percentage': 0}
+        )
+        progress_records.append(progress)
+
+    # Calculate counts for the cards
+    completed_count = sum(1 for p in progress_records if p.status == 'completed')
+    in_progress_count = sum(1 for p in progress_records if p.status == 'in_progress')
+    not_started_count = sum(1 for p in progress_records if p.status == 'not_started')
+
+    context = {
+        'course': course,
+        'progress_records': progress_records,
+        'completed_count': completed_count,
+        'in_progress_count': in_progress_count,
+        'not_started_count': not_started_count,
+    }
+    return render(request, 'dashboard/teacher_student_progress.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def update_student_progress(request, progress_id):
+    """Update individual student progress"""
+    progress = get_object_or_404(StudentProgress, id=progress_id)
+    teacher = get_object_or_404(Teacher, user=request.user)
+
+    # Check if teacher teaches this course
+    if teacher not in progress.course.teachers.all():
+        messages.error(request, "You don't have permission to update this progress.")
+        return redirect('dashboard:teacher_courses')
+
+    if request.method == 'POST':
+        form = StudentProgressForm(request.POST, instance=progress)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Progress updated for {progress.student.user.username}')
+            return redirect('dashboard:teacher_student_progress', course_id=progress.course.id)
+    else:
+        form = StudentProgressForm(instance=progress)
+
+    context = {
+        'form': form,
+        'progress': progress,
+        'title': f'Update Progress - {progress.student.user.username}'
+    }
+    return render(request, 'dashboard/update_student_progress.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def course_modules(request, course_id):
+    """Manage course modules"""
+    course = get_object_or_404(Course, id=course_id)
+    teacher = get_object_or_404(Teacher, user=request.user)
+
+    if teacher not in course.teachers.all():
+        messages.error(request, "You don't have permission to manage modules for this course.")
+        return redirect('dashboard:teacher_courses')
+
+    modules = CourseModule.objects.filter(course=course).order_by('order')
+
+    context = {
+        'course': course,
+        'modules': modules,
+    }
+    return render(request, 'dashboard/course_modules.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def add_course_module(request, course_id):
+    """Add a new module to a course"""
+    course = get_object_or_404(Course, id=course_id)
+    teacher = get_object_or_404(Teacher, user=request.user)
+
+    if teacher not in course.teachers.all():
+        messages.error(request, "You don't have permission to add modules to this course.")
+        return redirect('dashboard:teacher_courses')
+
+    if request.method == 'POST':
+        form = CourseModuleForm(request.POST)
+        if form.is_valid():
+            module = form.save(commit=False)
+            module.course = course
+            module.save()
+            messages.success(request, 'Module added successfully!')
+            return redirect('dashboard:course_modules', course_id=course.id)
+    else:
+        form = CourseModuleForm()
+
+    context = {
+        'form': form,
+        'course': course,
+        'title': 'Add Course Module'
+    }
+    return render(request, 'dashboard/add_course_module.html', context)
+@login_required
+@user_passes_test(lambda u: u.role == 'student')
+def student_assignments(request):
+    """View all assignments for a student"""
+    student = get_object_or_404(Student, user=request.user)
+
+    # Get assignments for courses the student is enrolled in
+    assignments = Assignment.objects.filter(
+        course__in=student.courses.all(),
+        status='published'
+    ).prefetch_related(
+        'submission_set'
+    ).order_by('-due_date')
+
+    # Annotate with submission info for this student
+    for assignment in assignments:
+        assignment.submissions = assignment.submission_set.filter(student=student)
+        assignment.is_past_due = timezone.now() > assignment.due_date
+
+    # Count statistics
+    submitted_count = sum(1 for a in assignments if a.submissions.exists())
+    pending_count = assignments.count() - submitted_count
+    graded_count = sum(1 for a in assignments if a.submissions.first() and a.submissions.first().grade is not None)
+
+    context = {
+        'assignments': assignments,
+        'submitted_count': submitted_count,
+        'pending_count': pending_count,
+        'graded_count': graded_count,
+    }
+    return render(request, 'dashboard/student_assignments.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'student')
+def student_assignment_submit(request, assignment_id):
+    """Submit or resubmit an assignment"""
+    assignment = get_object_or_404(Assignment, id=assignment_id, status='published')
+    student = get_object_or_404(Student, user=request.user)
+
+    # Check if student is enrolled in the course
+    if assignment.course not in student.courses.all():
+        messages.error(request, "You are not enrolled in this course.")
+        return redirect('dashboard:student_assignments')
+
+    # Check if assignment is still open
+    if timezone.now() > assignment.due_date:
+        messages.warning(request, "This assignment is past due. You can still submit, but it will be marked as late.")
+
+    # Get existing submission if any
+    existing_submission = Submission.objects.filter(
+        assignment=assignment,
+        student=student
+    ).first()
+
+    if request.method == 'POST':
+        # Handle file upload
+        submitted_file = request.FILES.get('submitted_file')
+        comments = request.POST.get('comments', '')
+
+        if not submitted_file:
+            messages.error(request, "Please select a file to upload.")
+            return redirect('dashboard:student_assignment_submit', assignment_id=assignment_id)
+
+        # Validate file size (50MB limit)
+        if submitted_file.size > 50 * 1024 * 1024:
+            messages.error(request, "File size exceeds 50MB limit.")
+            return redirect('dashboard:student_assignment_submit', assignment_id=assignment_id)
+
+        # Validate file type
+        allowed_extensions = ['.pdf', '.doc', '.docx', '.txt', '.mp4', '.mp3', '.wav', '.avi', '.mov', '.ppt', '.pptx']
+        file_ext = os.path.splitext(submitted_file.name)[1].lower()
+        if file_ext not in allowed_extensions:
+            messages.error(request, f"File type {file_ext} is not allowed. Please upload a supported file type.")
+            return redirect('dashboard:student_assignment_submit', assignment_id=assignment_id)
+
+        # Create or update submission
+        if existing_submission:
+            # Update existing submission
+            existing_submission.submitted_file = submitted_file
+            existing_submission.comments = comments
+            existing_submission.submitted_at = timezone.now()
+            existing_submission.save()
+            messages.success(request, "Submission updated successfully!")
+        else:
+            # Create new submission
+            submission = Submission(
+                assignment=assignment,
+                student=student,
+                submitted_file=submitted_file,
+                comments=comments
+            )
+            submission.save()
+            messages.success(request, "Assignment submitted successfully!")
+
+        return redirect('dashboard:student_assignments')
+
+    # Calculate time remaining
+    time_remaining = None
+    if assignment.due_date > timezone.now():
+        delta = assignment.due_date - timezone.now()
+        days = delta.days
+        hours = delta.seconds // 3600
+        minutes = (delta.seconds % 3600) // 60
+
+        if days > 0:
+            time_remaining = f"{days} days, {hours} hours"
+        elif hours > 0:
+            time_remaining = f"{hours} hours, {minutes} minutes"
+        else:
+            time_remaining = f"{minutes} minutes"
+
+    context = {
+        'assignment': assignment,
+        'existing_submission': existing_submission,
+        'time_remaining': time_remaining,
+    }
+    return render(request, 'dashboard/student_assignment_submit.html', context)
+login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def download_all_submissions(request, assignment_id):
+    """Download all submissions for an assignment as ZIP"""
+    assignment = get_object_or_404(Assignment, id=assignment_id, teacher=request.user)
+    submissions = Submission.objects.filter(assignment=assignment)
+
+    if not submissions.exists():
+        messages.error(request, "No submissions found to download.")
+        return redirect('dashboard:teacher_assignment_detail', id=assignment_id)
+
+    # Create ZIP file in memory
+    zip_buffer = BytesIO()
+    with zipfile.ZipFile(zip_buffer, 'w') as zip_file:
+        for submission in submissions:
+            try:
+                file_path = submission.submitted_file.path
+                filename = f"{submission.student.user.username}_{submission.student.enrollment_id}_{os.path.basename(file_path)}"
+                zip_file.write(file_path, filename)
+            except Exception as e:
+                continue  # Skip files that can't be read
+
+    zip_buffer.seek(0)
+
+    response = HttpResponse(zip_buffer, content_type='application/zip')
+    response['Content-Disposition'] = f'attachment; filename="{assignment.title}_submissions.zip"'
+    return response
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def submission_details(request, submission_id):
+    """Get submission details for modal"""
+    submission = get_object_or_404(Submission, id=submission_id)
+
+    # Ensure teacher owns this assignment
+    if submission.assignment.teacher != request.user:
+        return HttpResponse("Permission denied", status=403)
+
+    context = {
+        'submission': submission,
+        'assignment': submission.assignment,
+    }
+    return render(request, 'dashboard/submission_details_modal.html', context)
+
+# Fix the assignment_create view (missing in your current code)
+@login_required
+def assignment_create(request):
+    """Create assignment (for admin)"""
+    return edit_assignment(request)
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def progress_track(request):
+    """Main progress tracking dashboard for teachers"""
+    teacher = get_object_or_404(Teacher, user=request.user)
+
+    # Get courses taught by this teacher
+    courses = Course.objects.filter(teachers=teacher)
+
+    # Get progress statistics
+    course_progress = []
+    for course in courses:
+        # Get all students enrolled in this course
+        students = Student.objects.filter(courses=course)
+        total_students = students.count()
+
+        # Calculate average progress for this course
+        if total_students > 0:
+            total_progress = 0
+            for student in students:
+                progress = calculate_student_course_progress(student, course)
+                total_progress += progress['overall_percentage']
+
+            avg_progress = total_progress / total_students
+        else:
+            avg_progress = 0
+
+        course_progress.append({
+            'course': course,
+            'total_students': total_students,
+            'avg_progress': round(avg_progress, 1),
+            'students': students[:5]  # First 5 students for preview
+        })
+
+    context = {
+        'course_progress': course_progress,
+        'total_courses': courses.count(),
+    }
+    return render(request, 'dashboard/progress_track.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def course_progress_detail(request, course_id):
+    """Detailed progress view for a specific course"""
+    course = get_object_or_404(Course, id=course_id)
+    teacher = get_object_or_404(Teacher, user=request.user)
+
+    # Check if teacher teaches this course
+    if teacher not in course.teachers.all():
+        messages.error(request, "You don't have permission to view progress for this course.")
+        return redirect('dashboard:progress_track')
+
+    # Get all students enrolled in this course
+    students = Student.objects.filter(courses=course)
+
+    # Get all modules for this course
+    modules = CourseModule.objects.filter(course=course).order_by('order')
+
+    # Calculate progress for each student
+    student_progress = []
+    for student in students:
+        progress_data = calculate_student_course_progress(student, course)
+        student_progress.append({
+            'student': student,
+            'progress': progress_data,
+            'modules_completed': progress_data['modules_completed'],
+            'total_modules': progress_data['total_modules'],
+            'overall_percentage': progress_data['overall_percentage'],
+            'status': progress_data['status']
+        })
+
+    # Sort by progress percentage (highest first)
+    student_progress.sort(key=lambda x: x['overall_percentage'], reverse=True)
+
+    context = {
+        'course': course,
+        'student_progress': student_progress,
+        'modules': modules,
+        'total_students': students.count(),
+    }
+    return render(request, 'dashboard/course_progress_detail.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def student_progress_detail(request, course_id, student_id):
+    """Detailed progress view for a specific student in a course"""
+    course = get_object_or_404(Course, id=course_id)
+    student = get_object_or_404(Student, id=student_id)
+    teacher = get_object_or_404(Teacher, user=request.user)
+
+    # Check permissions
+    if teacher not in course.teachers.all() or student not in Student.objects.filter(courses=course):
+        messages.error(request, "You don't have permission to view this progress.")
+        return redirect('dashboard:progress_track')
+
+    # Get all modules for this course
+    modules = CourseModule.objects.filter(course=course).order_by('order')
+
+    # Get or create progress records for each module
+    module_progress = []
+    for module in modules:
+        progress, created = StudentProgress.objects.get_or_create(
+            student=student,
+            course=course,
+            module=module,
+            defaults={
+                'status': 'not_started',
+                'progress_percentage': 0
+            }
+        )
+        module_progress.append(progress)
+
+    # Calculate overall progress
+    overall_progress = calculate_student_course_progress(student, course)
+
+    if request.method == 'POST':
+        # Update progress for specific module
+        module_id = request.POST.get('module_id')
+        status = request.POST.get('status')
+        progress_percentage = request.POST.get('progress_percentage')
+        notes = request.POST.get('notes')
+
+        if module_id and status:
+            module_progress_obj = get_object_or_404(StudentProgress,
+                                                   student=student,
+                                                   course=course,
+                                                   module_id=module_id)
+            module_progress_obj.status = status
+            module_progress_obj.progress_percentage = progress_percentage or 0
+            module_progress_obj.notes = notes or ''
+            module_progress_obj.save()
+
+            messages.success(request, f'Progress updated for {student.user.username}')
+            return redirect('dashboard:student_progress_detail', course_id=course_id, student_id=student_id)
+
+    context = {
+        'course': course,
+        'student': student,
+        'module_progress': module_progress,
+        'overall_progress': overall_progress,
+    }
+    return render(request, 'dashboard/student_progress_detail.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def update_student_progress(request, progress_id):
+    """Update individual student progress via AJAX or form"""
+    progress = get_object_or_404(StudentProgress, id=progress_id)
+    teacher = get_object_or_404(Teacher, user=request.user)
+
+    # Check if teacher teaches this course
+    if teacher not in progress.course.teachers.all():
+        return JsonResponse({'error': 'Permission denied'}, status=403)
+
+    if request.method == 'POST':
+        form = StudentProgressForm(request.POST, instance=progress)
+        if form.is_valid():
+            form.save()
+
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                # AJAX request
+                return JsonResponse({
+                    'success': True,
+                    'status': progress.status,
+                    'progress_percentage': progress.progress_percentage,
+                    'notes': progress.notes
+                })
+            else:
+                # Regular form submission
+                messages.success(request, f'Progress updated for {progress.student.user.username}')
+                return redirect('dashboard:student_progress_detail',
+                              course_id=progress.course.id,
+                              student_id=progress.student.id)
+    else:
+        form = StudentProgressForm(instance=progress)
+
+    context = {
+        'form': form,
+        'progress': progress,
+    }
+    return render(request, 'dashboard/update_student_progress.html', context)
+
+# Helper function
+def calculate_student_course_progress(student, course):
+    """Calculate overall progress for a student in a course"""
+    modules = CourseModule.objects.filter(course=course)
+    total_modules = modules.count()
+
+    if total_modules == 0:
+        return {
+            'overall_percentage': 0,
+            'modules_completed': 0,
+            'total_modules': 0,
+            'status': 'not_started'
+        }
+
+    completed_modules = 0
+    total_progress = 0
+
+    for module in modules:
+        progress, created = StudentProgress.objects.get_or_create(
+            student=student,
+            course=course,
+            module=module,
+            defaults={'status': 'not_started', 'progress_percentage': 0}
+        )
+
+        if progress.status == 'completed':
+            completed_modules += 1
+            total_progress += 100
+        else:
+            total_progress += progress.progress_percentage
+
+    overall_percentage = total_progress / total_modules
+
+    # Determine overall status
+    if overall_percentage >= 90:
+        status = 'completed'
+    elif overall_percentage >= 50:
+        status = 'in_progress'
+    else:
+        status = 'not_started'
+
+    return {
+        'overall_percentage': round(overall_percentage, 1),
+        'modules_completed': completed_modules,
+        'total_modules': total_modules,
+        'status': status
+    }
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_progress_track(request):
+    """Main progress tracking dashboard for teachers"""
+    teacher = get_object_or_404(Teacher, user=request.user)
+    courses = Course.objects.filter(teachers=teacher)
+
+    # Filter by course if specified
+    course_id = request.GET.get('course')
+    selected_course = None
+    if course_id:
+        selected_course = get_object_or_404(Course, id=course_id, teachers=teacher)
+        progress_data = StudentProgress.objects.filter(
+            course=selected_course
+        ).select_related('student__user', 'course')
+    else:
+        progress_data = StudentProgress.objects.filter(
+            course__in=courses
+        ).select_related('student__user', 'course')
+
+    # Calculate statistics
+    total_students = Student.objects.filter(courses__in=courses).distinct().count()
+
+    if progress_data:
+        average_progress = sum(p.progress_percentage for p in progress_data) // len(progress_data)
+    else:
+        average_progress = 0
+
+    # Count completed courses (progress >= 90%)
+    completed_courses = progress_data.filter(progress_percentage__gte=90).count()
+
+    # Students needing attention (progress < 25%)
+    need_attention = progress_data.filter(progress_percentage__lt=25)
+    need_attention_count = need_attention.count()
+
+    # Course-wise summary
+    course_summary = []
+    for course in courses:
+        course_progress = StudentProgress.objects.filter(course=course)
+        enrolled_students = course_progress.count()
+
+        if enrolled_students > 0:
+            avg_progress = sum(p.progress_percentage for p in course_progress) // enrolled_students
+            completed_students = course_progress.filter(progress_percentage__gte=90).count()
+        else:
+            avg_progress = 0
+            completed_students = 0
+
+        course_summary.append({
+            'course': course,
+            'code': course.code,
+            'name': course.name,
+            'average_progress': avg_progress,
+            'enrolled_students': enrolled_students,
+            'completed_students': completed_students
+        })
+
+    context = {
+        'courses': courses,
+        'selected_course': selected_course,
+        'progress_data': progress_data,
+        'total_students': total_students,
+        'total_courses': courses.count(),  # Add this line
+        'average_progress': average_progress,
+        'completed_courses': completed_courses,
+        'need_attention': need_attention,
+        'need_attention_count': need_attention_count,
+        'course_summary': course_summary,
+    }
+
+    return render(request, 'dashboard/teacher_progress_track.html', context)
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def send_progress_reminder(request):
+    """Send progress reminder to student"""
+    if request.method == 'POST':
+        student_id = request.POST.get('student_id')
+        course_id = request.POST.get('course_id')
+        custom_message = request.POST.get('message', '')
+
+        student = get_object_or_404(Student, id=student_id)
+        course = get_object_or_404(Course, id=course_id)
+
+        # Get progress information
+        progress = get_object_or_404(StudentProgress, student=student, course=course)
+
+        # Create reminder message
+        if custom_message:
+            message_body = custom_message
+        else:
+            message_body = f"""
+Hello {student.user.get_full_name() or student.user.username},
+
+This is a reminder about your progress in {course.code} - {course.name}.
+
+Current Progress: {progress.progress_percentage}%
+Status: {progress.get_status_display()}
+
+Please continue with your course modules to stay on track.
+
+Best regards,
+{request.user.get_full_name() or request.user.username}
+            """.strip()
+
+        # Create message
+        message = Message(
+            sender=request.user,
+            recipient=student.user,
+            subject=f"Progress Reminder - {course.code}",
+            body=message_body
+        )
+        message.save()
+
+        return JsonResponse({'success': True})
+
+    return JsonResponse({'success': False, 'error': 'Invalid request'})

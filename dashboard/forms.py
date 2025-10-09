@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
-from .models import Teacher, Student, Course, Assignment,CourseMaterial,Message,UserProfile
+from .models import Teacher, Student, Course, Assignment,CourseMaterial,Message,UserProfile,CourseModule, StudentProgress
 from django.db.models import Q
 
 User = get_user_model()
@@ -101,50 +101,75 @@ class TeacherForm(forms.ModelForm):
         return teacher
 
 # ---------------- Student Form ---------------- #
-
+# ---------------- Student Form ---------------- #
 class StudentForm(forms.ModelForm):
-    username = forms.CharField(max_length=150, required=True, widget=forms.TextInput(attrs={'class': 'form-control'}))
-    password = forms.CharField(required=False, widget=forms.PasswordInput(attrs={'class': 'form-control'}), help_text="Leave blank to generate a random password")
-    # Override course field for admin too
-    course = forms.ChoiceField(
-        widget=forms.Select(attrs={'class': 'form-control'}),
-        label="Course"
+    username = forms.CharField(
+        max_length=150,
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'form-control'})
+    )
+    password = forms.CharField(
+        required=False,
+        widget=forms.PasswordInput(attrs={'class': 'form-control'}),
+        help_text="Leave blank to generate a random password"
     )
 
     class Meta:
         model = Student
-        fields = ['username', 'password', 'enrollment_id', 'course', 'semester']
+        fields = ['enrollment_id', 'semester']  # course is handled separately
         widgets = {
-            'enrollment_id': forms.TextInput(attrs={'class': 'form-control'}),
-            'semester': forms.NumberInput(attrs={'class': 'form-control', 'min': 1})
+            'enrollment_id': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter enrollment ID'
+            }),
+            'semester': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 1,
+                'placeholder': 'Enter semester'
+            }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Get all courses for admin
+        # Dynamically add courses field (not in Student model)
         courses = Course.objects.all()
-        course_choices = [(course.name, f"{course.code} - {course.name}") for course in courses]
-        self.fields['course'].choices = [('', '---------')] + course_choices
+        course_choices = [(course.id, f"{course.code} - {course.name}") for course in courses]
+
+        self.fields['courses'] = forms.MultipleChoiceField(
+            choices=course_choices,
+            widget=forms.SelectMultiple(attrs={'class': 'form-control'}),
+            required=False,
+            label="Courses"
+        )
 
         if self.instance.pk and self.instance.user:
+            # Pre-fill username
             self.fields['username'].initial = self.instance.user.username
             self.fields['password'].help_text = "Leave blank to keep current password"
-        self.fields.pop('user', None)
+
+            # Pre-fill selected courses
+            if self.instance.courses.exists():
+                self.fields['courses'].initial = [
+                    course.id for course in self.instance.courses.all()
+                ]
 
     def save(self, commit=True):
         student = super().save(commit=False)
         username = self.cleaned_data['username']
         password = self.cleaned_data.get('password')
+        selected_course_ids = self.cleaned_data.get('courses', [])
 
         if not self.instance.pk:
-            if not password:  # If no password entered, generate one
+            # New student
+            if not password:
                 password = User.objects.make_random_password()
             user = User.objects.create_user(username=username, password=password)
             user.role = 'student'
             user.save()
             student.user = user
         else:
+            # Existing student
             user = self.instance.user
             if user.username != username:
                 user.username = username
@@ -154,28 +179,56 @@ class StudentForm(forms.ModelForm):
 
         if commit:
             student.save()
-            self.save_m2m()
+            # Save courses
+            if selected_course_ids:
+                student.courses.set(Course.objects.filter(id__in=selected_course_ids))
+            else:
+                student.courses.clear()
+
         return student
 
-# ---------------- Course Form ---------------- #
+#------------- Course Form ---------------- #
 
+# In your CourseForm class in forms.py
 class CourseForm(forms.ModelForm):
-     class Meta:
+    # Add a clear image field
+    clear_image = forms.BooleanField(required=False, widget=forms.CheckboxInput())
+
+    class Meta:
         model = Course
-        fields = ['code', 'name', 'description', 'teachers']
+        fields = ['code', 'name', 'description', 'teachers', 'image']
         widgets = {
             'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. CS101'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Intro to CS'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Course description...'}),
-            'teachers': forms.SelectMultiple(attrs={'class': 'form-control select2-multiple', 'data-placeholder': 'Select teachers...'})
+            'teachers': forms.SelectMultiple(attrs={'class': 'form-control select2-multiple', 'data-placeholder': 'Select teachers...'}),
+            'image': forms.FileInput(attrs={'class': 'form-control'}),
         }
 
-     def __init__(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Fix this line - use Teacher model instead of User
-        self.fields['teachers'].queryset = Teacher.objects.all()  # Changed from User to Teacher
-# C:\Users\ASUS\Brain_Box\dashboard\forms.py
+        self.fields['teachers'].queryset = Teacher.objects.all()
 
+        # Make image field not required
+        self.fields['image'].required = False
+
+        # Hide the clear_image field as we'll handle it in the template
+        self.fields['clear_image'].widget = forms.HiddenInput()
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        # Handle image clearing
+        if self.cleaned_data.get('clear_image'):
+            if instance.image:
+                instance.image.delete(save=False)
+            instance.image = None
+
+        if commit:
+            instance.save()
+            self.save_m2m()
+
+        return instance
 class AssignmentForm(forms.ModelForm):
     class Meta:
         model = Assignment
@@ -271,15 +324,49 @@ class TeacherStudentForm(forms.ModelForm):
             student.save()
         return student
 class TeacherCourseForm(forms.ModelForm):
+    # Add clear image field
+    clear_image = forms.BooleanField(required=False, widget=forms.HiddenInput())
+
     class Meta:
         model = Course
-        fields = ['code', 'name', 'description']
+        fields = ['code', 'name', 'description', 'image']
         widgets = {
             'code': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. CS101'}),
             'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Intro to CS'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Course description...'}),
+            'image': forms.FileInput(attrs={'class': 'form-control'}),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make image field not required
+        self.fields['image'].required = False
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+
+        # Handle image clearing - this is the crucial part
+        if self.cleaned_data.get('clear_image'):
+            print("DEBUG: Clearing image...")
+            # Delete the current image file from storage
+            if instance.image:
+                # Store the path before deletion for debugging
+                old_image_path = instance.image.path if instance.image else None
+                print(f"DEBUG: Deleting image at: {old_image_path}")
+
+                # Delete the file from storage
+                instance.image.delete(save=False)
+
+            # Set the image field to None/empty
+            instance.image = None
+
+        # If a new image is uploaded, it will automatically replace the old one
+        # Django's FileField handles this automatically
+
+        if commit:
+            instance.save()
+
+        return instance
 # ---------------- Course Material Form ---------------- #
 class CourseMaterialForm(forms.ModelForm):
     class Meta:
@@ -396,3 +483,33 @@ class ProfileSettingsForm(forms.ModelForm):
         if commit:
             profile.save()
         return profile
+class StudentProgressForm(forms.ModelForm):
+    class Meta:
+        model = StudentProgress
+        fields = ['status', 'progress_percentage', 'notes']
+        widgets = {
+            'status': forms.Select(attrs={'class': 'form-control'}),
+            'progress_percentage': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 0,
+                'max': 100,
+                'type': 'range'  # This will create a slider
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Add notes about student progress...'
+            }),
+        }
+
+class CourseModuleForm(forms.ModelForm):
+    class Meta:
+        model = CourseModule
+        fields = ['title', 'description', 'order', 'is_required', 'estimated_duration']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'order': forms.NumberInput(attrs={'class': 'form-control'}),
+            'is_required': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'estimated_duration': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
