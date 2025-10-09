@@ -400,51 +400,49 @@
         <div class="row">
             <!-- Sidebar -->
             <div class="col-md-2 sidebar d-flex flex-column">
-
                 <!-- Brand Logo -->
-                <a class="sidebar-brand" href="#">
+                <a class="sidebar-brand" href="{% url 'dashboard:student_dashboard' %}">
                     <i class="fas fa-brain me-2"></i> Brain Box
                 </a>
 
                 <hr style="border-top:1px solid rgba(255,255,255,0.3); margin:1rem;">
 
-                <!-- Student Links -->
-                <a href="#" class="active" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+                <!-- Student Links - USING CORRECT URL NAMES -->
+                <a href="{% url 'dashboard:student_dashboard' %}" class="active" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
                     <i class="fas fa-tachometer-alt" style="margin-right:0.75rem;"></i> Dashboard
                 </a>
-                <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+                <a href="{% url 'dashboard:student_courses' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
                     <i class="fas fa-book" style="margin-right:0.75rem;"></i> My Courses
                 </a>
-                <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1;">
+                <a href="{% url 'dashboard:student_assignments' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
                     <i class="fas fa-tasks" style="margin-right:0.75rem;"></i> Assignments
                 </a>
-                <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+                <a href="{% url 'dashboard:student_progress' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
                     <i class="fas fa-chart-line" style="margin-right:0.75rem;"></i> Progress Track
                 </a>
-                <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+                <a href="{% url 'dashboard:student_messages' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
                     <i class="fas fa-envelope" style="margin-right:0.75rem;"></i> Messages
                 </a>
 
                 <hr style="border-top:1px solid rgba(255,255,255,0.3); margin:1rem;">
 
                 <!-- Settings -->
-                <a href="#" class="" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+                <a href="{% url 'dashboard:student_settings' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
                     <i class="fas fa-cog" style="margin-right:0.75rem;"></i> Settings
                 </a>
 
                 <!-- Profile -->
-                <a href="#" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+                <a href="{% url 'dashboard:student_profile' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
                     <i class="fas fa-user" style="margin-right:0.75rem;"></i> Profile
                 </a>
 
                 <!-- Logout -->
-                <form method="post" action="/accounts/logout/" style="margin:0;">
+                <form method="post" action="{% url 'logout' %}" style="margin:0;">
                     {% csrf_token %}
                     <button type="submit" class="sidebar-link-btn">
                         <i class="fas fa-sign-out-alt" style="margin-right:0.75rem;"></i> Logout
                     </button>
                 </form>
-
             </div>
 
             <!-- Main Content -->
@@ -460,15 +458,13 @@
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">
                                         <i class="fas fa-bell"></i>
-                                        {% if notifications_count > 0 %}
-                                        <span class="badge bg-danger notification-badge">{{ notifications_count }}</span>
+                                        {% if unread_messages_count > 0 %}
+                                        <span class="badge bg-danger notification-badge">{{ unread_messages_count }}</span>
                                         {% endif %}
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-end" id="notifications-dropdown">
-                                        {% if notifications %}
-                                            {% for notification in notifications %}
-                                            <li><a class="dropdown-item" href="#">{{ notification.message }}</a></li>
-                                            {% endfor %}
+                                        {% if unread_messages_count > 0 %}
+                                            <li><a class="dropdown-item" href="{% url 'dashboard:student_messages' %}">You have {{ unread_messages_count }} unread messages</a></li>
                                         {% else %}
                                             <li><div class="empty-notifications">No notifications</div></li>
                                         {% endif %}
@@ -476,18 +472,15 @@
                                 </li>
                                 <li class="nav-item dropdown">
                                     <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-
-    <i class="fas fa-user text-muted"></i>
-
+                                        <i class="fas fa-user text-muted"></i>
                                         <span id="navUser">{{ user.first_name }} {{ user.last_name }}</span>
                                     </a>
-
                                     <ul class="dropdown-menu dropdown-menu-end">
-                                        <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
-                                        <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'dashboard:student_profile' %}"><i class="fas fa-user me-2"></i>Profile</a></li>
+                                        <li><a class="dropdown-item" href="{% url 'dashboard:student_settings' %}"><i class="fas fa-cog me-2"></i>Settings</a></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
-                                            <form method="post" action="/accounts/logout/" class="d-inline">
+                                            <form method="post" action="{% url 'logout' %}" class="d-inline">
                                                 {% csrf_token %}
                                                 <button type="submit" class="dropdown-item"><i class="fas fa-sign-out-alt me-2"></i>Logout</button>
                                             </form>
@@ -512,7 +505,7 @@
                         <div class="card welcome-banner text-white">
                             <div class="card-body">
                                 <h3 class="card-title">Welcome back, {{ user.first_name }}!</h3>
-                                <p class="card-text">You have {{ pending_assignments }} pending assignments and {{ new_messages }} new messages</p>
+                                <p class="card-text">You have {{ assignments.count }} assignments and {{ unread_messages_count }} new messages</p>
                             </div>
                         </div>
                     </div>
@@ -525,7 +518,7 @@
                             <div class="card-body">
                                 <i class="fas fa-book stat-icon text-primary"></i>
                                 <div>
-                                    <h3>{{ enrolled_courses_count }}</h3>
+                                    <h3>{{ courses.count }}</h3>
                                     <p class="text-muted">Enrolled Courses</p>
                                 </div>
                             </div>
@@ -536,8 +529,8 @@
                             <div class="card-body">
                                 <i class="fas fa-tasks stat-icon text-warning"></i>
                                 <div>
-                                    <h3>{{ pending_assignments }}</h3>
-                                    <p class="text-muted">Pending Assignments</p>
+                                    <h3>{{ assignments.count }}</h3>
+                                    <p class="text-muted">Assignments</p>
                                 </div>
                             </div>
                         </div>
@@ -545,62 +538,10 @@
                     <div class="col-md-4 mb-3">
                         <div class="card stat-card">
                             <div class="card-body">
-                                <i class="fas fa-chart-line stat-icon text-success"></i>
+                                <i class="fas fa-envelope stat-icon text-success"></i>
                                 <div>
-                                    <h3>{{ overall_progress }}%</h3>
-                                    <p class="text-muted">Overall Progress</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Dashboard Sections -->
-                <div class="row">
-                    <!-- Recent Activities -->
-                    <div class="col-md-6 mb-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title">Recent Activities</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="activity-list">
-                                    {% for activity in recent_activities %}
-                                    <div class="activity-item d-flex align-items-center mb-3">
-                                        <div class="activity-icon me-3">
-                                            <i class="fas fa-{{ activity.icon }} fa-2x text-{{ activity.color }}"></i>
-                                        </div>
-                                        <div class="activity-details">
-                                            <p class="mb-0">{{ activity.description }}</p>
-                                            <small class="text-muted">{{ activity.time }}</small>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Upcoming Deadlines -->
-                    <div class="col-md-6 mb-4">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title">Upcoming Deadlines</h5>
-                            </div>
-                            <div class="card-body">
-                                <div class="deadline-list">
-                                    {% for deadline in upcoming_deadlines %}
-                                    <div class="deadline-item d-flex align-items-center mb-3">
-                                        <div class="deadline-date me-3 text-center">
-                                            <span class="d-block fw-bold text-primary">{{ deadline.day }}</span>
-                                            <span class="d-block text-muted">{{ deadline.month }}</span>
-                                        </div>
-                                        <div class="deadline-details">
-                                            <p class="mb-0">{{ deadline.title }}</p>
-                                            <small class="text-muted">{{ deadline.course }}</small>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
+                                    <h3>{{ unread_messages_count }}</h3>
+                                    <p class="text-muted">Unread Messages</p>
                                 </div>
                             </div>
                         </div>
@@ -611,30 +552,57 @@
                 <div class="row">
                     <div class="col-12">
                         <div class="card">
-                            <div class="card-header d-flex justify-content between align-items-center">
-                                <h5 class="card-title mb-0">Recent Courses</h5>
-                                <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="card-title mb-0">My Courses</h5>
+                                <a href="{% url 'dashboard:student_courses' %}" class="btn btn-sm btn-outline-primary">View All</a>
                             </div>
                             <div class="card-body">
                                 <div class="row">
-                                    {% for course in recent_courses %}
+                                    {% for course in courses %}
                                     <div class="col-md-4 mb-3">
                                         <div class="card h-100 course-card">
                                             <div class="card-body">
-                                                <h5 class="card-title">{{ course.title }}</h5>
+                                                <h5 class="card-title">{{ course.name }}</h5>
                                                 <p class="card-text text-muted">{{ course.description|truncatewords:15 }}</p>
-                                                <div class="progress mb-2">
-                                                    <div class="progress-bar" role="progressbar" style="width: {{ course.progress }}%;"
-                                                         aria-valuenow="{{ course.progress }}" aria-valuemin="0" aria-valuemax="100">
-                                                         {{ course.progress }}%
-                                                    </div>
-                                                </div>
-                                                <a href="#" class="btn btn-sm btn-primary">Continue</a>
+                                                <a href="{% url 'dashboard:student_course_detail' course.id %}" class="btn btn-sm btn-primary">View Course</a>
                                             </div>
                                         </div>
                                     </div>
+                                    {% empty %}
+                                    <div class="col-12">
+                                        <p class="text-muted">You are not enrolled in any courses yet.</p>
+                                    </div>
                                     {% endfor %}
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Upcoming Assignments -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title">Upcoming Assignments</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if assignments %}
+                                    {% for assignment in assignments|slice:":5" %}
+                                    <div class="assignment-item d-flex align-items-center mb-3">
+                                        <div class="assignment-icon me-3">
+                                            <i class="fas fa-tasks fa-2x text-primary"></i>
+                                        </div>
+                                        <div class="assignment-details flex-grow-1">
+                                            <p class="mb-0">{{ assignment.title }}</p>
+                                            <small class="text-muted">Due: {{ assignment.due_date|date:"M d, Y" }}</small>
+                                        </div>
+                                        <a href="{% url 'dashboard:student_assignment_detail' assignment.id %}" class="btn btn-sm btn-outline-primary">View</a>
+                                    </div>
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted">No upcoming assignments.</p>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
