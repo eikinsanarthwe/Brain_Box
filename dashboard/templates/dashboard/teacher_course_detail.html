@@ -19,32 +19,56 @@
         </div>
         <div class="card-body">
             <div class="row">
-                <div class="col-md-6">
-                    <p><strong>Course Code:</strong> {{ course.code }}</p>
-                    <p><strong>Course Name:</strong> {{ course.name }}</p>
+                <div class="col-md-3 text-center mb-3 mb-md-0">
+                    <img src="{{ course.get_image_url }}" alt="{{ course.name }}" class="img-fluid rounded" style="max-height: 150px;">
                 </div>
-                <div class="col-md-6">
-                    <p><strong>Description:</strong> {{ course.description|default:"No description" }}</p>
-                    <p><strong>Teachers:</strong> 
-                        {% for teacher in course.teachers.all %}
-                            {{ teacher.user.get_full_name|default:teacher.user.username }}{% if not forloop.last %}, {% endif %}
-                        {% endfor %}
-                    </p>
+                <div class="col-md-9">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Course Code:</strong> {{ course.code }}</p>
+                            <p><strong>Course Name:</strong> {{ course.name }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Description:</strong> {{ course.description|default:"No description" }}</p>
+                            <p><strong>Teachers:</strong>
+                                {% for teacher in course.teachers.all %}
+                                    {{ teacher.user.get_full_name|default:teacher.user.username }}{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Action Buttons -->
+    <div class="d-flex gap-2 mb-4">
+        <a href="{% url 'dashboard:edit_course' course.id %}" class="btn btn-primary">
+            <i class="fas fa-edit me-1"></i>Edit Course
+        </a>
+        <!-- FIXED: Changed to teacher_student_progress -->
+        <a href="{% url 'dashboard:teacher_student_progress' course.id %}" class="btn btn-info">
+            <i class="fas fa-chart-line me-1"></i>View Progress
+        </a>
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteCourseModal">
+            <i class="fas fa-trash me-1"></i>Delete Course
+        </button>
+    </div>
+
+    <!-- Rest of your template remains the same -->
     <!-- Course Materials Card -->
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">Course Materials ({{ course.materials.count }})</h6>
-            <a href="{% url 'dashboard:teacher_course_materials' course.id %}" class="btn btn-sm btn-info me-2">
-                <i class="fas fa-file-alt me-1"></i>Manage Materials
-            </a>
-            <a href="{% url 'dashboard:add_course_material' course.id %}" class="btn btn-sm btn-primary">
-                <i class="fas fa-plus me-1"></i>Add Material
-            </a>
+            <div>
+                <a href="{% url 'dashboard:teacher_course_materials' course.id %}" class="btn btn-sm btn-info me-2">
+                    <i class="fas fa-file-alt me-1"></i>Manage Materials
+                </a>
+                <a href="{% url 'dashboard:add_course_material' course.id %}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-plus me-1"></i>Add Material
+                </a>
+            </div>
         </div>
         <div class="card-body">
             {% if course.materials.all %}
@@ -97,14 +121,9 @@
     <div class="card shadow mb-4">
         <div class="card-header py-3 d-flex justify-content-between align-items-center">
             <h6 class="m-0 font-weight-bold text-primary">Enrolled Students ({{ students.count }})</h6>
-            <div>
-               
-   
-           
-                <a href="{% url 'dashboard:add_student_to_course' course.id %}" class="btn btn-sm btn-success">
-                    <i class="fas fa-user-plus me-1"></i> Add Student to Course
-                </a>
-            </div>
+            <a href="{% url 'dashboard:add_student_to_course' course.id %}" class="btn btn-sm btn-success">
+                <i class="fas fa-user-plus me-1"></i> Add Student to Course
+            </a>
         </div>
         <div class="card-body">
             {% if students %}
@@ -143,9 +162,6 @@
             <div class="text-center py-4">
                 <i class="fas fa-users fa-2x text-muted mb-3"></i>
                 <p class="text-muted">No students enrolled in this course yet.</p>
-       
-                   
-                </a>
                 <a href="{% url 'dashboard:add_student_to_course' course.id %}" class="btn btn-success">
                     <i class="fas fa-user-plus me-1"></i> Add Student to Course
                 </a>
@@ -214,6 +230,32 @@
                 </a>
             </div>
             {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Course Modal -->
+<div class="modal fade" id="deleteCourseModal" tabindex="-1" aria-labelledby="deleteCourseModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteCourseModalLabel">Confirm Delete</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the course "<strong>{{ course.name }}</strong>"?</p>
+                <p class="text-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    This action cannot be undone. All assignments, materials, and student enrollments will be removed.
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{% url 'dashboard:delete_course' course.id %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Delete Course</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>

@@ -20,9 +20,19 @@ urlpatterns = [
     path('teacher/assignments/<int:id>/', views.teacher_assignment_detail, name='teacher_assignment_detail'),
     path('teacher/grade/<int:submission_id>/', views.grade_submission, name='grade_submission'),
     path('teacher/students/', views.teacher_students, name='teacher_students'),
-    path('teacher/assignments/add/', views.teacher_assignment_create, name='teacher_assignment_create'),
 
-    # Student Dashboard and Course URLs
+    # Teacher Assignment URLs
+    path('teacher/assignments/add/', views.teacher_assignment_create, name='teacher_assignment_create'),
+    path('teacher/submission/<int:submission_id>/details/', views.submission_details, name='submission_details'),
+    path('teacher/assignments/<int:assignment_id>/download-all/', views.download_all_submissions, name='download_all_submissions'),
+
+    # Teacher Progress Tracking URLs
+    path('course/<int:course_id>/progress/', views.teacher_student_progress, name='teacher_student_progress'),
+    path('progress/update/<int:progress_id>/', views.update_student_progress, name='update_student_progress'),
+    path('course/<int:course_id>/modules/', views.course_modules, name='course_modules'),
+    path('course/<int:course_id>/modules/add/', views.add_course_module, name='add_course_module'),
+
+    # Student Dashboard URLs
     path('student/dashboard/', views.student_dashboard, name='student_dashboard'),
     path('student/courses/', views.student_my_courses, name='student_my_courses'),
     path('student/assignments/', views.student_assignments, name='student_assignments'),

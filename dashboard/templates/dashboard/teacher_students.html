@@ -7,7 +7,6 @@
         <h1 class="h3 mb-0 text-gray-800">
             <i class="fas fa-users me-2"></i>My Students
         </h1>
-        <!-- Removed the Add Student button -->
     </div>
 
     <div class="card shadow">
@@ -29,11 +28,16 @@
                             <td>{{ student.user.get_full_name|default:student.user.username }}</td>
                             <td>{{ student.enrollment_id }}</td>
                             <td>
-                                {% for course in student.courses.all %}
-                                    {{ course.name }}{% if not forloop.last %}, {% endif %}
-                                {% empty %}
-                                    No courses
-                                {% endfor %}
+                                {% with student.courses.all as student_courses %}
+                                    {% for course in student_courses|slice:":3" %}
+                                        {{ course.name }}{% if not forloop.last %}, {% endif %}
+                                    {% empty %}
+                                        No courses
+                                    {% endfor %}
+                                    {% if student_courses|length > 3 %}
+                                        <span class="text-muted">+{{ student_courses|length|add:"-3" }} more</span>
+                                    {% endif %}
+                                {% endwith %}
                             </td>
                             <td>{{ student.semester }}</td>
                             <td>
@@ -43,70 +47,6 @@
                                 </button>
                             </td>
                         </tr>
-
-                        <!-- Student Modal -->
-                        <div class="modal fade" id="studentModal{{ student.id }}" tabindex="-1"
-                             aria-labelledby="studentModalLabel{{ student.id }}" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <div class="modal-content">
-                                    <div class="modal-header">
-                                        <h5 class="modal-title" id="studentModalLabel{{ student.id }}">
-                                            Student Details
-                                        </h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="row mb-3">
-                                            <div class="col-md-4">
-                                                <strong>Name:</strong>
-                                            </div>
-                                            <div class="col-md-8">
-                                                {{ student.user.get_full_name|default:student.user.username }}
-                                            </div>
-                                        </div>
-                                        <div class="row mb-3">
-                                            <div class="col-md-4">
-                                                <strong>Enrollment ID:</strong>
-                                            </div>
-                                            <div class="col-md-8">
-                                                {{ student.enrollment_id }}
-                                            </div>
-                                        </div>
-                                        <div class="row mb-3">
-                                            <div class="col-md-4">
-                                                <strong>Courses:</strong>
-                                                </div>
-                                            <div class="col-md-8">
-                                                {% for course in student.courses.all %}
-                                                    {{ course.name }}{% if not forloop.last %}, {% endif %}
-                                                {% empty %}
-                                                    No courses
-                                                {% endfor %}
-                                            </div>
-                                        </div>
-                                        <div class="row mb-3">
-                                            <div class="col-md-4">
-                                                <strong>Semester:</strong>
-                                            </div>
-                                            <div class="col-md-8">
-                                                {{ student.semester }}
-                                            </div>
-                                        </div>
-                                        <div class="row mb-3">
-                                            <div class="col-md-4">
-                                                <strong>Email:</strong>
-                                            </div>
-                                            <div class="col-md-8">
-                                                {{ student.user.email|default:"Not provided" }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                         {% empty %}
                         <tr>
                             <td colspan="5" class="text-center py-4">
@@ -121,4 +61,87 @@
         </div>
     </div>
 </div>
+
+<!-- Modals for each student -->
+{% for student in students %}
+<!-- Student Modal -->
+<div class="modal fade" id="studentModal{{ student.id }}" tabindex="-1"
+     aria-labelledby="studentModalLabel{{ student.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="studentModalLabel{{ student.id }}">
+                    <i class="fas fa-user-graduate me-2"></i>
+                    Student Details - {{ student.user.get_full_name|default:student.user.username }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-3">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>Basic Information</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-2">
+                                    <div class="col-sm-4 fw-bold">Name:</div>
+                                    <div class="col-sm-8">{{ student.user.get_full_name|default:student.user.username }}</div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-sm-4 fw-bold">Enrollment ID:</div>
+                                    <div class="col-sm-8">{{ student.enrollment_id }}</div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-sm-4 fw-bold">Username:</div>
+                                    <div class="col-sm-8">{{ student.user.username }}</div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-sm-4 fw-bold">Email:</div>
+                                    <div class="col-sm-8">{{ student.user.email|default:"Not provided" }}</div>
+                                </div>
+                                <div class="row mb-2">
+                                    <div class="col-sm-4 fw-bold">Semester:</div>
+                                    <div class="col-sm-8">{{ student.semester }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0"><i class="fas fa-book me-2"></i>Course Information</h6>
+                            </div>
+                            <div class="card-body">
+                                {% with student.courses.all as student_courses %}
+                                    {% if student_courses %}
+                                        <ul class="list-group list-group-flush">
+                                            {% for course in student_courses %}
+                                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                    {{ course.name }}
+                                                    <span class="badge bg-primary rounded-pill">{{ course.code }}</span>
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    {% else %}
+                                        <p class="text-muted mb-0">No courses enrolled</p>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> Close
+                </button>
+                <a href="{% url 'dashboard:message_compose_to' student.user.id %}" class="btn btn-primary">
+                    <i class="fas fa-envelope me-1"></i> Send Message
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
 {% endblock %}

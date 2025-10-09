@@ -1,0 +1,232 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-chart-line me-2"></i>Progress Tracking
+        </h1>
+        <div class="btn-group">
+            <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                <i class="fas fa-download me-1"></i> Export
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="#"><i class="fas fa-file-pdf me-2"></i>PDF Report</a></li>
+                <li><a class="dropdown-item" href="#"><i class="fas fa-file-excel me-2"></i>Excel</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Courses
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_courses }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-book fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Active Students
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% with total=course_progress|mapattribute:'total_students'|sum %}
+                                    {{ total }}
+                                {% endwith %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-users fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Avg Completion
+                            </div>
+                            <div class="row no-gutters align-items-center">
+                                <div class="col-auto">
+                                    <div class="h5 mb-0 mr-3 font-weight-bold text-gray-800">
+                                        {% with avg=course_progress|mapattribute:'avg_progress'|avg %}
+                                            {{ avg|default:0|floatformat:1 }}%
+                                        {% endwith %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Needs Attention
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {% for course in course_progress %}
+                                    {% if course.avg_progress < 50 %}
+                                        {{ forloop.counter }}
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Course Progress Cards -->
+    <div class="row">
+        {% for course_data in course_progress %}
+        <div class="col-lg-6 mb-4">
+            <div class="card shadow">
+                <div class="card-header bg-white py-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="m-0 font-weight-bold text-primary">
+                            <i class="fas fa-book me-2"></i>{{ course_data.course.code }}
+                        </h5>
+                        <span class="badge bg-primary">{{ course_data.course.name }}</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <!-- Progress Bar -->
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <span class="text-sm font-weight-bold">Overall Progress</span>
+                            <span class="text-sm font-weight-bold">{{ course_data.avg_progress }}%</span>
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar
+                                {% if course_data.avg_progress >= 80 %}bg-success
+                                {% elif course_data.avg_progress >= 50 %}bg-warning
+                                {% else %}bg-danger{% endif %}"
+                                role="progressbar"
+                                style="width: {{ course_data.avg_progress }}%"
+                                aria-valuenow="{{ course_data.avg_progress }}"
+                                aria-valuemin="0"
+                                aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Student Count -->
+                    <div class="row text-center mb-3">
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <h6 class="mb-0 text-success">{{ course_data.total_students }}</h6>
+                                <small class="text-muted">Students</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <h6 class="mb-0 text-info">{{ course_data.avg_progress }}%</h6>
+                                <small class="text-muted">Avg Progress</small>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <h6 class="mb-0 text-warning">
+                                    {% widthratio course_data.avg_progress 100 5 as modules %}
+                                    {{ modules|floatformat:0 }}/5
+                                </h6>
+                                <small class="text-muted">Modules</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Student Preview -->
+                    <div class="mb-3">
+                        <h6 class="font-weight-bold mb-2">
+                            <i class="fas fa-users me-1"></i>Top Students
+                        </h6>
+                        {% for student in course_data.students %}
+                        <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                            <div>
+                                <strong class="text-sm">{{ student.user.get_full_name|default:student.user.username }}</strong>
+                                <br>
+                                <small class="text-muted">{{ student.enrollment_id }}</small>
+                            </div>
+                            <span class="badge
+                                {% if course_data.avg_progress >= 80 %}bg-success
+                                {% elif course_data.avg_progress >= 50 %}bg-warning
+                                {% else %}bg-danger{% endif %}">
+                                {{ course_data.avg_progress }}%
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'dashboard:course_progress_detail' course_data.course.id %}"
+                           class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-chart-bar me-1"></i>View Detailed Progress
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-body text-center py-5">
+                    <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+                    <h4 class="text-muted">No Courses Found</h4>
+                    <p class="text-muted">You are not teaching any courses yet.</p>
+                    <a href="{% url 'dashboard:teacher_course_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>Create Your First Course
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.progress {
+    height: 8px;
+    border-radius: 10px;
+}
+.card {
+    border: none;
+    border-radius: 10px;
+}
+</style>
+{% endblock %}

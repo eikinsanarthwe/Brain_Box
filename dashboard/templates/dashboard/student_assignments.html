@@ -1,8 +1,178 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assignments - Brain Box</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-tasks me-2"></i>My Assignments
+        </h1>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-left-primary shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                Total Assignments
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ assignments.count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-tasks fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Submitted
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ submitted_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-warning shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                Pending
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-clock fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-left-info shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                Graded
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ graded_count }}</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-star fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow">
+        <div class="card-header bg-light">
+            <h5 class="m-0 font-weight-bold">Assignment List</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Title</th>
+                            <th>Course</th>
+                            <th>Due Date</th>
+                            <th>Status</th>
+                            <th>Grade</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for assignment in assignments %}
+                        <tr>
+                            <td>
+                                <strong>{{ assignment.title }}</strong>
+                                {% if assignment.description %}
+                                <br><small class="text-muted">{{ assignment.description|truncatewords:10 }}</small>
+                                {% endif %}
+                            </td>
+                            <td>{{ assignment.course.code }}</td>
+                            <td>
+                                {{ assignment.due_date|date:"M d, Y H:i" }}
+                                {% if assignment.is_past_due %}
+                                <br><small class="text-danger">Past Due</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% with submission=assignment.submissions.first %}
+                                    {% if submission %}
+                                        {% if submission.is_late %}
+                                        <span class="badge bg-warning">Submitted Late</span>
+                                        {% else %}
+                                        <span class="badge bg-success">Submitted</span>
+                                        {% endif %}
+                                    {% else %}
+                                        {% if assignment.is_past_due %}
+                                        <span class="badge bg-danger">Missing</span>
+                                        {% else %}
+                                        <span class="badge bg-secondary">Not Submitted</span>
+                                        {% endif %}
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with submission=assignment.submissions.first %}
+                                    {% if submission and submission.grade %}
+                                    <span class="badge bg-info">{{ submission.grade }}/{{ assignment.max_points }}</span>
+                                    {% elif submission %}
+                                    <span class="badge bg-warning">Pending</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">-</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                            <td>
+                                {% with submission=assignment.submissions.first %}
+                                    {% if submission %}
+                                    <a href="{% url 'dashboard:student_assignment_submit' assignment.id %}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i> Resubmit
+                                    </a>
+                                    <a href="{{ submission.submitted_file.url }}"
+                                       class="btn btn-sm btn-outline-secondary" target="_blank">
+                                        <i class="fas fa-download"></i> View
+                                    </a>
+                                    {% else %}
+                                    <a href="{% url 'dashboard:student_assignment_submit' assignment.id %}"
+                                       class="btn btn-sm btn-success">
+                                        <i class="fas fa-paper-plane"></i> Submit
+                                    </a>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                <i class="fas fa-tasks fa-2x text-muted mb-3"></i>
+                                <p class="text-muted">No assignments found</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

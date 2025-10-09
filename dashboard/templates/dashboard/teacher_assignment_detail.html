@@ -20,62 +20,131 @@
     <div class="row mb-4">
         <div class="col-md-8">
             <div class="card shadow">
-                <div class="card-header">
-                    <h5 class="m-0 font-weight-bold">Assignment Details</h5>
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0 font-weight-bold"><i class="fas fa-info-circle me-2"></i>Assignment Details</h5>
                 </div>
                 <div class="card-body">
-                    <div class="mb-3">
-                        <strong>Course:</strong> {{ assignment.course.code }} - {{ assignment.course.name }}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <strong><i class="fas fa-book me-2"></i>Course:</strong>
+                                {{ assignment.course.code }} - {{ assignment.course.name }}
+                            </div>
+                            <div class="mb-3">
+                                <strong><i class="fas fa-calendar me-2"></i>Due Date:</strong>
+                                {{ assignment.due_date|date:"M d, Y H:i" }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <strong><i class="fas fa-star me-2"></i>Max Points:</strong>
+                                {{ assignment.max_points }}
+                            </div>
+                            <div class="mb-3">
+                                <strong><i class="fas fa-tag me-2"></i>Status:</strong>
+                                <span class="badge
+                                    {% if assignment.status == 'published' %}bg-success
+                                    {% elif assignment.status == 'draft' %}bg-secondary
+                                    {% else %}bg-warning{% endif %}">
+                                    {{ assignment.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-3">
-                        <strong>Due Date:</strong> {{ assignment.due_date|date:"M d, Y H:i" }}
-                    </div>
-                    <div class="mb-3">
-                        <strong>Max Points:</strong> {{ assignment.max_points }}
-                    </div>
-                    <div class="mb-3">
-                        <strong>Status:</strong> 
-                        <span class="badge 
-                            {% if assignment.status == 'published' %}bg-success
-                            {% elif assignment.status == 'draft' %}bg-secondary
-                            {% else %}bg-warning{% endif %}">
-                            {{ assignment.get_status_display }}
-                        </span>
-                    </div>
-                    <div>
-                        <strong>Description:</strong>
-                        <p class="mt-2">{{ assignment.description }}</p>
+                    <div class="mt-3">
+                        <strong><i class="fas fa-file-alt me-2"></i>Description:</strong>
+                        <div class="mt-2 p-3 bg-light rounded">
+                            {{ assignment.description|linebreaks }}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
         <div class="col-md-4">
             <div class="card shadow">
-                <div class="card-header">
-                    <h5 class="m-0 font-weight-bold">Submission Stats</h5>
+                <div class="card-header bg-info text-white">
+                    <h5 class="m-0 font-weight-bold"><i class="fas fa-chart-bar me-2"></i>Submission Stats</h5>
                 </div>
                 <div class="card-body text-center">
+                    {% with total_students=assignment.students.count %}
+                    {% with graded_count=submissions|length %}
+                    {% with submission_count=submissions.count %}
                     <div class="row mb-3">
-                        <div class="col-6">
-                            <div class="border rounded p-3">
-                                <h3 class="text-primary mb-0">{{ submissions.count }}</h3>
-                                <small class="text-muted">Total Submissions</small>
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <h4 class="text-primary mb-0">{{ submission_count }}</h4>
+                                <small class="text-muted">Submitted</small>
                             </div>
                         </div>
-                        <div class="col-6">
-                            <div class="border rounded p-3">
-                                <h3 class="text-success mb-0">
-                                    {{ submissions|length|add:"-1" }}/{{ submissions.count }}
-                                </h3>
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <h4 class="text-success mb-0">{{ graded_count }}</h4>
                                 <small class="text-muted">Graded</small>
                             </div>
                         </div>
-                    </div>
-                    <div class="progress mb-3">
-                        <div class="progress-bar bg-success" role="progressbar" 
-                             style="width: 75%" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">
-                            75% Graded
+                        <div class="col-4">
+                            <div class="border rounded p-2">
+                                <h4 class="text-warning mb-0">{{ total_students|add:-submission_count }}</h4>
+                                <small class="text-muted">Pending</small>
+                            </div>
                         </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                            <small>Submission Rate</small>
+                            <small>{{ submission_count }}/{{ total_students }}</small>
+                        </div>
+                        <div class="progress mb-2" style="height: 8px;">
+                            <div class="progress-bar bg-primary" role="progressbar"
+                                 style="width: {% widthratio submission_count total_students 100 %}%"
+                                 aria-valuenow="{% widthratio submission_count total_students 100 %}"
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between mb-1">
+                            <small>Grading Progress</small>
+                            <small>
+                                {% if submission_count > 0 %}
+                                    {{ graded_count }}/{{ submission_count }}
+                                {% else %}
+                                    0/0
+                                {% endif %}
+                            </small>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar bg-success" role="progressbar"
+                                 style="width: {% if submission_count > 0 %}{% widthratio graded_count submission_count 100 %}{% else %}0{% endif %}%"
+                                 aria-valuenow="{% if submission_count > 0 %}{% widthratio graded_count submission_count 100 %}{% else %}0{% endif %}"
+                                 aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+                    {% endwith %}
+                    {% endwith %}
+                    {% endwith %}
+                </div>
+            </div>
+
+            <!-- Quick Actions Card -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-warning">
+                    <h5 class="m-0 font-weight-bold"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'dashboard:edit_assignment' assignment.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-edit me-1"></i> Edit Assignment
+                        </a>
+                        {% if submissions %}
+                        <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#downloadAllModal">
+                            <i class="fas fa-download me-1"></i> Download All Submissions
+                        </button>
+                        {% endif %}
+                        <a href="{% url 'dashboard:teacher_course_detail' assignment.course.id %}" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-book me-1"></i> View Course
+                        </a>
                     </div>
                 </div>
             </div>
@@ -83,17 +152,20 @@
     </div>
 
     <div class="card shadow">
-        <div class="card-header">
-            <h5 class="m-0 font-weight-bold">Student Submissions</h5>
+        <div class="card-header bg-success text-white">
+            <h5 class="m-0 font-weight-bold"><i class="fas fa-users me-2"></i>Student Submissions ({{ submissions.count }})</h5>
         </div>
         <div class="card-body">
+            {% if submissions %}
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover table-striped">
                     <thead class="bg-light">
                         <tr>
                             <th>Student</th>
                             <th>Submitted On</th>
+                            <th>File Type</th>
                             <th>Status</th>
+                            <th>Comments</th>
                             <th>Grade</th>
                             <th>Actions</th>
                         </tr>
@@ -101,45 +173,234 @@
                     <tbody>
                         {% for submission in submissions %}
                         <tr>
-                            <td>{{ submission.student.user.get_full_name|default:submission.student.user.username }}</td>
-                            <td>{{ submission.submitted_at|date:"M d, Y H:i" }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="avatar-sm bg-primary rounded-circle text-white d-flex align-items-center justify-content-center me-2"
+                                         style="width: 32px; height: 32px;">
+                                        {{ submission.student.user.get_full_name|default:submission.student.user.username|first|upper }}
+                                    </div>
+                                    <div>
+                                        <strong>{{ submission.student.user.get_full_name|default:submission.student.user.username }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ submission.student.enrollment_id }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {{ submission.submitted_at|date:"M d, Y" }}
+                                <br>
+                                <small class="text-muted">{{ submission.submitted_at|date:"H:i" }}</small>
+                            </td>
+                            <td>
+                                {% with file_ext=submission.submitted_file.name|slice:"-4:"|lower %}
+                                    {% if file_ext == '.pdf' %}
+                                        <span class="badge bg-danger"><i class="fas fa-file-pdf me-1"></i>PDF</span>
+                                    {% elif file_ext in '.doc,.docx' %}
+                                        <span class="badge bg-primary"><i class="fas fa-file-word me-1"></i>DOC</span>
+                                    {% elif file_ext == '.txt' %}
+                                        <span class="badge bg-secondary"><i class="fas fa-file-alt me-1"></i>TXT</span>
+                                    {% elif file_ext in '.mp4,.avi,.mov' %}
+                                        <span class="badge bg-warning"><i class="fas fa-file-video me-1"></i>VIDEO</span>
+                                    {% elif file_ext in '.mp3,.wav' %}
+                                        <span class="badge bg-success"><i class="fas fa-file-audio me-1"></i>AUDIO</span>
+                                    {% elif file_ext in '.ppt,.pptx' %}
+                                        <span class="badge bg-orange"><i class="fas fa-file-powerpoint me-1"></i>PPT</span>
+                                    {% else %}
+                                        <span class="badge bg-dark"><i class="fas fa-file me-1"></i>{{ file_ext|upper }}</span>
+                                    {% endif %}
+                                {% endwith %}
+                            </td>
                             <td>
                                 {% if submission.is_late %}
-                                <span class="badge bg-warning">Late</span>
+                                <span class="badge bg-warning"><i class="fas fa-clock me-1"></i>Late</span>
                                 {% else %}
-                                <span class="badge bg-success">On Time</span>
+                                <span class="badge bg-success"><i class="fas fa-check me-1"></i>On Time</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if submission.comments %}
+                                <button type="button" class="btn btn-sm btn-outline-info"
+                                        data-bs-toggle="popover"
+                                        data-bs-title="Student Comments"
+                                        data-bs-content="{{ submission.comments }}"
+                                        data-bs-placement="left">
+                                    <i class="fas fa-comment me-1"></i> View
+                                </button>
+                                {% else %}
+                                <span class="text-muted"><i class="fas fa-comment-slash me-1"></i>No comments</span>
                                 {% endif %}
                             </td>
                             <td>
                                 {% if submission.grade %}
-                                <span class="badge bg-info">{{ submission.grade }}/{{ assignment.max_points }}</span>
+                                <span class="badge bg-info p-2">
+                                    <i class="fas fa-star me-1"></i>{{ submission.grade }}/{{ assignment.max_points }}
+                                </span>
                                 {% else %}
-                                <span class="badge bg-secondary">Not Graded</span>
+                                <span class="badge bg-secondary p-2">
+                                    <i class="fas fa-clock me-1"></i>Not Graded
+                                </span>
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{% url 'dashboard:grade_submission' submission.id %}" 
-                                   class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-edit"></i> Grade
-                                </a>
-                                <a href="{{ submission.submitted_file.url }}" 
-                                   class="btn btn-sm btn-outline-secondary" target="_blank">
-                                    <i class="fas fa-download"></i> Download
-                                </a>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="5" class="text-center py-4">
-                                <i class="fas fa-inbox fa-2x text-muted mb-3"></i>
-                                <p class="text-muted">No submissions yet</p>
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'dashboard:grade_submission' submission.id %}"
+                                       class="btn btn-sm btn-outline-primary"
+                                       data-bs-toggle="tooltip" title="Grade Submission">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{{ submission.submitted_file.url }}"
+                                       class="btn btn-sm btn-outline-secondary"
+                                       target="_blank"
+                                       data-bs-toggle="tooltip" title="Download File">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-info view-submission-btn"
+                                            data-submission-id="{{ submission.id }}"
+                                            data-bs-toggle="tooltip" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+
+            <!-- Submission Details Modal -->
+            <div class="modal fade" id="submissionModal" tabindex="-1" aria-labelledby="submissionModalLabel" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header bg-primary text-white">
+                            <h5 class="modal-title" id="submissionModalLabel">Submission Details</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body" id="submissionModalBody">
+                            <!-- Content will be loaded via AJAX -->
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <a href="#" class="btn btn-primary" id="gradeModalBtn">Grade Submission</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download All Modal -->
+            <div class="modal fade" id="downloadAllModal" tabindex="-1" aria-labelledby="downloadAllModalLabel" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header bg-success text-white">
+                            <h5 class="modal-title" id="downloadAllModalLabel">Download All Submissions</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>This will download all student submissions as a ZIP file.</p>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Total files to download: {{ submissions.count }}
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <a href="{% url 'dashboard:download_all_submissions' assignment.id %}" class="btn btn-success">
+                                <i class="fas fa-download me-1"></i> Download ZIP
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-inbox fa-4x text-muted mb-3"></i>
+                <h4 class="text-muted">No Submissions Yet</h4>
+                <p class="text-muted mb-4">Students haven't submitted any work for this assignment yet.</p>
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Students can submit PDFs, documents, videos, audio files, and presentations.
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
+
+<style>
+.bg-orange {
+    background-color: #fd7e14 !important;
+}
+.avatar-sm {
+    font-size: 14px;
+    font-weight: bold;
+}
+.progress {
+    border-radius: 10px;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // Initialize popovers
+    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
+    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl)
+    });
+
+    // Handle submission details view
+    const viewButtons = document.querySelectorAll('.view-submission-btn');
+    const submissionModal = new bootstrap.Modal(document.getElementById('submissionModal'));
+    const modalBody = document.getElementById('submissionModalBody');
+    const gradeModalBtn = document.getElementById('gradeModalBtn');
+
+    viewButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const submissionId = this.getAttribute('data-submission-id');
+
+            // Show loading state
+            modalBody.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading submission details...</p>
+                </div>
+            `;
+
+            // Fetch submission details (you'll need to implement this view)
+            fetch(`/dashboard/teacher/submission/${submissionId}/details/`)
+                .then(response => response.text())
+                .then(html => {
+                    modalBody.innerHTML = html;
+                    gradeModalBtn.href = `/dashboard/teacher/grade/${submissionId}/`;
+                })
+                .catch(error => {
+                    modalBody.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error loading submission details. Please try again.
+                        </div>
+                    `;
+                });
+
+            submissionModal.show();
+        });
+    });
+
+    // Auto-dismiss alerts after 5 seconds
+    setTimeout(function() {
+        const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
+        alerts.forEach(alert => {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        });
+    }, 5000);
+});
+</script>
 {% endblock %}

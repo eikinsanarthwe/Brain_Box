@@ -25,11 +25,11 @@ urlpatterns = [
     path('students/<int:id>/edit/', views.edit_student, name='edit_student'),
     path('students/<int:id>/delete/', views.delete_student, name='delete_student'),
 
-    # Courses - FIXED: Using course_id for consistency
+    # Courses
     path('courses/', views.course_list, name='course_list'),
     path('courses/add/', views.course_create, name='course_create'),
-    path('courses/<int:course_id>/edit/', views.edit_course, name='edit_course'),  # CHANGED: id → course_id
-    path('courses/<int:course_id>/delete/', views.delete_course, name='delete_course'),  # CHANGED: id → course_id
+    path('courses/<int:course_id>/edit/', views.edit_course, name='edit_course'),
+    path('courses/<int:course_id>/delete/', views.delete_course, name='delete_course'),
 
     # Assignments
     path('assignments/', views.assignment_list, name='assignment_list'),
@@ -40,54 +40,62 @@ urlpatterns = [
     # Teacher Dashboard URLs
     path('teacher/dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
     path('teacher/courses/', views.teacher_courses, name='teacher_courses'),
+    path('teacher/courses/add/', views.teacher_course_create, name='teacher_course_create'),
+    path('teacher/courses/<int:course_id>/', views.teacher_course_detail, name='teacher_course_detail'),
+    path('teacher/courses/<int:course_id>/edit/', views.edit_course, name='teacher_course_edit'),
+    path('teacher/courses/<int:course_id>/delete/', views.delete_course, name='teacher_course_delete'),
+    path('teacher/student-progress/<int:course_id>/', views.teacher_student_progress, name='teacher_student_progress'),
+
+    # Teacher Assignments
     path('teacher/assignments/', views.teacher_assignments, name='teacher_assignments'),
     path('teacher/assignments/add/', views.teacher_assignment_create, name='teacher_assignment_create'),
     path('teacher/assignments/<int:id>/', views.teacher_assignment_detail, name='teacher_assignment_detail'),
     path('teacher/assignments/<int:id>/edit/', views.edit_assignment, name='teacher_edit_assignment'),
     path('teacher/grade/<int:submission_id>/', views.grade_submission, name='grade_submission'),
+
+    # Teacher Students
     path('teacher/students/', views.teacher_students, name='teacher_students'),
-    path('teacher/courses/add/', views.teacher_course_create, name='teacher_course_create'),
-    path('teacher/courses/<int:course_id>/', views.teacher_course_detail, name='teacher_course_detail'),
     path('teacher/course/<int:course_id>/add-student/', views.add_student_to_course, name='add_student_to_course'),
     path('teacher/course/<int:course_id>/remove-student/<int:student_id>/', views.remove_student_from_course, name='remove_student_from_course'),
 
-    # Teacher Settings URLs
+    # Teacher Settings
     path('teacher/settings/', views.teacher_settings, name='teacher_settings'),
     path('teacher/settings/profile/', views.teacher_profile_settings, name='teacher_profile_settings'),
     path('teacher/settings/appearance/', views.teacher_appearance_settings, name='teacher_appearance_settings'),
     path('teacher/settings/security/', views.teacher_security_settings, name='teacher_security_settings'),
 
-    # Course Materials URLs
+    # Course Materials
     path('teacher/courses/<int:course_id>/materials/', views.teacher_course_materials, name='teacher_course_materials'),
     path('teacher/courses/<int:course_id>/materials/add/', views.add_course_material, name='add_course_material'),
     path('teacher/courses/materials/<int:material_id>/delete/', views.delete_course_material, name='delete_course_material'),
-    path('student/courses/<int:course_id>/materials/', views.student_course_materials, name='student_course_materials'),
 
-    # Student Dashboard URLs
+    # Student Dashboard
     path('student/dashboard/', views.student_dashboard, name='student_dashboard'),
     path('student/courses/', views.student_courses, name='student_courses'),
     path('student/courses/<int:course_id>/', views.student_course_detail, name='student_course_detail'),
+    path('student/courses/<int:course_id>/materials/', views.student_course_materials, name='student_course_materials'),
+    path('student/course-catalog/', views.course_catalog, name='course_catalog'),
+
+    # Student Assignments
     path('student/assignments/', views.student_assignments, name='student_assignments'),
     path('student/assignments/<int:assignment_id>/', views.student_assignment_detail, name='student_assignment_detail'),
     path('student/assignments/<int:assignment_id>/submit/', views.student_submit_assignment, name='student_submit_assignment'),
-    path('student/courses/<int:course_id>/materials/', views.student_course_materials, name='student_course_materials'),
-    path('student/profile/', views.student_profile, name='student_profile'),
-    path('student/settings/', views.student_settings, name='student_settings'),
-    path('student/course-catalog/', views.course_catalog, name='course_catalog'),
 
     # Additional Student URLs
+    path('student/profile/', views.student_profile, name='student_profile'),
+    path('student/settings/', views.student_settings, name='student_settings'),
     path('student/progress/', views.student_progress, name='student_progress'),
     path('student/messages/', views.student_messages, name='student_messages'),
     path('student/aboutus/', views.student_aboutus, name='student_aboutus'),
 
-    # Settings URLs
+    # Admin Settings
     path('settings/', views.admin_settings, name='admin_settings'),
     path('settings/profile/', views.profile_settings, name='profile_settings'),
     path('settings/appearance/', views.appearance_settings, name='appearance_settings'),
     path('settings/security/', views.security_settings, name='security_settings'),
     path('settings/security/generate-qr/', views.generate_qr_code, name='generate_qr_code'),
 
-    # Messaging URLs
+    # Messaging
     path('messages/', views.message_list, name='message_list'),
     path('messages/compose/', views.message_compose, name='message_compose'),
     path('messages/compose/<int:recipient_id>/', views.message_compose, name='message_compose_to'),
@@ -95,18 +103,14 @@ urlpatterns = [
     path('messages/<int:message_id>/delete/', views.message_delete, name='message_delete'),
     path('messages/unread-count/', views.get_unread_count, name='unread_count'),
 
-    # Student Assignment URLs
-    path('student/assignments/', views.student_assignments, name='student_assignments'),
-    path('student/assignments/<int:assignment_id>/submit/', views.student_assignment_submit, name='student_assignment_submit'),
-
-    # Assignment Submission URLs
+    # Assignment Submission
     path('teacher/submission/<int:submission_id>/details/', views.submission_details, name='submission_details'),
     path('teacher/assignments/<int:assignment_id>/download-all/', views.download_all_submissions, name='download_all_submissions'),
 
-    # Theme Update URL
+    # Theme
     path('update-theme/', views.update_theme_preference, name='update_theme'),
 
-    # Progress Tracking URLs
+    # Progress Tracking
     path('teacher/progress-track/', views.teacher_progress_track, name='teacher_progress_track'),
     path('teacher/send-progress-reminder/', views.send_progress_reminder, name='send_progress_reminder'),
 ]

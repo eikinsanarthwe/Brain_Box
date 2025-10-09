@@ -1,0 +1,55 @@
+<div class="row">
+    <div class="col-md-6">
+        <h6><i class="fas fa-user me-2"></i>Student Information</h6>
+        <div class="mb-3">
+            <strong>Name:</strong> {{ submission.student.user.get_full_name|default:submission.student.user.username }}<br>
+            <strong>Enrollment ID:</strong> {{ submission.student.enrollment_id }}<br>
+            <strong>Email:</strong> {{ submission.student.user.email }}
+        </div>
+    </div>
+    <div class="col-md-6">
+        <h6><i class="fas fa-file me-2"></i>Submission Details</h6>
+        <div class="mb-3">
+            <strong>Submitted:</strong> {{ submission.submitted_at|date:"M d, Y H:i" }}<br>
+            <strong>Status:</strong>
+            {% if submission.is_late %}
+            <span class="badge bg-warning">Late Submission</span>
+            {% else %}
+            <span class="badge bg-success">On Time</span>
+            {% endif %}<br>
+            <strong>File Size:</strong> {{ submission.submitted_file.size|filesizeformat }}
+        </div>
+    </div>
+</div>
+
+{% if submission.comments %}
+<div class="mb-3">
+    <h6><i class="fas fa-comment me-2"></i>Student Comments</h6>
+    <div class="p-3 bg-light rounded">
+        {{ submission.comments|linebreaks }}
+    </div>
+</div>
+{% endif %}
+
+<div class="mb-3">
+    <h6><i class="fas fa-download me-2"></i>File Information</h6>
+    <div class="d-flex justify-content-between align-items-center p-3 border rounded">
+        <div>
+            <i class="fas fa-file me-2"></i>
+            {{ submission.get_filename }}
+        </div>
+        <a href="{{ submission.submitted_file.url }}" class="btn btn-sm btn-primary" target="_blank">
+            <i class="fas fa-download me-1"></i> Download
+        </a>
+    </div>
+</div>
+
+{% if submission.grade %}
+<div class="alert alert-info">
+    <h6><i class="fas fa-star me-2"></i>Grading Information</h6>
+    <strong>Grade:</strong> {{ submission.grade }}/{{ assignment.max_points }}<br>
+    {% if submission.feedback %}
+    <strong>Feedback:</strong> {{ submission.feedback }}
+    {% endif %}
+</div>
+{% endif %}

@@ -1,6 +1,5 @@
 from django.db import models
 from django.conf import settings
-from django.contrib.auth.models import AbstractUser
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 from django.core.files.base import ContentFile
@@ -8,6 +7,7 @@ import random
 import os
 import requests
 from django.utils import timezone
+from django.contrib.auth.models import AbstractUser
 
 # -----------------------------
 # Custom User Model
@@ -188,9 +188,7 @@ class Assignment(models.Model):
         ('draft', 'Draft'),
         ('published', 'Published'),
         ('archived', 'Archived'),
-        ('graded', 'Graded'),
     ]
-
     students = models.ManyToManyField(Student)
     title = models.CharField(max_length=200)
     description = models.TextField()
@@ -308,18 +306,22 @@ class StudentProgress(models.Model):
 
     student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='progress')
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name='student_progress')
+    module = models.ForeignKey(CourseModule, on_delete=models.CASCADE, null=True, blank=True, related_name='progress')
     status = models.CharField(max_length=20, choices=PROGRESS_STATUS, default='not_started')
     progress_percentage = models.IntegerField(default=0)
     last_updated = models.DateTimeField(auto_now=True)
-    completed_modules = models.ManyToManyField('CourseModule', blank=True)
+    completed_modules = models.ManyToManyField('CourseModule', blank=True, related_name='completed_by')
     notes = models.TextField(blank=True)
 
     class Meta:
-        unique_together = ['student', 'course']
+        unique_together = ['student', 'course', 'module']
         verbose_name_plural = 'Student Progress'
 
     def __str__(self):
-        return f"{self.student.user.username} - {self.course.name} ({self.progress_percentage}%)"
+        if self.module:
+            return f"{self.student.user.username} - {self.course.name} - {self.module.title} ({self.progress_percentage}%)"
+        else:
+            return f"{self.student.user.username} - {self.course.name} ({self.progress_percentage}%)"
 
     def get_total_modules(self):
         """Get total number of modules in the course"""

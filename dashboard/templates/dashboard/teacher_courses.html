@@ -16,16 +16,22 @@
         {% for course in courses %}
         <div class="col-md-6 col-lg-4 mb-4">
             <div class="card h-100 shadow">
+                <div class="card-img-top" style="height: 150px; overflow: hidden;">
+                    <img src="{{ course.get_image_url }}" alt="{{ course.name }}" class="img-fluid" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
                 <div class="card-body">
                     <h5 class="card-title">{{ course.code }} - {{ course.name }}</h5>
                     <p class="card-text text-muted">{{ course.description|truncatewords:20 }}</p>
-                    
+
                     <div class="d-flex justify-content-between align-items-center mt-3">
                         <span class="badge bg-info">
-                            <i class="fas fa-user-tie me-1"></i> 
+                            <i class="fas fa-user-tie me-1"></i>
                             {{ course.teachers.count }} Teacher{{ course.teachers.count|pluralize }}
                         </span>
-                        <a href="{% url 'dashboard:teacher_course_detail' course.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                        <div class="btn-group">
+                            <a href="{% url 'dashboard:teacher_course_detail' course.id %}" class="btn btn-sm btn-outline-primary">View Details</a>
+                            <a href="{% url 'dashboard:edit_course' course.id %}" class="btn btn-sm btn-outline-secondary">Edit</a>
+                        </div>
                     </div>
                 </div>
             </div>

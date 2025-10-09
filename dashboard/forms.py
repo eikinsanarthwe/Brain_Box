@@ -116,7 +116,7 @@ class StudentForm(forms.ModelForm):
 
     class Meta:
         model = Student
-        fields = ['enrollment_id', 'semester']
+        fields = ['enrollment_id', 'semester']  # course is handled separately
         widgets = {
             'enrollment_id': forms.TextInput(attrs={
                 'class': 'form-control',
