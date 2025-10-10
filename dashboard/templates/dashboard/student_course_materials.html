@@ -1,0 +1,180 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-book me-2"></i>{{ course.code }} - Course Materials
+        </h1>
+        <a href="{% url 'dashboard:student_course_detail' course.id %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Course
+        </a>
+    </div>
+
+    <!-- Progress Display -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Your Progress</h6>
+        </div>
+        <div class="card-body">
+            {% if progress %}
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <div class="progress" style="height: 25px;">
+                        <div class="progress-bar
+                            {% if progress.progress_percentage == 100 %}bg-success
+                            {% elif progress.progress_percentage >= 50 %}bg-info
+                            {% else %}bg-warning{% endif %}"
+                            role="progressbar"
+                            style="width: {{ progress.progress_percentage }}%;"
+                            aria-valuenow="{{ progress.progress_percentage }}"
+                            aria-valuemin="0"
+                            aria-valuemax="100">
+                            {{ progress.progress_percentage }}%
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <span class="badge
+                        {% if progress.status == 'completed' %}bg-success
+                        {% elif progress.status == 'in_progress' %}bg-primary
+                        {% else %}bg-secondary{% endif %} fs-6">
+                        {{ progress.get_status_display }}
+                    </span>
+                </div>
+            </div>
+            <p class="mt-2 text-muted mb-0">
+                <strong>{{ downloaded_count }} out of {{ total_materials }}</strong> materials downloaded
+                ({{ progress.progress_percentage }}% complete)
+            </p>
+            {% if progress.progress_percentage == 100 %}
+            <div class="mt-2">
+                <span class="badge bg-success fs-6">
+                    <i class="fas fa-trophy me-1"></i>Course Completed!
+                </span>
+            </div>
+            {% endif %}
+            {% else %}
+            <p class="text-muted">No progress data available. Start downloading materials to track your progress.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Materials List -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3 d-flex justify-content-between align-items-center">
+            <h6 class="m-0 font-weight-bold text-primary">
+                Course Materials
+                <span class="badge bg-primary ms-2">{{ materials.count }}</span>
+            </h6>
+            <div>
+                <span class="badge bg-success me-2">
+                    <i class="fas fa-check me-1"></i>{{ downloaded_count }} Downloaded
+                </span>
+                <span class="badge bg-secondary">
+                    {{ total_materials|default:"0" }} Total
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if materials %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Title</th>
+                            <th>Description</th>
+                            <th>Uploaded</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for material in materials %}
+                        <tr>
+                            <td>
+                                <strong>{{ material.title }}</strong>
+                                {% if material.is_required %}
+                                <span class="badge bg-warning ms-1" title="Required">Required</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ material.description|truncatewords:15|default:"No description provided" }}</td>
+                            <td>{{ material.uploaded_at|date:"M d, Y" }}</td>
+                            <td>
+                                {% if material.id in downloaded_material_ids %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle me-1"></i> Downloaded
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-clock me-1"></i> Not downloaded
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'dashboard:download_course_material' material.id %}"
+                                   class="btn btn-sm {% if material.id in downloaded_material_ids %}btn-outline-success{% else %}btn-primary{% endif %}"
+                                   target="_blank">
+                                    <i class="fas fa-download me-1"></i>
+                                    {% if material.id in downloaded_material_ids %}Download Again{% else %}Download{% endif %}
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-file-alt fa-3x text-muted mb-3"></i>
+                <p class="text-muted fs-5">No course materials available yet.</p>
+                <p class="text-muted">Check back later for updates from your teacher.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Progress Legend -->
+    <div class="card shadow">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Progress Guide</h6>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <p class="mb-2"><strong>How progress is calculated:</strong></p>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-download text-primary me-2"></i>Each download increases your progress</li>
+                        <li><i class="fas fa-percentage text-info me-2"></i>Progress = (Downloaded / Total) × 100%</li>
+                        <li><i class="fas fa-trophy text-success me-2"></i>Complete all materials to finish the course</li>
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-2"><strong>Status meanings:</strong></p>
+                    <ul class="list-unstyled">
+                        <li><span class="badge bg-secondary me-2">Not Started</span> 0% progress</li>
+                        <li><span class="badge bg-primary me-2">In Progress</span> 1-89% progress</li>
+                        <li><span class="badge bg-success me-2">Completed</span> 90-100% progress</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.progress {
+    background-color: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.progress-bar {
+    transition: width 0.6s ease;
+    border-radius: 10px;
+}
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.075);
+}
+</style>
+{% endblock %}

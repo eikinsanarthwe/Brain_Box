@@ -108,6 +108,7 @@ urlpatterns = [
     path('courses/create/', views.course_create, name='course_create'),
     path('courses/<int:id>/delete/', views.delete_course, name='delete_course'),
 
+
     # Logout URL
     path('logout/', views.custom_logout, name='logout'),
 ]

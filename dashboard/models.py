@@ -250,13 +250,21 @@ class CourseMaterial(models.Model):
         on_delete=models.CASCADE
     )
     uploaded_at = models.DateTimeField(auto_now_add=True)
+    # ADD THIS FIELD to connect materials to modules
+    module = models.ForeignKey(
+        CourseModule,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name='materials'
+    )
+    is_required = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.title} - {self.course.code}"
 
     class Meta:
         ordering = ['-uploaded_at']
-
 # -----------------------------
 # Message Model
 # -----------------------------
@@ -353,3 +361,17 @@ class StudentProgress(models.Model):
             self.status = 'not_started'
 
         super().save(*args, **kwargs)
+# -----------------------------
+# Course Material Download Tracking Model
+# -----------------------------
+class MaterialDownload(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE, related_name='material_downloads')
+    material = models.ForeignKey(CourseMaterial, on_delete=models.CASCADE, related_name='downloads')
+    downloaded_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['student', 'material']
+        verbose_name_plural = 'Material Downloads'
+
+    def __str__(self):
+        return f"{self.student.user.username} downloaded {self.material.title}"
