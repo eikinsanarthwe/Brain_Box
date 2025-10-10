@@ -4,7 +4,7 @@ from . import views
 app_name = 'dashboard'
 
 urlpatterns = [
-    # Dashboard
+    # --- ADMIN DASHBOARD AND MANAGEMENT ---
     path('', views.dashboard, name='dashboard'),
 
     # Admin Management
@@ -31,20 +31,25 @@ urlpatterns = [
     path('courses/<int:course_id>/edit/', views.edit_course, name='edit_course'),
     path('courses/<int:course_id>/delete/', views.delete_course, name='delete_course'),
 
-    # Assignments
+    # Assignments (Admin)
     path('assignments/', views.assignment_list, name='assignment_list'),
     path('assignments/add/', views.assignment_create, name='assignment_create'),
     path('assignments/<int:id>/edit/', views.edit_assignment, name='edit_assignment'),
     path('assignments/<int:id>/delete/', views.delete_assignment, name='delete_assignment'),
 
-    # Teacher Dashboard URLs
+    # --- TEACHER DASHBOARD AND FUNCTIONS ---
     path('teacher/dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
+
+    # Teacher Courses
     path('teacher/courses/', views.teacher_courses, name='teacher_courses'),
     path('teacher/courses/add/', views.teacher_course_create, name='teacher_course_create'),
     path('teacher/courses/<int:course_id>/', views.teacher_course_detail, name='teacher_course_detail'),
     path('teacher/courses/<int:course_id>/edit/', views.edit_course, name='teacher_course_edit'),
     path('teacher/courses/<int:course_id>/delete/', views.delete_course, name='teacher_course_delete'),
-    path('teacher/student-progress/<int:course_id>/', views.teacher_student_progress, name='teacher_student_progress'),
+
+    # Course Modules (NEW)
+    path('teacher/courses/<int:course_id>/modules/', views.course_modules, name='course_modules'),
+    path('teacher/courses/<int:course_id>/modules/add/', views.add_course_module, name='add_course_module'),
 
     # Teacher Assignments
     path('teacher/assignments/', views.teacher_assignments, name='teacher_assignments'),
@@ -53,10 +58,20 @@ urlpatterns = [
     path('teacher/assignments/<int:id>/edit/', views.edit_assignment, name='teacher_edit_assignment'),
     path('teacher/grade/<int:submission_id>/', views.grade_submission, name='grade_submission'),
 
+    # Assignment Submission
+    path('teacher/submission/<int:submission_id>/details/', views.submission_details, name='submission_details'),
+    path('teacher/assignments/<int:assignment_id>/download-all/', views.download_all_submissions, name='download_all_submissions'),
+
     # Teacher Students
     path('teacher/students/', views.teacher_students, name='teacher_students'),
     path('teacher/course/<int:course_id>/add-student/', views.add_student_to_course, name='add_student_to_course'),
     path('teacher/course/<int:course_id>/remove-student/<int:student_id>/', views.remove_student_from_course, name='remove_student_from_course'),
+
+    # Progress Tracking
+    path('teacher/student-progress/<int:course_id>/', views.teacher_student_progress, name='teacher_student_progress'),
+    path('teacher/progress-track/', views.teacher_progress_track, name='teacher_progress_track'),
+    path('teacher/send-progress-reminder/', views.send_progress_reminder, name='send_progress_reminder'),
+    path('teacher/progress/update/<int:progress_id>/', views.update_student_progress, name='update_student_progress'), # NEW
 
     # Teacher Settings
     path('teacher/settings/', views.teacher_settings, name='teacher_settings'),
@@ -64,22 +79,17 @@ urlpatterns = [
     path('teacher/settings/appearance/', views.teacher_appearance_settings, name='teacher_appearance_settings'),
     path('teacher/settings/security/', views.teacher_security_settings, name='teacher_security_settings'),
 
-    # Course Materials
-    path('teacher/courses/<int:course_id>/materials/', views.teacher_course_materials, name='teacher_course_materials'),
-    path('teacher/courses/<int:course_id>/materials/add/', views.add_course_material, name='add_course_material'),
-    path('teacher/courses/materials/<int:material_id>/delete/', views.delete_course_material, name='delete_course_material'),
-
-    # Student Dashboard
+    # --- STUDENT DASHBOARD AND FUNCTIONS ---
     path('student/dashboard/', views.student_dashboard, name='student_dashboard'),
     path('student/courses/', views.student_courses, name='student_courses'),
     path('student/courses/<int:course_id>/', views.student_course_detail, name='student_course_detail'),
-    path('student/courses/<int:course_id>/materials/', views.student_course_materials, name='student_course_materials'),
     path('student/course-catalog/', views.course_catalog, name='course_catalog'),
 
     # Student Assignments
     path('student/assignments/', views.student_assignments, name='student_assignments'),
     path('student/assignments/<int:assignment_id>/', views.student_assignment_detail, name='student_assignment_detail'),
-    path('student/assignments/<int:assignment_id>/submit/', views.student_submit_assignment, name='student_submit_assignment'),
+    # Updated to the new assignment submission path/name:
+    path('student/assignments/<int:assignment_id>/submit/', views.student_assignment_submit, name='student_assignment_submit'),
 
     # Additional Student URLs
     path('student/profile/', views.student_profile, name='student_profile'),
@@ -88,12 +98,23 @@ urlpatterns = [
     path('student/messages/', views.student_messages, name='student_messages'),
     path('student/aboutus/', views.student_aboutus, name='student_aboutus'),
 
-    # Admin Settings
+    # --- SHARED/COMMON URLs ---
+
+    # Course Materials
+    path('teacher/courses/<int:course_id>/materials/', views.teacher_course_materials, name='teacher_course_materials'),
+    path('teacher/courses/<int:course_id>/materials/add/', views.add_course_material, name='add_course_material'),
+    path('teacher/courses/materials/<int:material_id>/delete/', views.delete_course_material, name='delete_course_material'),
+    path('student/courses/<int:course_id>/materials/', views.student_course_materials, name='student_course_materials'),
+
+    # Settings (Admin/Shared)
     path('settings/', views.admin_settings, name='admin_settings'),
     path('settings/profile/', views.profile_settings, name='profile_settings'),
     path('settings/appearance/', views.appearance_settings, name='appearance_settings'),
     path('settings/security/', views.security_settings, name='security_settings'),
     path('settings/security/generate-qr/', views.generate_qr_code, name='generate_qr_code'),
+
+    # Theme Update
+    path('update-theme/', views.update_theme_preference, name='update_theme'),
 
     # Messaging
     path('messages/', views.message_list, name='message_list'),
@@ -102,15 +123,4 @@ urlpatterns = [
     path('messages/<int:message_id>/', views.message_detail, name='message_detail'),
     path('messages/<int:message_id>/delete/', views.message_delete, name='message_delete'),
     path('messages/unread-count/', views.get_unread_count, name='unread_count'),
-
-    # Assignment Submission
-    path('teacher/submission/<int:submission_id>/details/', views.submission_details, name='submission_details'),
-    path('teacher/assignments/<int:assignment_id>/download-all/', views.download_all_submissions, name='download_all_submissions'),
-
-    # Theme
-    path('update-theme/', views.update_theme_preference, name='update_theme'),
-
-    # Progress Tracking
-    path('teacher/progress-track/', views.teacher_progress_track, name='teacher_progress_track'),
-    path('teacher/send-progress-reminder/', views.send_progress_reminder, name='send_progress_reminder'),
 ]

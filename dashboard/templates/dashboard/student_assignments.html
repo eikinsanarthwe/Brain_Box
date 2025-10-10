@@ -1,16 +1,21 @@
-{% extends 'dashboard/base.html' %}
+{% extends 'base.html' %}
 {% load static %}
 
+{% block title %}My Assignments - Student Dashboard{% endblock %}
+
 {% block content %}
-<div class="content">
-    <div class="d-sm-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 mb-0 text-gray-800">
-            <i class="fas fa-tasks me-2"></i>My Assignments
-        </h1>
+<div class="container-fluid py-4">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 mb-0">My Assignments</h1>
+            <p class="text-muted">View and manage your course assignments</p>
+        </div>
     </div>
 
+    <!-- Statistics Cards -->
     <div class="row mb-4">
-        <div class="col-md-3">
+        <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-primary shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
@@ -18,41 +23,29 @@
                             <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
                                 Total Assignments
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ assignments.count }}</div>
-                        </div>
-                        <div class="col-auto">
-                            <i class="fas fa-tasks fa-2x text-gray-300"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-left-success shadow h-100 py-2">
-                <div class="card-body">
-                    <div class="row no-gutters align-items-center">
-                        <div class="col mr-2">
-                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                Submitted
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ assignments.count }}
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ submitted_count }}</div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-check fa-2x text-gray-300"></i>
+                            <i class="fas fa-clipboard-list fa-2x text-gray-300"></i>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+
+        <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-warning shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
-                                Pending
+                                Pending Submission
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ pending_count }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ pending_count }}
+                            </div>
                         </div>
                         <div class="col-auto">
                             <i class="fas fa-clock fa-2x text-gray-300"></i>
@@ -61,18 +54,41 @@
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
+
+        <div class="col-xl-3 col-md-6 mb-4">
             <div class="card border-left-info shadow h-100 py-2">
                 <div class="card-body">
                     <div class="row no-gutters align-items-center">
                         <div class="col mr-2">
                             <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
-                                Graded
+                                Submitted
                             </div>
-                            <div class="h5 mb-0 font-weight-bold text-gray-800">{{ graded_count }}</div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ submitted_count }}
+                            </div>
                         </div>
                         <div class="col-auto">
-                            <i class="fas fa-star fa-2x text-gray-300"></i>
+                            <i class="fas fa-paper-plane fa-2x text-gray-300"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-md-6 mb-4">
+            <div class="card border-left-success shadow h-100 py-2">
+                <div class="card-body">
+                    <div class="row no-gutters align-items-center">
+                        <div class="col mr-2">
+                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                Graded
+                            </div>
+                            <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                {{ graded_count }}
+                            </div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
                         </div>
                     </div>
                 </div>
@@ -80,16 +96,17 @@
         </div>
     </div>
 
-    <div class="card shadow">
-        <div class="card-header bg-light">
-            <h5 class="m-0 font-weight-bold">Assignment List</h5>
+    <!-- Assignments Table -->
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Assignment List</h6>
         </div>
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead class="bg-light">
+                <table class="table table-bordered" id="dataTable" width="100%" cellspacing="0">
+                    <thead>
                         <tr>
-                            <th>Title</th>
+                            <th>Assignment</th>
                             <th>Course</th>
                             <th>Due Date</th>
                             <th>Status</th>
@@ -102,70 +119,54 @@
                         <tr>
                             <td>
                                 <strong>{{ assignment.title }}</strong>
-                                {% if assignment.description %}
-                                <br><small class="text-muted">{{ assignment.description|truncatewords:10 }}</small>
-                                {% endif %}
+                                <br>
+                                <small class="text-muted">{{ assignment.description|truncatewords:10 }}</small>
                             </td>
                             <td>{{ assignment.course.code }}</td>
                             <td>
                                 {{ assignment.due_date|date:"M d, Y H:i" }}
-                                {% if assignment.is_past_due %}
-                                <br><small class="text-danger">Past Due</small>
+                                {% if assignment.is_post_due %}
+                                    <span class="badge badge-danger ml-2">Overdue</span>
                                 {% endif %}
                             </td>
                             <td>
-                                {% with submission=assignment.submissions.first %}
-                                    {% if submission %}
-                                        {% if submission.is_late %}
-                                        <span class="badge bg-warning">Submitted Late</span>
-                                        {% else %}
-                                        <span class="badge bg-success">Submitted</span>
-                                        {% endif %}
-                                    {% else %}
-                                        {% if assignment.is_past_due %}
-                                        <span class="badge bg-danger">Missing</span>
-                                        {% else %}
-                                        <span class="badge bg-secondary">Not Submitted</span>
-                                        {% endif %}
-                                    {% endif %}
-                                {% endwith %}
+                                {% if assignment.is_graded %}
+                                    <span class="badge badge-success">Graded</span>
+                                {% elif assignment.is_submitted %}
+                                    <span class="badge badge-info">Submitted</span>
+                                {% else %}
+                                    <span class="badge badge-warning">Pending</span>
+                                {% endif %}
                             </td>
                             <td>
-                                {% with submission=assignment.submissions.first %}
-                                    {% if submission and submission.grade %}
-                                    <span class="badge bg-info">{{ submission.grade }}/{{ assignment.max_points }}</span>
-                                    {% elif submission %}
-                                    <span class="badge bg-warning">Pending</span>
-                                    {% else %}
-                                    <span class="badge bg-secondary">-</span>
-                                    {% endif %}
-                                {% endwith %}
+                                {% if assignment.is_graded %}
+                                    <strong>{{ assignment.submission.grade }}/{{ assignment.max_points }}</strong>
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
                             </td>
                             <td>
-                                {% with submission=assignment.submissions.first %}
-                                    {% if submission %}
-                                    <a href="{% url 'dashboard:student_assignment_submit' assignment.id %}"
-                                       class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-edit"></i> Resubmit
+                                {% if not assignment.is_submitted %}
+                                    <a href="{% url 'submit_assignment' assignment.id %}"
+                                       class="btn btn-primary btn-sm">
+                                        Submit
                                     </a>
-                                    <a href="{{ submission.submitted_file.url }}"
-                                       class="btn btn-sm btn-outline-secondary" target="_blank">
-                                        <i class="fas fa-download"></i> View
+                                {% else %}
+                                    <a href="{% url 'view_submission' assignment.submission.id %}"
+                                       class="btn btn-info btn-sm">
+                                        View
                                     </a>
-                                    {% else %}
-                                    <a href="{% url 'dashboard:student_assignment_submit' assignment.id %}"
-                                       class="btn btn-sm btn-success">
-                                        <i class="fas fa-paper-plane"></i> Submit
-                                    </a>
-                                    {% endif %}
-                                {% endwith %}
+                                {% endif %}
+                                <a href="{% url 'assignment_detail' assignment.id %}"
+                                   class="btn btn-outline-secondary btn-sm">
+                                    Details
+                                </a>
                             </td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center py-4">
-                                <i class="fas fa-tasks fa-2x text-muted mb-3"></i>
-                                <p class="text-muted">No assignments found</p>
+                            <td colspan="6" class="text-center text-muted py-4">
+                                No assignments found.
                             </td>
                         </tr>
                         {% endfor %}
@@ -174,5 +175,39 @@
             </div>
         </div>
     </div>
+
+    <!-- Current Time Display -->
+    <div class="text-center text-muted small">
+        Page generated on: {{ current_time|date:"M d, Y H:i:s" }}
+    </div>
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        border-radius: 0.35rem;
+    }
+
+    .border-left-primary {
+        border-left: 0.25rem solid #4e73df !important;
+    }
+
+    .border-left-success {
+        border-left: 0.25rem solid #1cc88a !important;
+    }
+
+    .border-left-info {
+        border-left: 0.25rem solid #36b9cc !important;
+    }
+
+    .border-left-warning {
+        border-left: 0.25rem solid #f6c23e !important;
+    }
+
+    .table th {
+        border-top: none;
+        font-weight: 600;
+    }
+</style>
 {% endblock %}

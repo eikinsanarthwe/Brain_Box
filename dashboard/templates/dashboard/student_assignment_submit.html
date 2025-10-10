@@ -12,6 +12,19 @@
         </a>
     </div>
 
+    <!-- Messages Display -->
+    {% if messages %}
+    <div class="mb-4">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-triangle{% endif %} me-2"></i>
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
     <div class="row">
         <div class="col-md-8">
             <div class="card shadow mb-4">
@@ -30,7 +43,7 @@
                     </div>
                     <div class="mb-3">
                         <strong>Description:</strong>
-                        <p class="mt-2">{{ assignment.description }}</p>
+                        <p class="mt-2">{{ assignment.description|linebreaks }}</p>
                     </div>
 
                     {% if time_remaining %}
@@ -65,6 +78,7 @@
                             <small class="form-text text-muted">
                                 Supported formats: PDF, DOC/DOCX, TXT, MP4, MP3, WAV, AVI, MOV, PPT/PPTX (Max: 50MB)
                             </small>
+                            <div id="fileError" class="text-danger small mt-1" style="display: none;"></div>
                         </div>
 
                         <div class="form-group mb-3">
@@ -119,7 +133,13 @@
                 </div>
                 <div class="card-body">
                     <p><strong>Submitted:</strong> {{ existing_submission.submitted_at|date:"M d, Y H:i" }}</p>
-                    <p><strong>File:</strong> {{ existing_submission.get_filename }}</p>
+                    <p><strong>File:</strong>
+                        {% if existing_submission.get_filename %}
+                            {{ existing_submission.get_filename }}
+                        {% else %}
+                            {{ existing_submission.submitted_file.name|cut:"submissions/" }}
+                        {% endif %}
+                    </p>
                     {% if existing_submission.is_late %}
                     <span class="badge bg-danger">Late Submission</span>
                     {% else %}
@@ -150,42 +170,42 @@ document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('submissionForm');
     const submitBtn = document.getElementById('submitBtn');
     const fileInput = document.getElementById('submitted_file');
+    const fileError = document.getElementById('fileError');
+
+    fileInput.addEventListener('change', function() {
+        const file = fileInput.files[0];
+        fileError.style.display = 'none';
+
+        if (file) {
+            // Check file size (50MB limit)
+            const maxSize = 50 * 1024 * 1024;
+            if (file.size > maxSize) {
+                fileError.textContent = 'File size exceeds 50MB limit. Please choose a smaller file.';
+                fileError.style.display = 'block';
+                fileInput.value = '';
+                return;
+            }
+
+            // Check file extension
+            const allowedExtensions = ['.pdf', '.doc', '.docx', '.txt', '.mp4', '.mp3', '.wav', '.avi', '.mov', '.ppt', '.pptx'];
+            const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+
+            if (!allowedExtensions.includes(fileExtension)) {
+                fileError.textContent = 'Please select a valid file type (PDF, DOC, TXT, MP4, MP3, WAV, AVI, MOV, PPT).';
+                fileError.style.display = 'block';
+                fileInput.value = '';
+                return;
+            }
+        }
+    });
 
     form.addEventListener('submit', function(e) {
         const file = fileInput.files[0];
 
         if (!file) {
             e.preventDefault();
-            alert('Please select a file to upload.');
-            return false;
-        }
-
-        // Check file size (50MB limit)
-        const maxSize = 50 * 1024 * 1024; // 50MB in bytes
-        if (file.size > maxSize) {
-            e.preventDefault();
-            alert('File size exceeds 50MB limit. Please choose a smaller file.');
-            return false;
-        }
-
-        // Check file type
-        const allowedTypes = [
-            'application/pdf',
-            'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            'text/plain',
-            'video/mp4',
-            'audio/mpeg',
-            'audio/wav',
-            'video/avi',
-            'video/quicktime',
-            'application/vnd.ms-powerpoint',
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation'
-        ];
-
-        if (!allowedTypes.includes(file.type) && !file.name.match(/\.(pdf|doc|docx|txt|mp4|mp3|wav|avi|mov|ppt|pptx)$/i)) {
-            e.preventDefault();
-            alert('Please select a valid file type (PDF, DOC, TXT, MP4, MP3, WAV, AVI, MOV, PPT).');
+            fileError.textContent = 'Please select a file to upload.';
+            fileError.style.display = 'block';
             return false;
         }
 
