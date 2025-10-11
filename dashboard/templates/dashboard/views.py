@@ -133,25 +133,27 @@ def student_assignments(request):
         'graded_count': graded_count,
     }
     return render(request, 'dashboard/student_assignments.html', context)
-
 @login_required
-def student_assignment_detail(request, assignment_id):
-    if not hasattr(request.user, 'student'):
-        return redirect('dashboard')
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_assignment_detail(request, id):
+    assignment = get_object_or_404(Assignment, id=id, teacher=request.user)
+    submissions = Submission.objects.filter(assignment=assignment).select_related('student')
 
-    student = get_object_or_404(Student, user=request.user)
-    assignment = get_object_or_404(Assignment, id=assignment_id)
-
-    try:
-        submission = Submission.objects.get(student=student, assignment=assignment)
-    except Submission.DoesNotExist:
-        submission = None
+    # Calculate the required statistics
+    total_students = assignment.course.students.count()
+    submission_count = submissions.count()
+    graded_count = submissions.filter(grade__isnull=False).count()
+    pending_count = total_students - submission_count
 
     context = {
         'assignment': assignment,
-        'submission': submission,
+        'submissions': submissions,
+        'total_students': total_students,
+        'submission_count': submission_count,
+        'graded_count': graded_count,
+        'pending_count': pending_count,
     }
-    return render(request, 'dashboard/student_assignment_detail.html', context)
+    return render(request, 'dashboard/teacher_assignment_detail.html', context)
 
 @login_required
 def student_submit_assignment(request, assignment_id):
@@ -276,20 +278,37 @@ def student_settings(request):
         return redirect('dashboard')
 
     return render(request, 'dashboard/student_settings.html')
-
 @login_required
+@user_passes_test(lambda u: u.role == 'student')
 def student_profile(request):
-    """
-    View to display the student's profile page.
-    """
+    """Student profile overview page"""
     if not hasattr(request.user, 'student'):
         return redirect('dashboard')
 
+    student = get_object_or_404(Student, user=request.user)
+
+    # Get student's courses - make sure this matches your model relationship
+    courses = student.courses.all()
+
+    # Alternative ways to get courses if the above doesn't work:
+    # courses = Course.objects.filter(students=student)
+    # courses = Course.objects.filter(enrolled_students=student)
+
+    # Get recent submissions
+    recent_submissions = Submission.objects.filter(student=student).order_by('-submitted_at')[:5]
+
+    # Count statistics
+    total_courses = courses.count()
+    submitted_assignments = Submission.objects.filter(student=student).count()
+
     context = {
-        'student': request.user.student
+        'student': student,
+        'courses': courses,
+        'recent_submissions': recent_submissions,
+        'total_courses': total_courses,
+        'submitted_assignments': submitted_assignments,
     }
     return render(request, 'dashboard/student_profile.html', context)
-
 @login_required
 def course_catalog(request):
     """

@@ -1,0 +1,228 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+    .profile-picture-container {
+        position: relative;
+        display: inline-block;
+    }
+    .profile-picture-upload {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background: rgba(0,0,0,0.7);
+        color: white;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+    .file-input {
+        display: none;
+    }
+    .profile-picture-preview {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border: 3px solid #e3e6f0;
+    }
+</style>
+
+<div class="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-user me-2"></i>Profile Settings
+        </h1>
+    </div>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+
+                        <!-- Profile Picture -->
+                        <div class="mb-4 text-center">
+                            <div class="profile-picture-container">
+                                {% if user.userprofile.profile_picture %}
+                                    <img src="{{ user.userprofile.profile_picture.url }}"
+                                         class="rounded-circle profile-picture-preview mb-3">
+                                {% else %}
+                                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mb-3 profile-picture-preview">
+                                        <i class="fas fa-user fa-3x text-white"></i>
+                                    </div>
+                                {% endif %}
+
+                                <div class="profile-picture-upload" onclick="document.getElementById('profile_picture').click()">
+                                    <i class="fas fa-camera"></i>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="profile_picture" class="form-label fw-bold">
+                                    Profile Picture
+                                </label>
+                                <div class="input-group">
+                                    <input type="file"
+                                           class="form-control file-input"
+                                           id="profile_picture"
+                                           name="profile_picture"
+                                           accept="image/*">
+                                </div>
+                                <div class="form-text text-muted mt-2">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Click the camera icon to upload a new profile picture
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Name Fields -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label fw-bold">First Name</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="{{ form.first_name.id_for_label }}"
+                                       name="{{ form.first_name.name }}"
+                                       value="{{ form.first_name.value|default:'' }}"
+                                       placeholder="Enter your first name">
+                                {% if form.first_name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.first_name.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label fw-bold">Last Name</label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="{{ form.last_name.id_for_label }}"
+                                       name="{{ form.last_name.name }}"
+                                       value="{{ form.last_name.value|default:'' }}"
+                                       placeholder="Enter your last name">
+                                {% if form.last_name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {{ form.last_name.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Email Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label fw-bold">Email Address</label>
+                            <input type="email"
+                                   class="form-control"
+                                   id="{{ form.email.id_for_label }}"
+                                   name="{{ form.email.name }}"
+                                   value="{{ form.email.value|default:'' }}"
+                                   placeholder="Enter your email address">
+                            {% if form.email.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.email.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Bio Field -->
+                        <div class="mb-3">
+                            <label for="{{ form.bio.id_for_label }}" class="form-label fw-bold">Bio</label>
+                            <textarea class="form-control"
+                                      id="{{ form.bio.id_for_label }}"
+                                      name="{{ form.bio.name }}"
+                                      rows="4"
+                                      placeholder="Tell us a bit about yourself...">{{ form.bio.value|default:'' }}</textarea>
+                            <div class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Tell us a bit about yourself
+                            </div>
+                            {% if form.bio.errors %}
+                                <div class="text-danger small mt-1">
+                                    {{ form.bio.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="fas fa-save me-2"></i>Save Changes
+                            </button>
+                            <a href="{% url 'dashboard:teacher_dashboard' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side Info Column -->
+        <div class="col-md-4">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Profile Information
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Role:</strong>
+                        <span class="badge bg-success ms-2">{{ user.get_role_display }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Member Since:</strong>
+                        <br>
+                        <span class="text-muted">{{ user.date_joined|date:"F d, Y" }}</span>
+                    </div>
+                    <div class="mb-3">
+                        <strong>Last Login:</strong>
+                        <br>
+                        <span class="text-muted">{{ user.last_login|date:"F d, Y H:i" }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Profile picture preview
+    document.getElementById('profile_picture').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const preview = document.querySelector('.profile-picture-preview');
+                if (preview.tagName === 'IMG') {
+                    preview.src = e.target.result;
+                } else {
+                    // Replace the placeholder div with an image
+                    const newImg = document.createElement('img');
+                    newImg.src = e.target.result;
+                    newImg.className = 'rounded-circle profile-picture-preview mb-3';
+                    preview.parentNode.replaceChild(newImg, preview);
+                }
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const firstName = document.getElementById('{{ form.first_name.id_for_label }}').value.trim();
+        const lastName = document.getElementById('{{ form.last_name.id_for_label }}').value.trim();
+        const email = document.getElementById('{{ form.email.id_for_label }}').value.trim();
+
+        if (!firstName || !lastName || !email) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+        }
+    });
+</script>
+{% endblock %}

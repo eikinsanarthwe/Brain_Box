@@ -17,7 +17,7 @@ import zipfile
 from io import BytesIO
 import os
 from django.utils import timezone
-
+from django.contrib.auth import update_session_auth_hash
 from .models import Teacher, Student, Course, Assignment, Submission, CourseMaterial, UserProfile, Message, CourseModule, StudentProgress
 from accounts.models import CustomUser
 from .forms import (
@@ -113,7 +113,6 @@ def student_course_detail(request, course_id):
         'materials': materials,
     }
     return render(request, 'dashboard/student_course_detail.html', context)
-
 @login_required
 def student_assignments(request):
     """View all assignments for a student"""
@@ -121,27 +120,37 @@ def student_assignments(request):
         return redirect('dashboard')
 
     student = get_object_or_404(Student, user=request.user)
+
+    # Get all published assignments for student's courses
+    assignments_list = []
     assignments = Assignment.objects.filter(
         course__in=student.courses.all(),
         status='published'
     ).prefetch_related('submission_set').order_by('-due_date')
 
     for assignment in assignments:
-        assignment.submissions = assignment.submission_set.filter(student=student)
-        assignment.is_past_due = timezone.now() > assignment.due_date
+        submission = assignment.submission_set.filter(student=student).first()
+        is_overdue = timezone.now() > assignment.due_date and not submission
 
-    submitted_count = sum(1 for a in assignments if a.submissions.exists())
-    pending_count = assignments.count() - submitted_count
-    graded_count = sum(1 for a in assignments if a.submissions.first() and a.submissions.first().grade is not None)
+        assignments_list.append({
+            'assignment': assignment,
+            'submission': submission,
+            'is_overdue': is_overdue
+        })
+
+    # Calculate counts
+    pending_count = len([a for a in assignments_list if not a['submission'] and not a['is_overdue']])
+    submitted_count = len([a for a in assignments_list if a['submission'] and not a['submission'].grade])
+    graded_count = len([a for a in assignments_list if a['submission'] and a['submission'].grade])
 
     context = {
-        'assignments': assignments,
+        'assignments': assignments_list,
         'submitted_count': submitted_count,
         'pending_count': pending_count,
         'graded_count': graded_count,
+        'current_time': timezone.now(),
     }
     return render(request, 'dashboard/student_assignments.html', context)
-
 @login_required
 def student_assignment_detail(request, assignment_id):
     if not hasattr(request.user, 'student'):
@@ -154,6 +163,9 @@ def student_assignment_detail(request, assignment_id):
         submission = Submission.objects.get(student=student, assignment=assignment)
     except Submission.DoesNotExist:
         submission = None
+
+    # Add this line to check if assignment is overdue
+    assignment.is_past_due = timezone.now() > assignment.due_date
 
     context = {
         'assignment': assignment,
@@ -286,15 +298,35 @@ def student_settings(request):
     return render(request, 'dashboard/student_settings.html')
 
 @login_required
+@login_required
+@user_passes_test(lambda u: u.role == 'student')
 def student_profile(request):
-    """
-    View to display the student's profile page.
-    """
+    """Student profile overview page"""
     if not hasattr(request.user, 'student'):
         return redirect('dashboard')
 
+    student = get_object_or_404(Student, user=request.user)
+
+    # Get student's courses - make sure this matches your model relationship
+    courses = student.courses.all()
+
+    # Alternative ways to get courses if the above doesn't work:
+    # courses = Course.objects.filter(students=student)
+    # courses = Course.objects.filter(enrolled_students=student)
+
+    # Get recent submissions
+    recent_submissions = Submission.objects.filter(student=student).order_by('-submitted_at')[:5]
+
+    # Count statistics
+    total_courses = courses.count()
+    submitted_assignments = Submission.objects.filter(student=student).count()
+
     context = {
-        'student': request.user.student
+        'student': student,
+        'courses': courses,
+        'recent_submissions': recent_submissions,
+        'total_courses': total_courses,
+        'submitted_assignments': submitted_assignments,
     }
     return render(request, 'dashboard/student_profile.html', context)
 
@@ -1651,3 +1683,119 @@ def calculate_student_course_progress(student, course):
         'total_modules': total_modules,
         'status': status
     }
+
+# Student Settings Views
+# -----------------------------
+@login_required
+@user_passes_test(lambda u: u.role == 'student')
+def student_settings(request):
+    context = {
+        'title': 'Student Settings',
+        'settings_options': [
+            {'name': 'Profile', 'icon': 'fas fa-user', 'description': 'Update your profile information', 'url': 'dashboard:student_profile_settings'},
+            {'name': 'Appearance', 'icon': 'fas fa-palette', 'description': 'Customize theme', 'url': 'dashboard:student_appearance_settings'},
+            {'name': 'Security', 'icon': 'fas fa-shield-alt', 'description': 'Security settings', 'url': 'dashboard:student_security_settings'},
+        ]
+    }
+    return render(request, 'dashboard/student_settings.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'student')
+def student_profile_settings(request):
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    student = get_object_or_404(Student, user=request.user)
+
+    if request.method == 'POST':
+        form = ProfileSettingsForm(request.POST, request.FILES, instance=profile, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Profile updated successfully!')
+            return redirect('dashboard:student_profile_settings')
+    else:
+        form = ProfileSettingsForm(instance=profile, user=request.user)
+
+    return render(request, 'dashboard/student_profile_settings.html', {
+        'form': form,
+        'title': 'Profile Settings',
+        'student': student
+    })
+
+@login_required
+@user_passes_test(lambda u: u.role == 'student')
+def student_appearance_settings(request):
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
+
+    if request.method == 'POST':
+        theme = request.POST.get('theme', 'light')
+        profile.theme_preference = theme
+        profile.save()
+
+        messages.success(request, 'Appearance settings saved!')
+        return redirect('dashboard:student_appearance_settings')
+
+    return render(request, 'dashboard/student_appearance_settings.html', {
+        'title': 'Appearance Settings',
+        'themes': ['light', 'dark', 'auto'],
+        'current_theme': profile.theme_preference
+    })
+
+@login_required
+@user_passes_test(lambda u: u.role == 'student')
+def student_security_settings(request):
+    if request.method == 'POST':
+        current_password = request.POST.get('current_password')
+        new_password = request.POST.get('new_password')
+
+        if current_password and new_password and 'password_change' in request.POST:
+            if request.user.check_password(current_password):
+                request.user.set_password(new_password)
+                request.user.save()
+                update_session_auth_hash(request, request.user)  # Important to keep user logged in
+                messages.success(request, 'Password updated successfully!')
+            else:
+                messages.error(request, 'Current password is incorrect')
+
+        elif 'enable_2fa' in request.POST:
+            secret = pyotp.random_base32()
+            profile, created = UserProfile.objects.get_or_create(user=request.user)
+            profile.two_factor_secret = secret
+            profile.save()
+            messages.info(request, 'Please scan the QR code with your authenticator app')
+
+        elif 'verify_2fa' in request.POST:
+            verification_code = request.POST.get('verification_code')
+            profile = UserProfile.objects.get(user=request.user)
+
+            totp = pyotp.TOTP(profile.two_factor_secret)
+            if totp.verify(verification_code):
+                profile.two_factor_enabled = True
+                profile.save()
+                messages.success(request, 'Two-factor authentication enabled successfully!')
+            else:
+                messages.error(request, 'Invalid verification code')
+
+        elif 'disable_2fa' in request.POST:
+            profile = UserProfile.objects.get(user=request.user)
+            profile.two_factor_enabled = False
+            profile.two_factor_secret = None
+            profile.save()
+            messages.success(request, 'Two-factor authentication disabled')
+
+        return redirect('dashboard:student_security_settings')
+
+    active_sessions = 1
+
+    try:
+        profile = UserProfile.objects.get(user=request.user)
+        two_factor_enabled = profile.two_factor_enabled
+        has_secret = bool(profile.two_factor_secret)
+    except UserProfile.DoesNotExist:
+        two_factor_enabled = False
+        has_secret = False
+
+    return render(request, 'dashboard/student_security_settings.html', {
+        'title': 'Security Settings',
+        'active_sessions': active_sessions,
+        'two_factor_enabled': two_factor_enabled,
+        'has_secret': has_secret
+    })

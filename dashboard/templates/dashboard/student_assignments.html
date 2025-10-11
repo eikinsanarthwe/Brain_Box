@@ -115,52 +115,69 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for assignment in assignments %}
+                        {% for assignment_data in assignments %}
                         <tr>
                             <td>
-                                <strong>{{ assignment.title }}</strong>
+                                <strong>{{ assignment_data.assignment.title }}</strong>
+                                {% if assignment_data.assignment.description %}
                                 <br>
-                                <small class="text-muted">{{ assignment.description|truncatewords:10 }}</small>
+                                <small class="text-muted">{{ assignment_data.assignment.description|truncatewords:10 }}</small>
+                                {% endif %}
                             </td>
-                            <td>{{ assignment.course.code }}</td>
+                            <td>{{ assignment_data.assignment.course.code }}</td>
                             <td>
-                                {{ assignment.due_date|date:"M d, Y H:i" }}
-                                {% if assignment.is_post_due %}
+                                {{ assignment_data.assignment.due_date|date:"M d, Y H:i" }}
+                                {% if assignment_data.is_overdue %}
                                     <span class="badge badge-danger ml-2">Overdue</span>
                                 {% endif %}
                             </td>
                             <td>
-                                {% if assignment.is_graded %}
-                                    <span class="badge badge-success">Graded</span>
-                                {% elif assignment.is_submitted %}
-                                    <span class="badge badge-info">Submitted</span>
+                                {% if assignment_data.submission %}
+                                    {% if assignment_data.submission.grade %}
+                                        <span class="badge badge-success">Graded</span>
+                                    {% else %}
+                                        <span class="badge badge-info">Submitted</span>
+                                    {% endif %}
                                 {% else %}
-                                    <span class="badge badge-warning">Pending</span>
+                                    {% if assignment_data.is_overdue %}
+                                        <span class="badge badge-danger">Missed</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">Pending</span>
+                                    {% endif %}
                                 {% endif %}
                             </td>
                             <td>
-                                {% if assignment.is_graded %}
-                                    <strong>{{ assignment.submission.grade }}/{{ assignment.max_points }}</strong>
+                                {% if assignment_data.submission and assignment_data.submission.grade %}
+                                    <strong>{{ assignment_data.submission.grade }}/{{ assignment_data.assignment.max_points }}</strong>
+                                    {% if assignment_data.submission.feedback %}
+                                        <br>
+                                        <small class="text-muted" data-bs-toggle="tooltip" title="{{ assignment_data.submission.feedback }}">
+                                            <i class="fas fa-comment"></i> Feedback
+                                        </small>
+                                    {% endif %}
                                 {% else %}
                                     <span class="text-muted">-</span>
                                 {% endif %}
                             </td>
                             <td>
-                                {% if not assignment.is_submitted %}
-                                    <a href="{% url 'submit_assignment' assignment.id %}"
-                                       class="btn btn-primary btn-sm">
-                                        Submit
+                                {% if assignment_data.submission %}
+                                    <!-- If submitted, show View/Review options -->
+                                    <a href="{% url 'dashboard:student_assignment_detail' assignment_data.assignment.id %}"
+                                       class="btn btn-info btn-sm">
+                                        <i class="fas fa-eye me-1"></i>
+                                        {% if assignment_data.submission.grade %}Review{% else %}View{% endif %}
                                     </a>
                                 {% else %}
-                                    <a href="{% url 'view_submission' assignment.submission.id %}"
-                                       class="btn btn-info btn-sm">
-                                        View
-                                    </a>
+                                    <!-- If not submitted, show Submit button if not overdue -->
+                                    {% if not assignment_data.is_overdue %}
+                                        <a href="{% url 'dashboard:student_assignment_submit' assignment_data.assignment.id %}"
+                                           class="btn btn-primary btn-sm">
+                                            <i class="fas fa-upload me-1"></i>Submit
+                                        </a>
+                                    {% else %}
+                                        <span class="text-muted small">Submission closed</span>
+                                    {% endif %}
                                 {% endif %}
-                                <a href="{% url 'assignment_detail' assignment.id %}"
-                                   class="btn btn-outline-secondary btn-sm">
-                                    Details
-                                </a>
                             </td>
                         </tr>
                         {% empty %}
@@ -181,6 +198,18 @@
         Page generated on: {{ current_time|date:"M d, Y H:i:s" }}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 {% endblock %}
 
 {% block extra_css %}
@@ -208,6 +237,10 @@
     .table th {
         border-top: none;
         font-weight: 600;
+    }
+
+    .badge {
+        font-size: 0.75em;
     }
 </style>
 {% endblock %}

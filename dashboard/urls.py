@@ -79,6 +79,14 @@ urlpatterns = [
     path('teacher/settings/appearance/', views.teacher_appearance_settings, name='teacher_appearance_settings'),
     path('teacher/settings/security/', views.teacher_security_settings, name='teacher_security_settings'),
 
+    # Student Settings
+    path('student/settings/', views.student_settings, name='student_settings'),
+    path('student/settings/profile/', views.student_profile_settings, name='student_profile_settings'),
+    path('student/settings/appearance/', views.student_appearance_settings, name='student_appearance_settings'),
+    path('student/settings/security/', views.student_security_settings, name='student_security_settings'),
+
+
+
     # --- STUDENT DASHBOARD AND FUNCTIONS ---
     path('student/dashboard/', views.student_dashboard, name='student_dashboard'),
     path('student/courses/', views.student_courses, name='student_courses'),
