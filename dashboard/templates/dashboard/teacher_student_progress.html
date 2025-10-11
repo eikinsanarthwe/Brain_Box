@@ -17,9 +17,7 @@
             <h6 class="m-0 font-weight-bold text-primary">
                 Student Progress Overview
             </h6>
-            <a href="{% url 'dashboard:course_modules' course.id %}" class="btn btn-info">
-                <i class="fas fa-list me-1"></i> Manage Modules
-            </a>
+
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -30,7 +28,7 @@
                             <th>Progress</th>
                             <th>Status</th>
                             <th>Last Updated</th>
-                            <th>Actions</th>
+
                         </tr>
                     </thead>
                     <tbody>
@@ -62,12 +60,7 @@
                                 </span>
                             </td>
                             <td>{{ progress.last_updated|date:"M d, Y H:i" }}</td>
-                            <td>
-                                <a href="{% url 'dashboard:update_student_progress' progress.id %}"
-                                   class="btn btn-sm btn-primary">
-                                    <i class="fas fa-edit"></i> Update
-                                </a>
-                            </td>
+
                         </tr>
                         {% empty %}
                         <tr>

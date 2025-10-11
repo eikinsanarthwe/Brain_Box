@@ -109,6 +109,7 @@ urlpatterns = [
     path('courses/<int:id>/delete/', views.delete_course, name='delete_course'),
     
 
+
     # Logout URL
     path('logout/', views.custom_logout, name='logout'),
 ]

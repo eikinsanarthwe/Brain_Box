@@ -17,6 +17,8 @@ import zipfile
 from io import BytesIO
 import os
 from django.utils import timezone
+
+from .models import Teacher, Student, Course, Assignment, Submission, CourseMaterial, UserProfile, Message, CourseModule, StudentProgress,MaterialDownload
 from django.contrib.auth import update_session_auth_hash
 from .models import Teacher, Student, Course, Assignment, Submission, CourseMaterial, UserProfile, Message, CourseModule, StudentProgress
 from accounts.models import CustomUser
@@ -126,7 +128,6 @@ def student_courses(request):
         'courses': courses,
     }
     return render(request, 'dashboard/student_my_courses.html', context)
-
 @login_required
 def student_course_detail(request, course_id):
     if not hasattr(request.user, 'student'):
@@ -135,14 +136,38 @@ def student_course_detail(request, course_id):
     student = get_object_or_404(Student, user=request.user)
     course = get_object_or_404(student.courses, id=course_id)
     assignments = Assignment.objects.filter(course=course, students=student)
-    materials = CourseMaterial.objects.filter(course=course).order_by('-uploaded_at')
+    materials = CourseMaterial.objects.filter(course=course).order_by('-uploaded_at')[:5]
+
+    # Get progress for this course
+    try:
+        progress = StudentProgress.objects.get(student=student, course=course)
+    except StudentProgress.DoesNotExist:
+        progress = None
+
+    # FIX: Remove the is_required filter - count ALL materials
+    total_materials = CourseMaterial.objects.filter(course=course).count()
+
+    # FIX: Count downloads for ALL materials (remove is_required filter)
+    downloaded_count = MaterialDownload.objects.filter(
+        student=student,
+        material__course=course
+    ).count()
+
+    progress_percentage = 0
+    if total_materials > 0:
+        progress_percentage = int((downloaded_count / total_materials) * 100)
 
     context = {
         'course': course,
         'assignments': assignments,
         'materials': materials,
+        'progress': progress,
+        'downloaded_count': downloaded_count,
+        'total_materials': total_materials,
+        'progress_percentage': progress_percentage,
     }
     return render(request, 'dashboard/student_course_detail.html', context)
+
 @login_required
 def student_assignments(request):
     """View all assignments for a student"""
@@ -181,6 +206,7 @@ def student_assignments(request):
         'current_time': timezone.now(),
     }
     return render(request, 'dashboard/student_assignments.html', context)
+
 @login_required
 def student_assignment_detail(request, assignment_id):
     if not hasattr(request.user, 'student'):
@@ -304,7 +330,6 @@ def student_progress(request):
 #-----------------------------
 # Student Messaging Views
 #-----------------------------
-
 
 @login_required
 def student_messages(request):
@@ -479,7 +504,6 @@ def student_settings(request):
     return render(request, 'dashboard/student_settings.html')
 
 @login_required
-@login_required
 @user_passes_test(lambda u: u.role == 'student')
 def student_profile(request):
     """Student profile overview page"""
@@ -620,6 +644,7 @@ def delete_teacher(request, id):
     teacher.delete()
     messages.success(request, 'Teacher deleted successfully!')
     return redirect('dashboard:teacher_list')
+
 # ----------------------------
 # Admin Messages Views
 # ----------------------------
@@ -649,6 +674,7 @@ def admin_sent_messages(request):
         'active_tab': 'sent'
     }
     return render(request, 'dashboard/admin_messages.html', context)
+
 @login_required
 @user_passes_test(lambda u: u.role == 'admin')
 def admin_compose_message(request):
@@ -987,11 +1013,6 @@ def course_list(request):
 def course_create(request):
     return edit_course(request)
 
-
-@login_required
-def course_create(request):
-    return edit_course(request)
-
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher' or u.role == 'admin')
 def edit_course(request, id):
@@ -1221,9 +1242,18 @@ def teacher_assignment_detail(request, id):
     assignment = get_object_or_404(Assignment, id=id, teacher=request.user)
     submissions = Submission.objects.filter(assignment=assignment).select_related('student')
 
+    total_students = assignment.students.count() if assignment.students.exists() else 0
+    submission_count = submissions.count()
+    graded_count = submissions.filter(grade__isnull=False).count()
+    pending_count = total_students - submission_count
+
     context = {
         'assignment': assignment,
         'submissions': submissions,
+        'total_students': total_students,
+        'submission_count': submission_count,
+        'graded_count': graded_count,
+        'pending_count': pending_count,
     }
     return render(request, 'dashboard/teacher_assignment_detail.html', context)
 
@@ -1603,26 +1633,73 @@ def delete_course_material(request, material_id):
     messages.success(request, 'Course material deleted successfully!')
     return redirect('dashboard:teacher_course_materials', course_id=course_id)
 
+# Add this function to your views.py (if not exists)
 @login_required
 @user_passes_test(lambda u: u.role == 'student')
 def student_course_materials(request, course_id):
-    course = get_object_or_404(Course, id=course_id)
+    """View course materials with progress tracking"""
+    if not hasattr(request.user, 'student'):
+        return redirect('dashboard')
+
     student = get_object_or_404(Student, user=request.user)
+    course = get_object_or_404(Course, id=course_id)
 
     if course not in student.courses.all():
         messages.error(request, "You are not enrolled in this course.")
         return redirect('dashboard:student_courses')
 
+    # Get ALL materials for display
     materials = CourseMaterial.objects.filter(course=course)
+
+    # FIX: Count ALL materials for progress calculation
+    total_materials = CourseMaterial.objects.filter(course=course).count()
+
+    # Get downloaded materials for this student (ALL materials)
+    downloaded_materials = MaterialDownload.objects.filter(
+        student=student,
+        material__course=course
+    )
+
+    downloaded_material_ids = downloaded_materials.values_list('material_id', flat=True)
+    downloaded_count = downloaded_materials.count()
+
+    # Calculate progress percentage based on ALL materials
+    progress_percentage = 0
+    if total_materials > 0:
+        progress_percentage = int((downloaded_count / total_materials) * 100)
+
+    # Update progress record
+    progress, created = StudentProgress.objects.get_or_create(
+        student=student,
+        course=course,
+        defaults={
+            'status': 'not_started',
+            'progress_percentage': progress_percentage
+        }
+    )
+
+    if not created:
+        progress.progress_percentage = progress_percentage
+        if progress_percentage >= 90:
+            progress.status = 'completed'
+        elif progress_percentage > 0:
+            progress.status = 'in_progress'
+        else:
+            progress.status = 'not_started'
+        progress.save()
 
     context = {
         'course': course,
         'materials': materials,
+        'student': student,
+        'progress': progress,
+        'downloaded_material_ids': list(downloaded_material_ids),
+        'downloaded_count': downloaded_count,
+        'total_materials': total_materials,
+        'progress_percentage': progress_percentage,
     }
     return render(request, 'dashboard/student_course_materials.html', context)
 
-# -----------------------------
-# Message Views
 # -----------------------------
 @login_required
 def message_list(request):
@@ -1925,25 +2002,35 @@ def teacher_progress_track(request):
     teacher = get_object_or_404(Teacher, user=request.user)
     courses = Course.objects.filter(teachers=teacher)
 
+    # AUTO-CREATE PROGRESS RECORDS FOR MISSING STUDENTS
+    for course in courses:
+        students = Student.objects.filter(courses=course)
+        for student in students:
+            progress, created = StudentProgress.objects.get_or_create(
+                student=student,
+                course=course,
+                defaults={
+                    'status': 'not_started',
+                    'progress_percentage': 0
+                }
+            )
+            if created:
+                print(f"DEBUG: Created progress record for {student} in {course}")
+
+    # Filter by course if specified
     course_id = request.GET.get('course')
     selected_course = None
     if course_id:
         selected_course = get_object_or_404(Course, id=course_id, teachers=teacher)
         progress_data = StudentProgress.objects.filter(
             course=selected_course
-        ).select_related('student__user', 'course').prefetch_related('completed_modules')
+        ).select_related('student__user', 'course')
     else:
         progress_data = StudentProgress.objects.filter(
             course__in=courses
-        ).select_related('student__user', 'course').prefetch_related('completed_modules')
+        ).select_related('student__user', 'course')
 
-    for progress in progress_data:
-        progress.total_modules = CourseModule.objects.filter(course=progress.course).count()
-        progress.completed_modules_count = progress.completed_modules.count()
-        if progress.progress_percentage == 0:
-            progress.progress_percentage = progress.calculate_progress_percentage()
-            progress.save()
-
+    # Calculate overall statistics
     total_students = Student.objects.filter(courses__in=courses).distinct().count()
 
     if progress_data:
@@ -1951,17 +2038,22 @@ def teacher_progress_track(request):
     else:
         average_progress = 0
 
+    # Count completed courses (progress >= 90%)
     completed_courses = progress_data.filter(progress_percentage__gte=90).count()
+
+    # Students needing attention (progress < 25%)
     need_attention = progress_data.filter(progress_percentage__lt=25)
     need_attention_count = need_attention.count()
 
+    # Course-wise summary with proper average progress calculation
     course_summary = []
     for course in courses:
         course_progress = StudentProgress.objects.filter(course=course)
         enrolled_students = course_progress.count()
 
         if enrolled_students > 0:
-            avg_progress = sum(p.progress_percentage for p in course_progress) // enrolled_students
+            total_progress = sum(p.progress_percentage for p in course_progress)
+            avg_progress = total_progress // enrolled_students
             completed_students = course_progress.filter(progress_percentage__gte=90).count()
         else:
             avg_progress = 0
@@ -1981,6 +2073,7 @@ def teacher_progress_track(request):
         'selected_course': selected_course,
         'progress_data': progress_data,
         'total_students': total_students,
+        'total_courses': courses.count(),
         'average_progress': average_progress,
         'completed_courses': completed_courses,
         'need_attention': need_attention,
@@ -2191,6 +2284,128 @@ def calculate_student_course_progress(student, course):
         'total_modules': total_modules,
         'status': status
     }
+
+@login_required
+@user_passes_test(lambda u: u.role == 'student')
+def download_course_material(request, material_id):
+    """Download course material and track progress with error handling"""
+    if not hasattr(request.user, 'student'):
+        return redirect('dashboard')
+
+    student = get_object_or_404(Student, user=request.user)
+    material = get_object_or_404(CourseMaterial, id=material_id)
+
+    # Check if student is enrolled in the course
+    if material.course not in student.courses.all():
+        messages.error(request, "You are not enrolled in this course.")
+        return redirect('dashboard:student_courses')
+
+    # Check if file exists
+    if not material.file:
+        messages.error(request, "File not found. Please contact your teacher.")
+        return redirect('dashboard:student_course_materials', course_id=material.course.id)
+
+    try:
+        # Check if file physically exists
+        if not material.file.storage.exists(material.file.name):
+            messages.error(request, "File not found on server. Please contact your teacher.")
+            return redirect('dashboard:student_course_materials', course_id=material.course.id)
+    except Exception as e:
+        messages.error(request, f"Error accessing file: {str(e)}")
+        return redirect('dashboard:student_course_materials', course_id=material.course.id)
+
+    # Track the download
+    download, created = MaterialDownload.objects.get_or_create(
+        student=student,
+        material=material
+    )
+
+    # FIX: Calculate progress based on ALL materials
+    total_materials = CourseMaterial.objects.filter(course=material.course).count()
+    downloaded_count = MaterialDownload.objects.filter(
+        student=student,
+        material__course=material.course
+    ).count()
+
+    progress_percentage = 0
+    if total_materials > 0:
+        progress_percentage = int((downloaded_count / total_materials) * 100)
+
+    # Update student progress
+    progress, created = StudentProgress.objects.get_or_create(
+        student=student,
+        course=material.course,
+        defaults={
+            'status': 'not_started',
+            'progress_percentage': progress_percentage
+        }
+    )
+
+    progress.progress_percentage = progress_percentage
+
+    # Update status based on progress
+    if progress_percentage >= 90:
+        progress.status = 'completed'
+    elif progress_percentage > 0:
+        progress.status = 'in_progress'
+    else:
+        progress.status = 'not_started'
+
+    progress.save()
+
+    try:
+        # Serve the file for download
+        response = HttpResponse(material.file, content_type='application/octet-stream')
+        response['Content-Disposition'] = f'attachment; filename="{os.path.basename(material.file.name)}"'
+
+        # Store success message in session
+        request.session['download_success'] = f'Material downloaded successfully! Your progress is now {progress_percentage}%'
+
+        return response
+
+    except Exception as e:
+        messages.error(request, f"Error downloading file: {str(e)}")
+        return redirect('dashboard:student_course_materials', course_id=material.course.id)
+
+def update_student_progress_from_materials(student, course):
+    """Update student progress based on downloaded materials"""
+    # FIX: Count ALL materials
+    total_materials = CourseMaterial.objects.filter(course=course).count()
+
+    if total_materials == 0:
+        return
+
+    # Get downloaded materials count (ALL materials)
+    downloaded_materials = MaterialDownload.objects.filter(
+        student=student,
+        material__course=course
+    ).count()
+
+    # Calculate progress percentage
+    progress_percentage = int((downloaded_materials / total_materials) * 100)
+
+    # Get or create student progress record
+    progress, created = StudentProgress.objects.get_or_create(
+        student=student,
+        course=course,
+        defaults={
+            'status': 'not_started',
+            'progress_percentage': progress_percentage
+        }
+    )
+
+    # Update progress
+    progress.progress_percentage = progress_percentage
+
+    # Update status based on progress
+    if progress_percentage >= 90:
+        progress.status = 'completed'
+    elif progress_percentage > 0:
+        progress.status = 'in_progress'
+    else:
+        progress.status = 'not_started'
+
+    progress.save()
 
 # Student Settings Views
 # -----------------------------
