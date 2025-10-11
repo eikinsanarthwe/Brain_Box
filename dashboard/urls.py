@@ -131,4 +131,13 @@ urlpatterns = [
     path('messages/<int:message_id>/', views.message_detail, name='message_detail'),
     path('messages/<int:message_id>/delete/', views.message_delete, name='message_delete'),
     path('messages/unread-count/', views.get_unread_count, name='unread_count'),
+
+    # Student Messages
+    path('student/messages/', views.student_messages, name='student_messages'),
+    path('student/messages/sent/', views.student_sent_messages, name='student_sent_messages'),
+    path('student/messages/compose/', views.student_compose_message, name='student_compose_message'),
+    path('student/messages/<int:message_id>/', views.student_message_detail, name='student_message_detail'),
+    path('student/messages/<int:message_id>/delete/', views.student_delete_message, name='student_delete_message'),
+    path('student/messages/<int:message_id>/read/', views.mark_message_read, name='mark_message_read'),
+
 ]

@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Compose Message - Brain Box{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <h1 class="h3 mb-0 text-gray-800">
+                    <i class="fas fa-edit me-2"></i>Compose Message
+                </h1>
+                <div>
+                    <a href="{% url 'dashboard:student_messages' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Messages
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0 font-weight-bold">New Message</h5>
+                </div>
+                <div class="card-body">
+                    {% if parent_message %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-reply me-2"></i>
+                        <strong>Replying to:</strong> {{ parent_message.sender.get_full_name|default:parent_message.sender.username }}
+                        <br>
+                        <strong>Original message:</strong> "{{ parent_message.body|truncatewords:20 }}"
+                    </div>
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+
+                        {% if parent_message %}
+                        <input type="hidden" name="parent_message" value="{{ parent_message.id }}">
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="recipient" class="form-label">To <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="recipient" name="recipient"
+                                   value="{% if parent_message %}{{ parent_message.sender.username }}{% else %}{{ recipient_username }}{% endif %}"
+                                   required placeholder="Enter username">
+                            <div class="form-text">Enter the recipient's username</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Subject <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="subject" name="subject"
+                                   value="{% if parent_message %}Re: {{ parent_message.subject }}{% endif %}"
+                                   required placeholder="Enter message subject">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="body" class="form-label">Message <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="body" name="body" rows="8"
+                                      placeholder="Type your message here..." required>{% if parent_message %}
+
+---
+Original message from {{ parent_message.sender.get_full_name|default:parent_message.sender.username }}:
+{{ parent_message.body }}{% endif %}</textarea>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'dashboard:student_messages' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-1"></i> Send Message
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Recipient Suggestions -->
+            <div class="card shadow mt-4">
+                <div class="card-header bg-info text-white">
+                    <h6 class="m-0 font-weight-bold">Quick Recipients</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Teachers</h6>
+                            {% for teacher in teachers %}
+                            <div class="form-check">
+                                <input class="form-check-input teacher-checkbox" type="radio"
+                                       name="teacher_recipient" value="{{ teacher.user.username }}"
+                                       id="teacher{{ teacher.id }}">
+                                <label class="form-check-label" for="teacher{{ teacher.id }}">
+                                    {{ teacher.user.get_full_name|default:teacher.user.username }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Students</h6>
+                            {% for student in students %}
+                            <div class="form-check">
+                                <input class="form-check-input student-checkbox" type="radio"
+                                       name="student_recipient" value="{{ student.user.username }}"
+                                       id="student{{ student.id }}">
+                                <label class="form-check-label" for="student{{ student.id }}">
+                                    {{ student.user.get_full_name|default:student.user.username }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-fill recipient when clicking suggestion
+    const teacherCheckboxes = document.querySelectorAll('.teacher-checkbox');
+    const studentCheckboxes = document.querySelectorAll('.student-checkbox');
+    const recipientInput = document.getElementById('recipient');
+
+    teacherCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                recipientInput.value = this.value;
+                // Uncheck all student checkboxes
+                studentCheckboxes.forEach(student => student.checked = false);
+            }
+        });
+    });
+
+    studentCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            if (this.checked) {
+                recipientInput.value = this.value;
+                // Uncheck all teacher checkboxes
+                teacherCheckboxes.forEach(teacher => teacher.checked = false);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

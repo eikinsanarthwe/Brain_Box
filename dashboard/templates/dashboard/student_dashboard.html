@@ -393,6 +393,11 @@
             text-align: center;
             color: var(--text-muted);
         }
+
+        /* Badge styles */
+        .badge {
+            font-size: 0.75em;
+        }
     </style>
 </head>
 <body>
@@ -417,11 +422,11 @@
                 <a href="{% url 'dashboard:student_assignments' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
                     <i class="fas fa-tasks" style="margin-right:0.75rem;"></i> Assignments
                 </a>
-                <a href="{% url 'dashboard:student_progress' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
-                    <i class="fas fa-chart-line" style="margin-right:0.75rem;"></i> Progress Track
-                </a>
                 <a href="{% url 'dashboard:student_messages' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
                     <i class="fas fa-envelope" style="margin-right:0.75rem;"></i> Messages
+                    {% if unread_messages_count > 0 %}
+                    <span class="badge bg-danger ms-auto">{{ unread_messages_count }}</span>
+                    {% endif %}
                 </a>
 
                 <hr style="border-top:1px solid rgba(255,255,255,0.3); margin:1rem;">
@@ -505,7 +510,10 @@
                         <div class="card welcome-banner text-white">
                             <div class="card-body">
                                 <h3 class="card-title">Welcome back, {{ user.first_name }}!</h3>
-                                <p class="card-text">You have {{ assignments.count }} assignments and {{ unread_messages_count }} new messages</p>
+                                <p class="card-text">
+                                    You have {{ assignments.count }} assignments, {{ unread_messages_count }} new messages,
+                                    and {{ upcoming_assignments.count }} upcoming deadlines this week.
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -513,45 +521,93 @@
 
                 <!-- Stats Cards -->
                 <div class="row mb-4">
-                    <div class="col-md-4 mb-3">
-                        <div class="card stat-card">
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-primary shadow h-100 py-2">
                             <div class="card-body">
-                                <i class="fas fa-book stat-icon text-primary"></i>
-                                <div>
-                                    <h3>{{ courses.count }}</h3>
-                                    <p class="text-muted">Enrolled Courses</p>
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                                            Total Courses
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                            {{ total_courses }}
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-book fa-2x text-gray-300"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <div class="card stat-card">
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-success shadow h-100 py-2">
                             <div class="card-body">
-                                <i class="fas fa-tasks stat-icon text-warning"></i>
-                                <div>
-                                    <h3>{{ assignments.count }}</h3>
-                                    <p class="text-muted">Assignments</p>
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                                            Submitted Assignments
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                            {{ submitted_assignments_count }}
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-tasks fa-2x text-gray-300"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4 mb-3">
-                        <div class="card stat-card">
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-info shadow h-100 py-2">
                             <div class="card-body">
-                                <i class="fas fa-envelope stat-icon text-success"></i>
-                                <div>
-                                    <h3>{{ unread_messages_count }}</h3>
-                                    <p class="text-muted">Unread Messages</p>
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                                            Graded Assignments
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                            {{ graded_assignments_count }}
+                                        </div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-warning shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                                            Messages
+                                        </div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800">
+                                            {{ unread_messages_count }} / {{ total_messages_count }}
+                                        </div>
+                                        <div class="text-xs text-muted">Unread / Total</div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-envelope fa-2x text-gray-300"></i>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Recent Courses -->
+                <!-- Recent Courses & Upcoming Assignments -->
                 <div class="row">
-                    <div class="col-12">
-                        <div class="card">
+                    <!-- Recent Courses -->
+                    <div class="col-lg-8 mb-4">
+                        <div class="card shadow">
                             <div class="card-header d-flex justify-content-between align-items-center">
                                 <h5 class="card-title mb-0">My Courses</h5>
                                 <a href="{% url 'dashboard:student_courses' %}" class="btn btn-sm btn-outline-primary">View All</a>
@@ -559,11 +615,20 @@
                             <div class="card-body">
                                 <div class="row">
                                     {% for course in courses %}
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-6 mb-3">
                                         <div class="card h-100 course-card">
                                             <div class="card-body">
                                                 <h5 class="card-title">{{ course.name }}</h5>
-                                                <p class="card-text text-muted">{{ course.description|truncatewords:15 }}</p>
+                                                <p class="card-text text-muted">{{ course.code }} - {{ course.credit }} Credits</p>
+                                                <p class="card-text text-muted small">{{ course.description|truncatewords:15 }}</p>
+                                                <div class="mb-2">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-chalkboard-teacher me-1"></i>
+                                                        {% for teacher in course.teachers.all %}
+                                                            {{ teacher.user.get_full_name|default:teacher.user.username }}{% if not forloop.last %}, {% endif %}
+                                                        {% endfor %}
+                                                    </small>
+                                                </div>
                                                 <a href="{% url 'dashboard:student_course_detail' course.id %}" class="btn btn-sm btn-primary">View Course</a>
                                             </div>
                                         </div>
@@ -577,31 +642,68 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Upcoming Assignments -->
-                <div class="row mt-4">
-                    <div class="col-12">
-                        <div class="card">
+                    <!-- Upcoming Assignments & Recent Activity -->
+                    <div class="col-lg-4">
+                        <!-- Upcoming Assignments -->
+                        <div class="card shadow mb-4">
                             <div class="card-header">
-                                <h5 class="card-title">Upcoming Assignments</h5>
+                                <h5 class="card-title mb-0">Upcoming Assignments</h5>
                             </div>
                             <div class="card-body">
-                                {% if assignments %}
-                                    {% for assignment in assignments|slice:":5" %}
+                                {% if upcoming_assignments %}
+                                    {% for assignment in upcoming_assignments|slice:":3" %}
                                     <div class="assignment-item d-flex align-items-center mb-3">
                                         <div class="assignment-icon me-3">
                                             <i class="fas fa-tasks fa-2x text-primary"></i>
                                         </div>
                                         <div class="assignment-details flex-grow-1">
-                                            <p class="mb-0">{{ assignment.title }}</p>
-                                            <small class="text-muted">Due: {{ assignment.due_date|date:"M d, Y" }}</small>
+                                            <h6 class="mb-1">{{ assignment.title }}</h6>
+                                            <small class="text-muted">{{ assignment.course.code }}</small>
+                                            <br>
+                                            <small class="text-warning">
+                                                <i class="fas fa-clock me-1"></i>
+                                                Due: {{ assignment.due_date|date:"M d, Y" }}
+                                            </small>
                                         </div>
                                         <a href="{% url 'dashboard:student_assignment_detail' assignment.id %}" class="btn btn-sm btn-outline-primary">View</a>
                                     </div>
+                                    {% if not forloop.last %}<hr>{% endif %}
                                     {% endfor %}
                                 {% else %}
-                                    <p class="text-muted">No upcoming assignments.</p>
+                                    <p class="text-muted">No upcoming assignments this week.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Recent Submissions -->
+                        <div class="card shadow">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Recent Submissions</h5>
+                            </div>
+                            <div class="card-body">
+                                {% if recent_submissions %}
+                                    {% for submission in recent_submissions %}
+                                    <div class="submission-item mb-3">
+                                        <h6 class="mb-1">{{ submission.assignment.title }}</h6>
+                                        <small class="text-muted">{{ submission.assignment.course.code }}</small>
+                                        <br>
+                                        <small class="text-muted">
+                                            Submitted: {{ submission.submitted_at|date:"M d, Y" }}
+                                        </small>
+                                        <br>
+                                        <small class="{% if submission.grade %}text-success{% else %}text-warning{% endif %}">
+                                            {% if submission.grade %}
+                                                <i class="fas fa-check me-1"></i>Graded: {{ submission.grade }}/{{ submission.assignment.max_points }}
+                                            {% else %}
+                                                <i class="fas fa-clock me-1"></i>Awaiting Grade
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    {% if not forloop.last %}<hr>{% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <p class="text-muted">No recent submissions.</p>
                                 {% endif %}
                             </div>
                         </div>

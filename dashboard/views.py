@@ -71,15 +71,45 @@ def student_dashboard(request):
         return redirect('dashboard')
 
     student = get_object_or_404(Student, user=request.user)
+
+    # Get enrolled courses
     courses = student.courses.all()
-    assignments = Assignment.objects.filter(students=student).order_by('due_date')
+
+    # Get assignments (both ways depending on your model relationship)
+    try:
+        assignments = Assignment.objects.filter(course__in=courses, status='published').order_by('due_date')
+    except:
+        assignments = Assignment.objects.filter(students=student, status='published').order_by('due_date')
+
+    # Get upcoming assignments (due in next 7 days)
+    from django.utils import timezone
+    from datetime import timedelta
+    next_week = timezone.now() + timedelta(days=7)
+    upcoming_assignments = assignments.filter(due_date__gte=timezone.now(), due_date__lte=next_week)
+
+    # Get message counts
     unread_messages_count = Message.objects.filter(recipient=request.user, is_read=False).count()
+    total_messages_count = Message.objects.filter(recipient=request.user).count()
+
+    # Get recent submissions
+    recent_submissions = Submission.objects.filter(student=student).order_by('-submitted_at')[:3]
+
+    # Get course statistics
+    total_courses = courses.count()
+    submitted_assignments_count = Submission.objects.filter(student=student).count()
+    graded_assignments_count = Submission.objects.filter(student=student, grade__isnull=False).count()
 
     context = {
         'student': student,
         'courses': courses,
         'assignments': assignments,
+        'upcoming_assignments': upcoming_assignments,
         'unread_messages_count': unread_messages_count,
+        'total_messages_count': total_messages_count,
+        'recent_submissions': recent_submissions,
+        'total_courses': total_courses,
+        'submitted_assignments_count': submitted_assignments_count,
+        'graded_assignments_count': graded_assignments_count,
     }
     return render(request, 'dashboard/student_dashboard.html', context)
 
@@ -271,17 +301,168 @@ def student_progress(request):
     }
     return render(request, 'dashboard/student_progress.html', context)
 
+#-----------------------------
+# Student Messaging Views
+#-----------------------------
+
+
 @login_required
 def student_messages(request):
-    if not hasattr(request.user, 'student'):
-        return redirect('dashboard')
-
+    """Student messages inbox"""
     messages_list = Message.objects.filter(recipient=request.user).order_by('-sent_at')
+    unread_count = messages_list.filter(is_read=False).count()
 
     context = {
         'messages': messages_list,
+        'unread_count': unread_count,
+        'active_tab': 'inbox'
     }
     return render(request, 'dashboard/student_messages.html', context)
+
+@login_required
+def student_sent_messages(request):
+    """Student sent messages"""
+    sent_messages = Message.objects.filter(sender=request.user).order_by('-sent_at')
+
+    context = {
+        'messages': sent_messages,
+        'active_tab': 'sent'
+    }
+    return render(request, 'dashboard/student_messages.html', context)
+
+@login_required
+def student_compose_message(request):
+    """Compose new message"""
+    if request.method == 'POST':
+        recipient_username = request.POST.get('recipient')
+        subject = request.POST.get('subject')
+        body = request.POST.get('body')
+        parent_id = request.POST.get('parent_message')
+
+        try:
+            recipient = User.objects.get(username=recipient_username)
+
+            # Create message
+            message = Message(
+                sender=request.user,
+                recipient=recipient,
+                subject=subject,
+                body=body
+            )
+
+            # If this is a reply, set parent message
+            if parent_id:
+                parent_message = Message.objects.get(id=parent_id)
+                message.parent_message = parent_message
+                # Add "Re: " to subject if not already there
+                if not message.subject.startswith('Re: '):
+                    message.subject = f"Re: {message.subject}"
+
+            message.save()
+            messages.success(request, 'Message sent successfully!')
+            return redirect('dashboard:student_messages')
+
+        except User.DoesNotExist:
+            messages.error(request, 'Recipient not found!')
+        except Exception as e:
+            messages.error(request, f'Error sending message: {str(e)}')
+
+    # Pre-fill recipient if provided in URL
+    recipient_username = request.GET.get('to', '')
+    parent_id = request.GET.get('reply', '')
+    parent_message = None
+
+    if parent_id:
+        try:
+            parent_message = Message.objects.get(id=parent_id)
+            # Verify the current user is involved in this conversation
+            if parent_message.recipient != request.user and parent_message.sender != request.user:
+                parent_message = None
+        except Message.DoesNotExist:
+            parent_message = None
+
+    context = {
+        'recipient_username': recipient_username,
+        'parent_message': parent_message,
+        'teachers': Teacher.objects.all(),  # For recipient suggestions
+        'students': Student.objects.all()   # For recipient suggestions
+    }
+    return render(request, 'dashboard/student_compose_message.html', context)
+
+@login_required
+def student_message_detail(request, message_id):
+    """View message details and reply"""
+    try:
+        message = Message.objects.get(id=message_id)
+
+        # Verify the current user is the recipient or sender
+        if message.recipient != request.user and message.sender != request.user:
+            messages.error(request, 'You do not have permission to view this message.')
+            return redirect('dashboard:student_messages')
+
+        # Mark as read if the current user is the recipient
+        if message.recipient == request.user and not message.is_read:
+            message.mark_as_read()
+
+        # Get conversation thread
+        conversation = get_message_thread(message)
+
+    except Message.DoesNotExist:
+        messages.error(request, 'Message not found.')
+        return redirect('dashboard:student_messages')
+
+    context = {
+        'message': message,
+        'conversation': conversation
+    }
+    return render(request, 'dashboard/student_message_detail.html', context)
+
+@login_required
+def student_delete_message(request, message_id):
+    """Delete a message"""
+    try:
+        message = Message.objects.get(id=message_id)
+
+        # Verify the current user is involved in this message
+        if message.recipient != request.user and message.sender != request.user:
+            messages.error(request, 'You do not have permission to delete this message.')
+            return redirect('dashboard:student_messages')
+
+        message.delete()
+        messages.success(request, 'Message deleted successfully!')
+
+    except Message.DoesNotExist:
+        messages.error(request, 'Message not found.')
+
+    return redirect('dashboard:student_messages')
+
+@login_required
+def mark_message_read(request, message_id):
+    """Mark message as read (AJAX)"""
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        try:
+            message = Message.objects.get(id=message_id, recipient=request.user)
+            message.mark_as_read()
+            return JsonResponse({'status': 'success'})
+        except Message.DoesNotExist:
+            return JsonResponse({'status': 'error'})
+    return JsonResponse({'status': 'error'})
+
+def get_message_thread(message):
+    """Get the entire conversation thread for a message"""
+    thread = []
+    current_message = message
+
+    # Go up to the original message
+    while current_message.parent_message:
+        current_message = current_message.parent_message
+
+    # Get all replies in order
+    thread.append(current_message)
+    replies = current_message.replies.all().order_by('sent_at')
+    thread.extend(replies)
+
+    return thread
 
 @login_required
 def student_aboutus(request):
