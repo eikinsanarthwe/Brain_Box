@@ -49,6 +49,7 @@
         <span class="badge bg-danger float-end">{{ unread_messages_count }}</span>
         {% endif %}
     </a>
+
     {% elif user.role == 'teacher' %}
     <!-- Teacher Links -->
     <a href="{% url 'dashboard:teacher_dashboard' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
@@ -72,11 +73,35 @@
         <span class="badge bg-danger float-end">{{ unread_messages_count }}</span>
         {% endif %}
     </a>
+
+    {% elif user.role == 'student' %}
+    <!-- Student Links -->
+    <a href="{% url 'dashboard:student_dashboard' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-tachometer-alt" style="margin-right:0.75rem;"></i> Dashboard
+    </a>
+    <a href="{% url 'dashboard:student_courses' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-book-open" style="margin-right:0.75rem;"></i> My Courses
+    </a>
+    <a href="{% url 'dashboard:student_assignments' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-tasks" style="margin-right:0.75rem;"></i> Assignments
+    </a>
+    <a href="{% url 'dashboard:student_messages' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-envelope" style="margin-right:0.75rem;"></i> Messages
+        {% if unread_messages_count > 0 %}
+        <span class="badge bg-danger float-end">{{ unread_messages_count }}</span>
+        {% endif %}
+    </a>
+    <a href="{% url 'dashboard:student_settings' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-cog" style="margin-right:0.75rem;"></i> Settings
+    </a>
+    <a href="{% url 'dashboard:student_profile' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-user-circle" style="margin-right:0.75rem;"></i> Profile
+    </a>
     {% endif %}
 
     <hr style="border-top:1px solid rgba(255,255,255,0.3); margin:1rem;">
 
-    <!-- Settings -->
+    <!-- Settings and Profile Links -->
     {% if user.role == 'admin' %}
     <a href="{% url 'dashboard:admin_settings' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
         <i class="fas fa-cog" style="margin-right:0.75rem;"></i> Settings
@@ -85,12 +110,29 @@
     <a href="{% url 'dashboard:teacher_settings' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
         <i class="fas fa-cog" style="margin-right:0.75rem;"></i> Settings
     </a>
+    {% elif user.role == 'student' %}
+    <a href="{% url 'dashboard:student_settings' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-cog" style="margin-right:0.75rem;"></i> Settings
+    </a>
     {% endif %}
 
-    <!-- Profile -->
+    <!-- Profile Link -->
+    {% if user.role == 'admin' %}
+    <a href="{% url 'dashboard:profile_settings' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-user" style="margin-right:0.75rem;"></i> Profile
+    </a>
+    {% elif user.role == 'teacher' %}
     <a href="{% url 'dashboard:teacher_profile_settings' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
         <i class="fas fa-user" style="margin-right:0.75rem;"></i> Profile
     </a>
+    {% elif user.role == 'student' %}
+    <a href="{% url 'dashboard:student_profile' %}" style="padding:1rem; display:flex; align-items:center; text-decoration:none; color:#fff; margin:0.25rem 1rem; border-radius:6px; background:rgba(255,255,255,0.1);">
+        <i class="fas fa-user" style="margin-right:0.75rem;"></i> Profile
+    </a>
+    {% endif %}
+
+    <!-- Separator for Logout -->
+    <div style="margin: 1rem 1rem 0 1rem; border-top: 1px solid rgba(255, 255, 255, 0.2);"></div>
 
     <!-- Logout -->
     <form method="post" action="{% url 'logout' %}" style="margin:0;">
