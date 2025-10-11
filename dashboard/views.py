@@ -620,6 +620,311 @@ def delete_teacher(request, id):
     teacher.delete()
     messages.success(request, 'Teacher deleted successfully!')
     return redirect('dashboard:teacher_list')
+# ----------------------------
+# Admin Messages Views
+# ----------------------------
+
+@login_required
+@user_passes_test(lambda u: u.role == 'admin')
+def admin_messages(request):
+    """Admin messages inbox"""
+    messages_list = Message.objects.filter(recipient=request.user).order_by('-sent_at')
+    unread_count = messages_list.filter(is_read=False).count()
+
+    context = {
+        'messages': messages_list,
+        'unread_count': unread_count,
+        'active_tab': 'inbox'
+    }
+    return render(request, 'dashboard/admin_messages.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'admin')
+def admin_sent_messages(request):
+    """Admin sent messages"""
+    sent_messages = Message.objects.filter(sender=request.user).order_by('-sent_at')
+
+    context = {
+        'messages': sent_messages,
+        'active_tab': 'sent'
+    }
+    return render(request, 'dashboard/admin_messages.html', context)
+@login_required
+@user_passes_test(lambda u: u.role == 'admin')
+def admin_compose_message(request):
+    """Compose new message as admin"""
+    # Get all users except the current user - remove the invalid select_related
+    all_users = User.objects.exclude(id=request.user.id)
+
+    if request.method == 'POST':
+        recipient_username = request.POST.get('recipient')
+        subject = request.POST.get('subject')
+        body = request.POST.get('body')
+        parent_id = request.POST.get('parent_message')
+
+        try:
+            recipient = User.objects.get(username=recipient_username)
+
+            # Create message
+            message = Message(
+                sender=request.user,
+                recipient=recipient,
+                subject=subject,
+                body=body
+            )
+
+            # If this is a reply, set parent message
+            if parent_id:
+                parent_message = Message.objects.get(id=parent_id)
+                message.parent_message = parent_message
+                # Add "Re: " to subject if not already there
+                if not message.subject.startswith('Re: '):
+                    message.subject = f"Re: {message.subject}"
+
+            message.save()
+            messages.success(request, 'Message sent successfully!')
+            return redirect('dashboard:admin_messages')
+
+        except User.DoesNotExist:
+            messages.error(request, 'Recipient not found!')
+        except Exception as e:
+            messages.error(request, f'Error sending message: {str(e)}')
+
+    # Pre-fill recipient if provided in URL
+    recipient_username = request.GET.get('to', '')
+    parent_id = request.GET.get('reply', '')
+    parent_message = None
+
+    if parent_id:
+        try:
+            parent_message = Message.objects.get(id=parent_id)
+            # Verify the current user is involved in this conversation
+            if parent_message.recipient != request.user and parent_message.sender != request.user:
+                parent_message = None
+        except Message.DoesNotExist:
+            parent_message = None
+
+    context = {
+        'recipient_username': recipient_username,
+        'parent_message': parent_message,
+        'all_users': all_users,
+    }
+    return render(request, 'dashboard/admin_compose_message.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'admin')
+def admin_message_detail(request, message_id):
+    """View message details and reply as admin"""
+    try:
+        message = Message.objects.get(id=message_id)
+
+        # Verify the current user is the recipient or sender
+        if message.recipient != request.user and message.sender != request.user:
+            messages.error(request, 'You do not have permission to view this message.')
+            return redirect('dashboard:admin_messages')
+
+        # Mark as read if the current user is the recipient
+        if message.recipient == request.user and not message.is_read:
+            message.mark_as_read()
+
+        # Get conversation thread
+        conversation = get_message_thread(message)
+
+    except Message.DoesNotExist:
+        messages.error(request, 'Message not found.')
+        return redirect('dashboard:admin_messages')
+
+    context = {
+        'message': message,
+        'conversation': conversation
+    }
+    return render(request, 'dashboard/admin_message_detail.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'admin')
+def admin_delete_message(request, message_id):
+    """Delete a message as admin"""
+    try:
+        message = Message.objects.get(id=message_id)
+
+        # Verify the current user is involved in this message
+        if message.recipient != request.user and message.sender != request.user:
+            messages.error(request, 'You do not have permission to delete this message.')
+            return redirect('dashboard:admin_messages')
+
+        message.delete()
+        messages.success(request, 'Message deleted successfully!')
+
+    except Message.DoesNotExist:
+        messages.error(request, 'Message not found.')
+
+    return redirect('dashboard:admin_messages')
+
+@login_required
+@user_passes_test(lambda u: u.role == 'admin')
+def admin_mark_message_read(request, message_id):
+    """Mark message as read (AJAX) for admin"""
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        try:
+            message = Message.objects.get(id=message_id, recipient=request.user)
+            message.mark_as_read()
+            return JsonResponse({'status': 'success'})
+        except Message.DoesNotExist:
+            return JsonResponse({'status': 'error'})
+    return JsonResponse({'status': 'error'})
+
+# ----------------------------
+# Teacher Messages Views
+# ----------------------------
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_messages(request):
+    """Teacher messages inbox"""
+    messages_list = Message.objects.filter(recipient=request.user).order_by('-sent_at')
+    unread_count = messages_list.filter(is_read=False).count()
+
+    context = {
+        'messages': messages_list,
+        'unread_count': unread_count,
+        'active_tab': 'inbox'
+    }
+    return render(request, 'dashboard/teacher_messages.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_sent_messages(request):
+    """Teacher sent messages"""
+    sent_messages = Message.objects.filter(sender=request.user).order_by('-sent_at')
+
+    context = {
+        'messages': sent_messages,
+        'active_tab': 'sent'
+    }
+    return render(request, 'dashboard/teacher_messages.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_compose_message(request):
+    """Compose new message as teacher"""
+    # Get all users except the current user
+    all_users = User.objects.exclude(id=request.user.id).select_related('teacher', 'student')
+
+    if request.method == 'POST':
+        recipient_username = request.POST.get('recipient')
+        subject = request.POST.get('subject')
+        body = request.POST.get('body')
+        parent_id = request.POST.get('parent_message')
+
+        try:
+            recipient = User.objects.get(username=recipient_username)
+
+            # Create message
+            message = Message(
+                sender=request.user,
+                recipient=recipient,
+                subject=subject,
+                body=body
+            )
+
+            # If this is a reply, set parent message
+            if parent_id:
+                parent_message = Message.objects.get(id=parent_id)
+                message.parent_message = parent_message
+                # Add "Re: " to subject if not already there
+                if not message.subject.startswith('Re: '):
+                    message.subject = f"Re: {message.subject}"
+
+            message.save()
+            messages.success(request, 'Message sent successfully!')
+            return redirect('dashboard:teacher_messages')
+
+        except User.DoesNotExist:
+            messages.error(request, 'Recipient not found!')
+        except Exception as e:
+            messages.error(request, f'Error sending message: {str(e)}')
+
+    # Pre-fill recipient if provided in URL
+    recipient_username = request.GET.get('to', '')
+    parent_id = request.GET.get('reply', '')
+    parent_message = None
+
+    if parent_id:
+        try:
+            parent_message = Message.objects.get(id=parent_id)
+            # Verify the current user is involved in this conversation
+            if parent_message.recipient != request.user and parent_message.sender != request.user:
+                parent_message = None
+        except Message.DoesNotExist:
+            parent_message = None
+
+    context = {
+        'recipient_username': recipient_username,
+        'parent_message': parent_message,
+        'all_users': all_users,
+    }
+    return render(request, 'dashboard/teacher_compose_message.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_message_detail(request, message_id):
+    """View message details and reply as teacher"""
+    try:
+        message = Message.objects.get(id=message_id)
+
+        # Verify the current user is the recipient or sender
+        if message.recipient != request.user and message.sender != request.user:
+            messages.error(request, 'You do not have permission to view this message.')
+            return redirect('dashboard:teacher_messages')
+
+        # Mark as read if the current user is the recipient
+        if message.recipient == request.user and not message.is_read:
+            message.mark_as_read()
+
+        # Get conversation thread
+        conversation = get_message_thread(message)
+
+    except Message.DoesNotExist:
+        messages.error(request, 'Message not found.')
+        return redirect('dashboard:teacher_messages')
+
+    context = {
+        'message': message,
+        'conversation': conversation
+    }
+    return render(request, 'dashboard/teacher_message_detail.html', context)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_delete_message(request, message_id):
+    """Delete a message as teacher"""
+    try:
+        message = Message.objects.get(id=message_id)
+
+        # Verify the current user is involved in this message
+        if message.recipient != request.user and message.sender != request.user:
+            messages.error(request, 'You do not have permission to delete this message.')
+            return redirect('dashboard:teacher_messages')
+
+        message.delete()
+        messages.success(request, 'Message deleted successfully!')
+
+    except Message.DoesNotExist:
+        messages.error(request, 'Message not found.')
+
+    return redirect('dashboard:teacher_messages')
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_mark_message_read(request, message_id):
+    """Mark message as read (AJAX) for teacher"""
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        try:
+            message = Message.objects.get(id=message_id, recipient=request.user)
+            message.mark_as_read()
+            return JsonResponse({'status': 'success'})
+        except Message.DoesNotExist:
+            return JsonResponse({'status': 'error'})
+    return JsonResponse({'status': 'error'})
 
 # -----------------------------
 # Student Management Views
@@ -682,28 +987,44 @@ def course_list(request):
 def course_create(request):
     return edit_course(request)
 
-@login_required
-@user_passes_test(lambda u: u.role == 'teacher')
-def edit_course(request, course_id):
-    course = get_object_or_404(Course, id=course_id)
-    teacher = get_object_or_404(Teacher, user=request.user)
 
-    if teacher not in course.teachers.all():
-        messages.error(request, "You don't have permission to edit this course.")
-        return redirect('dashboard:teacher_courses')
+@login_required
+def course_create(request):
+    return edit_course(request)
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher' or u.role == 'admin')
+def edit_course(request, id):
+    course = get_object_or_404(Course, id=id)
+    is_admin = request.user.role == 'admin'
+
+    # Check permissions
+    if not is_admin:
+        try:
+            teacher = get_object_or_404(Teacher, user=request.user)
+            if teacher not in course.teachers.all():
+                messages.error(request, "You don't have permission to edit this course.")
+                return redirect('dashboard:teacher_courses')
+        except:
+            messages.error(request, "You don't have permission to edit courses.")
+            return redirect('dashboard:teacher_courses')
 
     if request.method == 'POST':
         form = CourseForm(request.POST, request.FILES, instance=course)
-        if form.is_valid():
-            if request.POST.get('remove_image') == 'on' and course.image:
-                course.image.delete(save=False)
-                course.image = None
 
+        if form.is_valid():
+            # The image removal is now handled in the form's save method
             course = form.save()
             messages.success(request, f'Course "{course.name}" updated successfully!')
-            return redirect('dashboard:teacher_course_detail', course_id=course.id)
+
+            # Redirect based on user role - FIXED URL NAMES
+            if is_admin:
+                return redirect('dashboard:course_list')  # Changed from admin_courses
+            else:
+                return redirect('dashboard:teacher_course_detail', course_id=course.id)
         else:
             messages.error(request, 'Please correct the errors below.')
+            print("Form errors:", form.errors)  # Debug
     else:
         form = CourseForm(instance=course)
 
@@ -826,6 +1147,10 @@ def teacher_dashboard(request):
         grade__isnull=True
     ).count()
 
+    # Add message counts
+    unread_messages_count = Message.objects.filter(recipient=request.user, is_read=False).count()
+    total_messages_count = Message.objects.filter(recipient=request.user).count()
+
     context = {
         'teacher': teacher,
         'courses': courses,
@@ -836,6 +1161,8 @@ def teacher_dashboard(request):
         'total_assignments': assignments.count(),
         'can_create_courses': True,
         'current_theme': current_theme,
+        'unread_messages_count': unread_messages_count,
+        'total_messages_count': total_messages_count,
     }
     return render(request, 'dashboard/teacher_dashboard.html', context)
 

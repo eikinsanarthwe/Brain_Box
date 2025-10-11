@@ -58,7 +58,7 @@
     <!-- Stats Cards Row -->
     <div class="row g-4 mb-4">
         <!-- Courses Card -->
-        <div class="col-xl-3 col-md-6">
+        <div class="col-xl-2 col-md-4">
             <a href="{% url 'dashboard:teacher_courses' %}" class="text-decoration-none">
                 <div class="card stats-card h-100 bg-primary text-white">
                     <div class="card-body">
@@ -78,7 +78,7 @@
         </div>
 
         <!-- Students Card -->
-        <div class="col-xl-3 col-md-6">
+        <div class="col-xl-2 col-md-4">
             <a href="{% url 'dashboard:teacher_students' %}" class="text-decoration-none">
                 <div class="card stats-card h-100 bg-success text-white">
                     <div class="card-body">
@@ -98,7 +98,7 @@
         </div>
 
         <!-- Assignments Card -->
-        <div class="col-xl-3 col-md-6">
+        <div class="col-xl-2 col-md-4">
             <a href="{% url 'dashboard:teacher_assignments' %}" class="text-decoration-none">
                 <div class="card stats-card h-100 bg-info text-white">
                     <div class="card-body">
@@ -118,7 +118,7 @@
         </div>
 
         <!-- Pending Grading Card -->
-        <div class="col-xl-3 col-md-6">
+        <div class="col-xl-2 col-md-4">
             <a href="{% url 'dashboard:teacher_assignments' %}" class="text-decoration-none">
                 <div class="card stats-card h-100 bg-warning text-white">
                     <div class="card-body">
@@ -130,6 +130,46 @@
                             </div>
                             <div class="icon-circle bg-white text-warning">
                                 <i class="fas fa-clipboard-check"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Messages Card -->
+        <div class="col-xl-2 col-md-4">
+            <a href="{% url 'dashboard:message_list' %}" class="text-decoration-none">
+                <div class="card stats-card h-100 bg-danger text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase mb-2">MESSAGES</h6>
+                                <h2 class="mb-0">{{ unread_messages_count }}</h2>
+                                <small>Unread messages</small>
+                            </div>
+                            <div class="icon-circle bg-white text-danger">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Total Messages Card -->
+        <div class="col-xl-2 col-md-4">
+            <a href="{% url 'dashboard:message_list' %}" class="text-decoration-none">
+                <div class="card stats-card h-100 bg-secondary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase mb-2">TOTAL MSGS</h6>
+                                <h2 class="mb-0">{{ total_messages_count }}</h2>
+                                <small>All messages</small>
+                            </div>
+                            <div class="icon-circle bg-white text-secondary">
+                                <i class="fas fa-inbox"></i>
                             </div>
                         </div>
                     </div>
@@ -163,12 +203,32 @@
                             </a>
                         </div>
                         <div class="col-md-3">
-                            <a href="{% url 'dashboard:message_compose' %}" class="btn btn-info quick-action-btn">
+                            <a href="{% url 'dashboard:teacher_messages' %}" class="btn btn-info quick-action-btn">
                                 <i class="fas fa-envelope fa-2x mb-2"></i><br>
                                 Send Message
+                                {% if unread_messages_count > 0 %}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                    {{ unread_messages_count }}
+                                </span>
+                                {% endif %}
                             </a>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Welcome Banner -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card welcome-banner text-white" style="background: linear-gradient(45deg, #1e88e5, #00d4ff); border-radius: 12px;">
+                <div class="card-body">
+                    <h3 class="card-title">Welcome back, {{ teacher.user.get_full_name|default:teacher.user.username }}!</h3>
+                    <p class="card-text">
+                        You have {{ courses.count }} courses, {{ total_students }} students,
+                        {{ pending_grading }} assignments to grade, and {{ unread_messages_count }} new messages.
+                    </p>
                 </div>
             </div>
         </div>
@@ -195,9 +255,15 @@
                                     <h5 class="card-title">{{ course.name }}</h5>
                                     <p class="card-text text-muted mb-1">{{ course.code }}</p>
                                     <p class="card-text mb-1">credit {{ course.credit|default:"3" }}</p>
+                                    <div class="mb-2">
+                                        <small class="text-muted">
+                                            <i class="fas fa-users me-1"></i>
+                                            {{ course.students.count }} students
+                                        </small>
+                                    </div>
                                     <div class="d-flex justify-content-between align-items-center mt-3">
                                         <a href="{% url 'dashboard:teacher_course_detail' course.id %}" class="btn btn-sm btn-outline-primary">View</a>
-                                        <a href="{% url 'dashboard:teacher_progress_track' %}?course={{ course.id }}" class="btn btn-sm btn-outline-warning">Track Progress</a>
+                                        <a href="{% url 'dashboard:teacher_progress_track' %}?course={{ course.id }}" class="btn btn-sm btn-outline-warning">Track</a>
                                     </div>
                                 </div>
                             </div>
@@ -241,6 +307,7 @@
                                     Submitted by {{ submission.student.user.get_full_name|default:submission.student.user.username }}
                                     on {{ submission.submitted_at|date:"M d, Y H:i" }}
                                 </p>
+                                <small class="text-muted">{{ submission.assignment.course.code }}</small>
                             </div>
                             <div>
                                 {% if submission.grade %}
@@ -267,10 +334,13 @@
         <!-- Quick Actions -->
         <div class="col-lg-4">
             <div class="card shadow h-100">
-                <div class="card-header py-3">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
                     <h6 class="m-0 font-weight-bold text-primary">
                         <i class="fas fa-bolt me-2"></i>Quick Actions
                     </h6>
+                    {% if unread_messages_count > 0 %}
+                    <span class="badge bg-danger">{{ unread_messages_count }} new messages</span>
+                    {% endif %}
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
@@ -283,8 +353,16 @@
                         <a href="{% url 'dashboard:teacher_progress_track' %}" class="btn btn-warning">
                             <i class="fas fa-chart-line me-2"></i>Track Progress
                         </a>
-                        <a href="{% url 'dashboard:message_compose' %}" class="btn btn-info">
+                        <a href="{% url 'dashboard:teacher_compose_message' %}" class="btn btn-info position-relative">
                             <i class="fas fa-envelope me-2"></i>Send Message
+                            {% if unread_messages_count > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                                {{ unread_messages_count }}
+                            </span>
+                            {% endif %}
+                        </a>
+                        <a href="{% url 'dashboard:teacher_messages' %}" class="btn btn-outline-info">
+                            <i class="fas fa-inbox me-2"></i>View Messages
                         </a>
                         <a href="{% url 'dashboard:teacher_courses' %}" class="btn btn-outline-primary">
                             <i class="fas fa-book me-2"></i>View Courses

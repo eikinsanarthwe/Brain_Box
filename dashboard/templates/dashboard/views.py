@@ -479,37 +479,61 @@ def course_list(request):
 @login_required
 def course_create(request):
     return edit_course(request)
-
 @login_required
-@user_passes_test(lambda u: u.role == 'teacher')
-def edit_course(request, course_id):
-    course = get_object_or_404(Course, id=course_id)
-    teacher = get_object_or_404(Teacher, user=request.user)
 
-    if teacher not in course.teachers.all():
-        messages.error(request, "You don't have permission to edit this course.")
-        return redirect('dashboard:teacher_courses')
+def edit_course(request, id):
+    # The fix for the original TypeError is to use 'id' instead of 'course_id'
 
-    if request.method == 'POST':
-        form = CourseForm(request.POST, request.FILES, instance=course)
-        if form.is_valid():
-            if request.POST.get('remove_image') == 'on' and course.image:
-                course.image.delete(save=False)
-                course.image = None
+    @user_passes_test(lambda u: u.role == 'teacher' or u.role == 'admin')
+    def decorated_view(request, id):
+        # Your previous logic for fetching the course using 'id'
+        course = get_object_or_404(Course, id=id)
 
-            course = form.save()
-            messages.success(request, f'Course "{course.name}" updated successfully!')
-            return redirect('dashboard:teacher_course_detail', course_id=course.id)
+        # Admin can bypass the teacher-specific check, but we need the Teacher object for the teacher logic.
+        # We can adjust the permissions check below.
+
+        is_admin = request.user.role == 'admin'
+
+        # Check if user is a teacher and owns the course, or if they are an admin
+        if not is_admin:
+            try:
+                teacher = get_object_or_404(Teacher, user=request.user)
+                if teacher not in course.teachers.all():
+                    messages.error(request, "You don't have permission to edit this course.")
+                    return redirect('dashboard:teacher_courses')
+            except:
+                # Handle case where a non-admin, non-teacher might try to access
+                messages.error(request, "You don't have permission to edit courses.")
+                return redirect('some_unauthorized_page') # Redirect to an appropriate page
+
+        if request.method == 'POST':
+            # ... (Form handling remains the same)
+
+            # --- Start of POST logic ---
+            form = CourseForm(request.POST, request.FILES, instance=course)
+            if form.is_valid():
+                if request.POST.get('remove_image') == 'on' and course.image:
+                    course.image.delete(save=False)
+                    course.image = None
+
+                course = form.save()
+                messages.success(request, f'Course "{course.name}" updated successfully!')
+                return redirect('dashboard:teacher_course_detail', course_id=course.id)
+            else:
+                messages.error(request, 'Please correct the errors below.')
+            # --- End of POST logic ---
+
         else:
-            messages.error(request, 'Please correct the errors below.')
-    else:
-        form = CourseForm(instance=course)
+            form = CourseForm(instance=course)
 
-    return render(request, 'dashboard/edit_course.html', {
-        'form': form,
-        'course': course
-    })
+        return render(request, 'dashboard/edit_course.html', {
+            'form': form,
+            'course': course
+        })
 
+    # The decorator is now applied and returns the decorated function
+    return decorated_view(request, id)
+    
 @login_required
 def delete_course(request, id):
     course = get_object_or_404(Course, id=id)

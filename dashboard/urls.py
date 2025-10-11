@@ -28,8 +28,8 @@ urlpatterns = [
     # Courses
     path('courses/', views.course_list, name='course_list'),
     path('courses/add/', views.course_create, name='course_create'),
-    path('courses/<int:course_id>/edit/', views.edit_course, name='edit_course'),
-    path('courses/<int:course_id>/delete/', views.delete_course, name='delete_course'),
+    path('courses/<int:id>/delete/', views.delete_course, name='delete_course'),
+    path('courses/<int:id>/edit/', views.edit_course, name='edit_course'),
 
     # Assignments (Admin)
     path('assignments/', views.assignment_list, name='assignment_list'),
@@ -140,4 +140,19 @@ urlpatterns = [
     path('student/messages/<int:message_id>/delete/', views.student_delete_message, name='student_delete_message'),
     path('student/messages/<int:message_id>/read/', views.mark_message_read, name='mark_message_read'),
 
+    # Teacher Messages
+    path('teacher/messages/', views.teacher_messages, name='teacher_messages'),
+    path('teacher/messages/sent/', views.teacher_sent_messages, name='teacher_sent_messages'),
+    path('teacher/messages/compose/', views.teacher_compose_message, name='teacher_compose_message'),
+    path('teacher/messages/<int:message_id>/', views.teacher_message_detail, name='teacher_message_detail'),
+    path('teacher/messages/<int:message_id>/delete/', views.teacher_delete_message, name='teacher_delete_message'),
+    path('teacher/messages/<int:message_id>/read/', views.teacher_mark_message_read, name='teacher_mark_message_read'),
+
+    # Admin Messages
+    path('admin/messages/', views.admin_messages, name='admin_messages'),
+    path('admin/messages/sent/', views.admin_sent_messages, name='admin_sent_messages'),
+    path('admin/messages/compose/', views.admin_compose_message, name='admin_compose_message'),
+    path('admin/messages/<int:message_id>/', views.admin_message_detail, name='admin_message_detail'),
+    path('admin/messages/<int:message_id>/delete/', views.admin_delete_message, name='admin_delete_message'),
+    path('admin/messages/<int:message_id>/read/', views.admin_mark_message_read, name='admin_mark_message_read'),
 ]

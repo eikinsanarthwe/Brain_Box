@@ -1,0 +1,285 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block title %}Compose Message - Brain Box{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-sm-flex align-items-center justify-content-between mb-4">
+                <h1 class="h3 mb-0 text-gray-800">
+                    <i class="fas fa-edit me-2"></i>Compose Message
+                </h1>
+                <div>
+                    <a href="{% url 'dashboard:admin_messages' %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Back to Messages
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="m-0 font-weight-bold">New Message</h5>
+                </div>
+                <div class="card-body">
+                    {% if parent_message %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-reply me-2"></i>
+                        <strong>Replying to:</strong> {{ parent_message.sender.get_full_name|default:parent_message.sender.username }}
+                        <br>
+                        <strong>Original message:</strong> "{{ parent_message.body|truncatewords:20 }}"
+                    </div>
+                    {% endif %}
+
+                    <form method="post" id="messageForm">
+                        {% csrf_token %}
+
+                        {% if parent_message %}
+                        <input type="hidden" name="parent_message" value="{{ parent_message.id }}">
+                        {% endif %}
+
+                        <!-- Recipient Selection -->
+                        <div class="mb-4">
+                            <label for="recipient" class="form-label">To <span class="text-danger">*</span></label>
+
+                            <!-- Search and Select Recipient -->
+                            <div class="input-group mb-2">
+                                <input type="text" class="form-control" id="recipientSearch"
+                                       placeholder="Search users by name or username...">
+                                <button class="btn btn-outline-secondary" type="button" id="clearSearch">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+
+                            <!-- Selected Recipient Display -->
+                            <div id="selectedRecipient" class="alert alert-info d-none">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>Selected:</strong>
+                                        <span id="selectedRecipientName"></span>
+                                        (<span id="selectedRecipientUsername"></span>)
+                                    </div>
+                                    <button type="button" class="btn-close" id="clearSelection"></button>
+                                </div>
+                                <input type="hidden" name="recipient" id="recipientUsername" required>
+                            </div>
+
+                            <!-- Users List -->
+                            <div class="card mt-2">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">Select Recipient</h6>
+                                </div>
+                                <div class="card-body p-0">
+                                    <div id="usersList" class="list-group list-group-flush" style="max-height: 300px; overflow-y: auto;">
+                                        <!-- Users will be loaded here -->
+                                    </div>
+                                    <div id="noUsersFound" class="text-center p-3 d-none">
+                                        <i class="fas fa-search fa-2x text-muted mb-2"></i>
+                                        <p class="text-muted mb-0">No users found matching your search.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Subject <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="subject" name="subject"
+                                   value="{% if parent_message %}Re: {{ parent_message.subject }}{% endif %}"
+                                   required placeholder="Enter message subject">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="body" class="form-label">Message <span class="text-danger">*</span></label>
+                            <textarea class="form-control" id="body" name="body" rows="8"
+                                      placeholder="Type your message here..." required>{% if parent_message %}
+
+---
+Original message from {{ parent_message.sender.get_full_name|default:parent_message.sender.username }}:
+{{ parent_message.body }}{% endif %}</textarea>
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'dashboard:admin_messages' %}" class="btn btn-secondary me-md-2">Cancel</a>
+                            <button type="submit" class="btn btn-primary" id="sendButton" disabled>
+                                <i class="fas fa-paper-plane me-1"></i> Send Message
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.user-item {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+.user-item:hover {
+    background-color: #f8f9fa;
+}
+.user-item.selected {
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196f3;
+}
+.role-badge {
+    font-size: 0.7em;
+}
+</style>
+
+<script>
+// All available users data
+const allUsers = [
+    {% for user in all_users %}
+    {
+        id: {{ user.id }},
+        username: "{{ user.username }}",
+        full_name: "{{ user.get_full_name|default:user.username }}",
+        email: "{{ user.email }}",
+        role: "{{ user.role }}",
+        is_teacher: {% if user.role == 'teacher' %}true{% else %}false{% endif %},
+        is_student: {% if user.role == 'student' %}true{% else %}false{% endif %},
+        is_admin: {% if user.role == 'admin' %}true{% else %}false{% endif %}
+    },
+    {% endfor %}
+];
+
+document.addEventListener('DOMContentLoaded', function() {
+    const recipientSearch = document.getElementById('recipientSearch');
+    const usersList = document.getElementById('usersList');
+    const noUsersFound = document.getElementById('noUsersFound');
+    const selectedRecipient = document.getElementById('selectedRecipient');
+    const selectedRecipientName = document.getElementById('selectedRecipientName');
+    const selectedRecipientUsername = document.getElementById('selectedRecipientUsername');
+    const recipientUsername = document.getElementById('recipientUsername');
+    const clearSearch = document.getElementById('clearSearch');
+    const clearSelection = document.getElementById('clearSelection');
+    const sendButton = document.getElementById('sendButton');
+    const messageForm = document.getElementById('messageForm');
+
+    // Pre-fill recipient if provided in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const prefillTo = urlParams.get('to');
+    if (prefillTo) {
+        recipientSearch.value = prefillTo;
+        filterUsers();
+        // Try to auto-select the pre-filled user
+        const user = allUsers.find(u => u.username === prefillTo);
+        if (user) {
+            selectUser(user);
+        }
+    } else {
+        // Load all users initially
+        renderUsers(allUsers);
+    }
+
+    // Search functionality
+    recipientSearch.addEventListener('input', filterUsers);
+
+    // Clear search
+    clearSearch.addEventListener('click', function() {
+        recipientSearch.value = '';
+        filterUsers();
+    });
+
+    // Clear selection
+    clearSelection.addEventListener('click', function() {
+        clearUserSelection();
+    });
+
+    // Form submission validation
+    messageForm.addEventListener('submit', function(e) {
+        if (!recipientUsername.value) {
+            e.preventDefault();
+            alert('Please select a recipient.');
+            return false;
+        }
+    });
+
+    function filterUsers() {
+        const searchTerm = recipientSearch.value.toLowerCase().trim();
+
+        if (searchTerm === '') {
+            renderUsers(allUsers);
+            return;
+        }
+
+        const filteredUsers = allUsers.filter(user =>
+            user.username.toLowerCase().includes(searchTerm) ||
+            user.full_name.toLowerCase().includes(searchTerm) ||
+            user.email.toLowerCase().includes(searchTerm)
+        );
+
+        renderUsers(filteredUsers);
+    }
+
+    function renderUsers(users) {
+        usersList.innerHTML = '';
+
+        if (users.length === 0) {
+            noUsersFound.classList.remove('d-none');
+            return;
+        }
+
+        noUsersFound.classList.add('d-none');
+
+        users.forEach(user => {
+            const userItem = document.createElement('div');
+            userItem.className = 'list-group-item user-item';
+            userItem.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-1">${user.full_name}</h6>
+                        <p class="mb-1 text-muted">@${user.username}</p>
+                        <small class="text-muted">${user.email}</small>
+                    </div>
+                    <div class="text-end">
+                        <span class="badge ${user.is_admin ? 'bg-danger' : user.is_teacher ? 'bg-primary' : 'bg-success'} role-badge">
+                            ${user.role}
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            userItem.addEventListener('click', function() {
+                selectUser(user);
+            });
+
+            usersList.appendChild(userItem);
+        });
+    }
+
+    function selectUser(user) {
+        // Update selected recipient display
+        selectedRecipientName.textContent = user.full_name;
+        selectedRecipientUsername.textContent = user.username;
+        recipientUsername.value = user.username;
+        selectedRecipient.classList.remove('d-none');
+
+        // Enable send button
+        sendButton.disabled = false;
+
+        // Hide users list
+        usersList.classList.add('d-none');
+        noUsersFound.classList.add('d-none');
+
+        // Clear search
+        recipientSearch.value = '';
+    }
+
+    function clearUserSelection() {
+        selectedRecipient.classList.add('d-none');
+        recipientUsername.value = '';
+        sendButton.disabled = true;
+        usersList.classList.remove('d-none');
+        filterUsers();
+    }
+});
+</script>
+{% endblock %}
