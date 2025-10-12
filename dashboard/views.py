@@ -242,7 +242,6 @@ def student_assignments(request):
         'current_time': timezone.now(),
     }
     return render(request, 'dashboard/student_assignments.html', context)
-
 @login_required
 def student_assignment_detail(request, assignment_id):
     if not hasattr(request.user, 'student'):
@@ -256,12 +255,13 @@ def student_assignment_detail(request, assignment_id):
     except Submission.DoesNotExist:
         submission = None
 
-    # Add this line to check if assignment is overdue
-    assignment.is_past_due = timezone.now() > assignment.due_date
+    # Calculate if assignment is overdue
+    is_past_due = timezone.now() > assignment.due_date
 
     context = {
         'assignment': assignment,
         'submission': submission,
+        'is_past_due': is_past_due,
     }
     return render(request, 'dashboard/student_assignment_detail.html', context)
 
@@ -1110,6 +1110,84 @@ def assignment_create(request):
     """Create assignment (for admin)"""
     return edit_assignment(request)
 
+
+@login_required
+def edit_assignment(request, id=None):
+    assignment = get_object_or_404(Assignment, id=id) if id else None
+
+    # Check permissions for teachers
+    if id and request.user.role == 'teacher' and assignment.teacher != request.user:
+        messages.error(request, "You don't have permission to edit this assignment.")
+        return redirect('dashboard:teacher_assignments')
+
+    if request.method == 'POST':
+        form = AssignmentForm(request.POST, instance=assignment)
+        if form.is_valid():
+            assignment = form.save(commit=False)
+            if request.user.role == 'teacher':
+                assignment.teacher = request.user
+            assignment.save()
+            form.save_m2m()
+            messages.success(request, f'Assignment {"updated" if id else "created"} successfully!')
+
+            # Redirect based on user role
+            if request.user.role == 'teacher':
+                return redirect('dashboard:teacher_assignment_detail', id=assignment.id)
+            return redirect('dashboard:assignment_list')
+        else:
+            print(f"Form errors: {form.errors}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+    else:
+        form = AssignmentForm(instance=assignment)
+
+        # Filter form fields for teachers
+        if request.user.role == 'teacher':
+            try:
+                teacher_obj = Teacher.objects.get(user=request.user)
+                form.fields['course'].queryset = Course.objects.filter(teachers=teacher_obj)
+                teacher_courses = Course.objects.filter(teachers=teacher_obj)
+                form.fields['students'].queryset = Student.objects.filter(courses__in=teacher_courses).distinct()
+            except Teacher.DoesNotExist:
+                form.fields['course'].queryset = Course.objects.none()
+                form.fields['students'].queryset = Student.objects.none()
+
+    template = 'dashboard/teacher_assignment_form.html' if request.user.role == 'teacher' else 'dashboard/assignment_form.html'
+
+    return render(request, template, {
+        'form': form,
+        'title': 'Edit Assignment' if id else 'Add Assignment',
+        'action': 'edit' if id else 'create',
+        'assignment': assignment if id else None
+    })
+
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_assignment_create(request):
+    if request.method == 'POST':
+        form = AssignmentForm(request.POST, request.FILES, initial={'user': request.user})
+        if form.is_valid():
+            assignment = form.save(commit=False)
+            assignment.teacher = request.user
+            assignment.save()
+            form.save_m2m()
+            messages.success(request, 'Assignment created successfully!')
+            return redirect('dashboard:teacher_assignments')
+        else:
+            print(f"Form errors: {form.errors}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+    else:
+        form = AssignmentForm(initial={'user': request.user})
+
+    return render(request, 'dashboard/teacher_assignment_form.html', {
+        'form': form,
+        'title': 'Create Assignment',
+        'action': 'create'
+    })
+
 @login_required
 def edit_assignment(request, id=None):
     assignment = get_object_or_404(Assignment, id=id) if id else None
@@ -1119,7 +1197,7 @@ def edit_assignment(request, id=None):
         return redirect('dashboard:teacher_assignments')
 
     if request.method == 'POST':
-        form = AssignmentForm(request.POST, instance=assignment)
+        form = AssignmentForm(request.POST, request.FILES, instance=assignment, initial={'user': request.user})
         if form.is_valid():
             assignment = form.save(commit=False)
             if request.user.role == 'teacher':
@@ -1134,39 +1212,12 @@ def edit_assignment(request, id=None):
         else:
             print(f"Form errors: {form.errors}")
     else:
-        form = AssignmentForm(instance=assignment)
+        form = AssignmentForm(instance=assignment, initial={'user': request.user})
 
     return render(request, 'dashboard/assignment_form.html', {
         'form': form,
         'title': 'Edit Assignment' if id else 'Add Assignment'
     })
-
-@login_required
-@user_passes_test(lambda u: u.role == 'teacher')
-def teacher_assignment_create(request):
-    if request.method == 'POST':
-        form = AssignmentForm(request.POST)
-        if form.is_valid():
-            assignment = form.save(commit=False)
-            assignment.teacher = request.user
-            assignment.save()
-            form.save_m2m()
-            messages.success(request, 'Assignment created successfully!')
-            return redirect('dashboard:teacher_assignments')
-        else:
-            print(f"Form errors: {form.errors}")
-            for field, errors in form.errors.items():
-                for error in errors:
-                    messages.error(request, f"{field}: {error}")
-    else:
-        form = AssignmentForm(initial={'teacher': request.user})
-
-    return render(request, 'dashboard/teacher_assignment_form.html', {
-        'form': form,
-        'title': 'Create Assignment',
-        'action': 'create'
-    })
-
 
 @login_required
 def delete_assignment(request, id):
@@ -1286,6 +1337,17 @@ def teacher_assignment_detail(request, id):
     graded_count = submissions.filter(grade__isnull=False).count()
     pending_count = total_students - submission_count
 
+    # Check if assignment has attachment and get file info
+    attachment_info = None
+    if assignment.attachment:
+        attachment_info = {
+            'name': assignment.attachment.name.split('/')[-1],  # Get just the filename
+            'url': assignment.attachment.url,
+            'size': assignment.attachment.size,
+            'extension': os.path.splitext(assignment.attachment.name)[1].lower(),
+            'uploaded_at': assignment.created_at
+        }
+
     context = {
         'assignment': assignment,
         'submissions': submissions,
@@ -1293,9 +1355,9 @@ def teacher_assignment_detail(request, id):
         'submission_count': submission_count,
         'graded_count': graded_count,
         'pending_count': pending_count,
+        'attachment_info': attachment_info,
     }
     return render(request, 'dashboard/teacher_assignment_detail.html', context)
-
 
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
@@ -1906,7 +1968,51 @@ def teacher_profile_settings(request):
         'form': form,
         'title': 'Profile Settings'
     })
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_edit_assignment(request, id):
+    """Edit assignment specifically for teachers"""
+    assignment = get_object_or_404(Assignment, id=id)
 
+    # Check if teacher owns this assignment
+    if assignment.teacher != request.user:
+        messages.error(request, "You don't have permission to edit this assignment.")
+        return redirect('dashboard:teacher_assignments')  # MAKE SURE THIS RETURNS
+
+    if request.method == 'POST':
+        form = AssignmentForm(request.POST, request.FILES, instance=assignment, initial={'user': request.user})
+        if form.is_valid():
+            assignment = form.save()
+            messages.success(request, 'Assignment updated successfully!')
+            return redirect('dashboard:teacher_assignment_detail', id=assignment.id)  # MAKE SURE THIS RETURNS
+        else:
+            print(f"Form errors: {form.errors}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+            # CONTINUE TO RENDER THE FORM WITH ERRORS
+    else:
+        form = AssignmentForm(instance=assignment, initial={'user': request.user})
+
+    # FILTER LOGIC - MAKE SURE THIS IS OUTSIDE THE ELSE BLOCK
+    try:
+        teacher_obj = Teacher.objects.get(user=request.user)
+        # Get courses taught by this teacher
+        form.fields['course'].queryset = Course.objects.filter(teachers=teacher_obj)
+        # Get students enrolled in teacher's courses
+        teacher_courses = Course.objects.filter(teachers=teacher_obj)
+        form.fields['students'].queryset = Student.objects.filter(courses__in=teacher_courses).distinct()
+    except Teacher.DoesNotExist:
+        form.fields['course'].queryset = Course.objects.none()
+        form.fields['students'].queryset = Student.objects.none()
+
+    # MAKE SURE THIS RETURN STATEMENT IS AT THE END AND ALWAYS EXECUTES
+    return render(request, 'dashboard/teacher_assignment_form.html', {
+        'form': form,
+        'assignment': assignment,
+        'title': 'Edit Assignment',
+        'action': 'edit'
+    })
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_appearance_settings(request):

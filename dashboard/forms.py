@@ -226,11 +226,10 @@ class CourseForm(forms.ModelForm):
         return instance
 
 # ---------------- Assignment Form ---------------- #
-
 class AssignmentForm(forms.ModelForm):
     class Meta:
         model = Assignment
-        fields = ['title', 'description', 'due_date', 'course', 'max_points', 'status', 'students']
+        fields = ['title', 'description', 'due_date', 'course', 'max_points', 'status', 'students', 'attachment']  # ADDED attachment
         widgets = {
             'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter assignment title'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Detailed assignment description...'}),
@@ -239,10 +238,14 @@ class AssignmentForm(forms.ModelForm):
             'max_points': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Maximum score (e.g. 100)', 'min': 1}),
             'status': forms.Select(attrs={'class': 'form-control'}),
             'students': forms.SelectMultiple(attrs={'class': 'form-control select2-multiple', 'data-placeholder': 'Select students...'}),
+            'attachment': forms.FileInput(attrs={'class': 'form-control-file'}),  # ADDED file input widget
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Make attachment field optional
+        self.fields['attachment'].required = False
 
         # Filter courses and students based on teacher
         if hasattr(self, 'initial') and 'user' in self.initial:

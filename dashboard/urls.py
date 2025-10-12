@@ -56,7 +56,7 @@ urlpatterns = [
     path('teacher/assignments/', views.teacher_assignments, name='teacher_assignments'),
     path('teacher/assignments/add/', views.teacher_assignment_create, name='teacher_assignment_create'),
     path('teacher/assignments/<int:id>/', views.teacher_assignment_detail, name='teacher_assignment_detail'),
-    path('teacher/assignments/<int:id>/edit/', views.edit_assignment, name='teacher_edit_assignment'),
+    path('teacher/assignments/<int:id>/edit/', views.teacher_edit_assignment, name='teacher_edit_assignment'),
     path('teacher/grade/<int:submission_id>/', views.grade_submission, name='grade_submission'),
 
     # Assignment Submission

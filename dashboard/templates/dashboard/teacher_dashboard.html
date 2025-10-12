@@ -55,10 +55,11 @@
         </h1>
     </div>
 
-    <!-- Stats Cards Row -->
-    <div class="row g-4 mb-4">
+        <!-- Stats Cards Row -->
+        <!-- Stats Cards Row -->
+    <div class="row g-4 mb-4 justify-content-center">
         <!-- Courses Card -->
-        <div class="col-xl-2 col-md-4">
+        <div class="col-xl-2 col-md-4 col-sm-6">
             <a href="{% url 'dashboard:teacher_courses' %}" class="text-decoration-none">
                 <div class="card stats-card h-100 bg-primary text-white">
                     <div class="card-body">
@@ -78,7 +79,7 @@
         </div>
 
         <!-- Students Card -->
-        <div class="col-xl-2 col-md-4">
+        <div class="col-xl-2 col-md-4 col-sm-6">
             <a href="{% url 'dashboard:teacher_students' %}" class="text-decoration-none">
                 <div class="card stats-card h-100 bg-success text-white">
                     <div class="card-body">
@@ -98,7 +99,7 @@
         </div>
 
         <!-- Assignments Card -->
-        <div class="col-xl-2 col-md-4">
+        <div class="col-xl-2 col-md-4 col-sm-6">
             <a href="{% url 'dashboard:teacher_assignments' %}" class="text-decoration-none">
                 <div class="card stats-card h-100 bg-info text-white">
                     <div class="card-body">
@@ -118,7 +119,7 @@
         </div>
 
         <!-- Pending Grading Card -->
-        <div class="col-xl-2 col-md-4">
+        <div class="col-xl-2 col-md-4 col-sm-6">
             <a href="{% url 'dashboard:teacher_assignments' %}" class="text-decoration-none">
                 <div class="card stats-card h-100 bg-warning text-white">
                     <div class="card-body">
@@ -138,7 +139,7 @@
         </div>
 
         <!-- Messages Card -->
-        <div class="col-xl-2 col-md-4">
+        <div class="col-xl-2 col-md-4 col-sm-6">
             <a href="{% url 'dashboard:message_list' %}" class="text-decoration-none">
                 <div class="card stats-card h-100 bg-danger text-white">
                     <div class="card-body">
@@ -150,26 +151,6 @@
                             </div>
                             <div class="icon-circle bg-white text-danger">
                                 <i class="fas fa-envelope"></i>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <!-- Total Messages Card -->
-        <div class="col-xl-2 col-md-4">
-            <a href="{% url 'dashboard:message_list' %}" class="text-decoration-none">
-                <div class="card stats-card h-100 bg-secondary text-white">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h6 class="text-uppercase mb-2">TOTAL MSGS</h6>
-                                <h2 class="mb-0">{{ total_messages_count }}</h2>
-                                <small>All messages</small>
-                            </div>
-                            <div class="icon-circle bg-white text-secondary">
-                                <i class="fas fa-inbox"></i>
                             </div>
                         </div>
                     </div>

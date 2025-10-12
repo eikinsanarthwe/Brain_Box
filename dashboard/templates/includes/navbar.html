@@ -31,21 +31,40 @@
                     <span class="badge bg-danger badge-counter">{{ unread_messages_count }}</span>
                     {% endif %}
                 </a>
-                <div class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="messagesDropdown">
+                <div class="dropdown-menu dropdown-menu-end shadow" aria-labelledby="messagesDropdown" style="min-width: 250px;">
                     <h6 class="dropdown-header">Message Center</h6>
-                    <div id="message-preview" style="max-height: 300px; overflow-y: auto;">
-                        <div class="text-center py-3">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
+
+                    <!-- Simple unread count display instead of message preview -->
+                    <div class="px-3 py-2 text-center">
+                        {% if unread_messages_count > 0 %}
+                        <div class="alert alert-info py-2 mb-2">
+                            <i class="fas fa-envelope me-1"></i>
+                            You have <strong>{{ unread_messages_count }}</strong> unread message{{ unread_messages_count|pluralize }}
                         </div>
+                        {% else %}
+                        <div class="text-muted py-2">
+                            <i class="fas fa-inbox fa-lg mb-2"></i>
+                            <p class="mb-0">No new messages</p>
+                        </div>
+                        {% endif %}
                     </div>
-                    <a class="dropdown-item text-center small" href="{% url 'dashboard:teacher_messages' %}">
-                        <i class="fas fa-list me-1"></i> View All Messages
+
+                    <div class="dropdown-divider"></div>
+                    {% if user.role == 'admin' %}
+                    <a class="dropdown-item text-center text-primary" href="{% url 'dashboard:admin_messages' %}">
+                        <i class="fas fa-inbox me-1"></i> View All Messages
                     </a>
-                    <a class="dropdown-item text-center small" href="{% url 'dashboard:teacher_compose_message' %}">
+                    <a class="dropdown-item text-center text-success" href="{% url 'dashboard:admin_compose_message' %}">
                         <i class="fas fa-edit me-1"></i> Compose New Message
                     </a>
+                    {% elif user.role == 'teacher' %}
+                    <a class="dropdown-item text-center text-primary" href="{% url 'dashboard:teacher_messages' %}">
+                        <i class="fas fa-inbox me-1"></i> View All Messages
+                    </a>
+                    <a class="dropdown-item text-center text-success" href="{% url 'dashboard:teacher_compose_message' %}">
+                        <i class="fas fa-edit me-1"></i> Compose New Message
+                    </a>
+                    {% endif %}
                 </div>
             </div>
 
@@ -57,10 +76,11 @@
                     {{ request.user.get_full_name|default:request.user.username }}
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Profile</a></li>
                     {% if user.role == 'admin' %}
+                    <li><a class="dropdown-item" href="{% url 'dashboard:profile_settings' %}"><i class="fas fa-user me-2"></i> Profile</a></li>
                     <li><a class="dropdown-item" href="{% url 'dashboard:admin_settings' %}"><i class="fas fa-cog me-2"></i> Settings</a></li>
                     {% elif user.role == 'teacher' %}
+                    <li><a class="dropdown-item" href="{% url 'dashboard:teacher_profile_settings' %}"><i class="fas fa-user me-2"></i> Profile</a></li>
                     <li><a class="dropdown-item" href="{% url 'dashboard:teacher_settings' %}"><i class="fas fa-cog me-2"></i> Settings</a></li>
                     {% endif %}
                     <li><hr class="dropdown-divider"></li>
@@ -79,35 +99,33 @@
 </nav>
 
 <script>
-// Load message preview when dropdown is shown
-document.getElementById('messagesDropdown').addEventListener('click', function() {
-    fetch('{% url "dashboard:message_list" %}?preview=true')
-        .then(response => response.text())
-        .then(html => {
-            document.getElementById('message-preview').innerHTML = html;
-        })
-        .catch(error => {
-            console.error('Error loading messages:', error);
-            document.getElementById('message-preview').innerHTML = '<div class="text-center py-3 text-muted">Error loading messages</div>';
-        });
+document.addEventListener('DOMContentLoaded', function() {
+    // Update unread message count periodically (optional)
+    function updateUnreadCount() {
+        // This would typically call your Django view that returns unread count
+        // For now, we'll just use the existing server-side count
+        console.log('Updating unread count...');
+
+        // Example of actual AJAX call (uncomment when ready):
+        /*
+        fetch('/api/unread-count/')
+            .then(response => response.json())
+            .then(data => {
+                const badge = document.querySelector('.badge-counter');
+                if (data.unread_count > 0) {
+                    badge.textContent = data.unread_count;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error updating unread count:', error);
+            });
+        */
+    }
+
+    // Update count every 30 seconds (optional)
+    // setInterval(updateUnreadCount, 30000);
 });
-
-// Update unread message count
-function updateUnreadCount() {
-    fetch('{% url "dashboard:unread_count" %}')
-        .then(response => response.json())
-        .then(data => {
-            const badge = document.querySelector('.badge-counter');
-            if (data.unread_count > 0) {
-                badge.textContent = data.unread_count;
-                badge.style.display = 'inline';
-            } else {
-                badge.style.display = 'none';
-            }
-        });
-}
-
-// Update count every 30 seconds
-setInterval(updateUnreadCount, 30000);
-updateUnreadCount(); // Initial load
 </script>

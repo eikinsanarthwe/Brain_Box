@@ -8,6 +8,7 @@ import os
 import requests
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import FileExtensionValidator
 
 # -----------------------------
 # Custom User Model
@@ -189,9 +190,10 @@ class Assignment(models.Model):
         ('published', 'Published'),
         ('archived', 'Archived'),
     ]
-    students = models.ManyToManyField(Student)
+
+    students = models.ManyToManyField(Student, blank=True)  # Added blank=True
     title = models.CharField(max_length=200)
-    description = models.TextField()
+    description = models.TextField(blank=True)  # Made description optional
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     teacher = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -204,8 +206,69 @@ class Assignment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Assignment attachments field
+    attachment = models.FileField(
+        upload_to='assignment_attachments/%Y/%m/%d/',
+        blank=True,
+        null=True,
+        verbose_name='Assignment Files',
+        validators=[
+            FileExtensionValidator([
+                'pdf', 'doc', 'docx', 'ppt', 'pptx',
+                'jpg', 'jpeg', 'png', 'gif', 'txt',
+                'zip', 'rar'
+            ])
+        ]
+    )
+
+    class Meta:
+        ordering = ['-created_at']  # Added default ordering
+
     def __str__(self):
         return f"{self.title} - {self.course.code}"
+
+    def get_attachment_files(self):
+        """Return list of attachment files for template"""
+        if self.attachment:
+            return [self.attachment]
+        return []
+
+    def get_file_extension(self):
+        """Get file extension for icon display"""
+        if self.attachment:
+            return self.attachment.name.split('.')[-1].lower()
+        return None
+
+    def get_file_icon_class(self):
+        """Get FontAwesome icon class based on file extension"""
+        ext = self.get_file_extension()
+        icon_map = {
+            'pdf': 'fa-file-pdf text-danger',
+            'doc': 'fa-file-word text-primary',
+            'docx': 'fa-file-word text-primary',
+            'ppt': 'fa-file-powerpoint text-warning',
+            'pptx': 'fa-file-powerpoint text-warning',
+            'jpg': 'fa-file-image text-success',
+            'jpeg': 'fa-file-image text-success',
+            'png': 'fa-file-image text-success',
+            'gif': 'fa-file-image text-success',
+            'txt': 'fa-file-text text-secondary',
+            'zip': 'fa-file-archive text-warning',
+            'rar': 'fa-file-archive text-warning',
+        }
+        return icon_map.get(ext, 'fa-file text-muted')
+
+    @property
+    def is_past_due(self):
+        """Check if assignment is past due date"""
+        from django.utils import timezone
+        return timezone.now() > self.due_date
+
+    @property
+    def can_be_submitted(self):
+        """Check if assignment can still be submitted"""
+        from django.utils import timezone
+        return self.status == 'published' and timezone.now() <= self.due_date
 
 # -----------------------------
 # Submission Model
