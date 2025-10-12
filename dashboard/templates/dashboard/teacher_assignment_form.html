@@ -1,19 +1,33 @@
 {% extends 'dashboard/base.html' %}
+{% load static %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="card">
+<div class="content">
+    <div class="d-sm-flex align-items-center justify-content-between mb-4">
+        <h1 class="h3 mb-0 text-gray-800">
+            <i class="fas fa-edit me-2"></i>
+            {% if action == 'edit' %}Edit{% else %}Create New{% endif %} Assignment
+        </h1>
+        <div>
+            <a href="{% if action == 'edit' %}{% url 'dashboard:teacher_assignment_detail' assignment.id %}{% else %}{% url 'dashboard:teacher_assignments' %}{% endif %}"
+               class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> Back
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow">
         <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">
-                {% if action == 'edit' %}Edit{% else %}Create New{% endif %} Assignment
-            </h4>
+            <h5 class="m-0 font-weight-bold">
+                <i class="fas fa-tasks me-2"></i>
+                {% if action == 'edit' %}Edit{% else %}Create{% endif %} Assignment
+            </h5>
         </div>
         <div class="card-body">
-
             <form method="post" enctype="multipart/form-data" id="assignmentForm">
                 {% csrf_token %}
 
-                <!-- Display form non-field errors -->
+                <!-- Display form errors -->
                 {% if form.non_field_errors %}
                 <div class="alert alert-danger">
                     {{ form.non_field_errors }}
@@ -27,7 +41,7 @@
                             {{ form.title }}
                             {% if form.title.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {{ form.title.errors|join:", " }}
+                                    {{ form.title.errors }}
                                 </div>
                             {% endif %}
                         </div>
@@ -38,7 +52,7 @@
                             {{ form.course }}
                             {% if form.course.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {{ form.course.errors|join:", " }}
+                                    {{ form.course.errors }}
                                 </div>
                             {% endif %}
                         </div>
@@ -50,7 +64,7 @@
                     {{ form.description }}
                     {% if form.description.errors %}
                         <div class="invalid-feedback d-block">
-                            {{ form.description.errors|join:", " }}
+                            {{ form.description.errors }}
                         </div>
                     {% endif %}
                 </div>
@@ -62,7 +76,7 @@
                             {{ form.due_date }}
                             {% if form.due_date.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {{ form.due_date.errors|join:", " }}
+                                    {{ form.due_date.errors }}
                                 </div>
                             {% endif %}
                         </div>
@@ -73,7 +87,7 @@
                             {{ form.max_points }}
                             {% if form.max_points.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {{ form.max_points.errors|join:", " }}
+                                    {{ form.max_points.errors }}
                                 </div>
                             {% endif %}
                         </div>
@@ -84,7 +98,7 @@
                             {{ form.status }}
                             {% if form.status.errors %}
                                 <div class="invalid-feedback d-block">
-                                    {{ form.status.errors|join:", " }}
+                                    {{ form.status.errors }}
                                 </div>
                             {% endif %}
                         </div>
@@ -96,20 +110,21 @@
                     {{ form.students }}
                     {% if form.students.errors %}
                         <div class="invalid-feedback d-block">
-                            {{ form.students.errors|join:", " }}
+                            {{ form.students.errors }}
                         </div>
                     {% endif %}
                     <small class="form-text text-muted">
-                        Select students who should complete this assignment (optional)
+                        Select students who should complete this assignment (Hold Ctrl to select multiple)
                     </small>
                 </div>
 
                 <div class="d-flex justify-content-between">
                     <button type="submit" class="btn btn-primary" id="submitBtn">
                         <i class="fas fa-save me-1"></i>
-                        {% if action == 'edit' %}Update{% else %}Save{% endif %} Assignment
+                        {% if action == 'edit' %}Update{% else %}Create{% endif %} Assignment
                     </button>
-                    <a href="{% url 'dashboard:teacher_assignments' %}" class="btn btn-secondary">
+                    <a href="{% if action == 'edit' %}{% url 'dashboard:teacher_assignment_detail' assignment.id %}{% else %}{% url 'dashboard:teacher_assignments' %}{% endif %}"
+                       class="btn btn-secondary">
                         <i class="fas fa-times me-1"></i> Cancel
                     </a>
                 </div>
@@ -118,7 +133,27 @@
     </div>
 </div>
 
-<!-- Add JavaScript to handle form submission -->
+<style>
+.form-control {
+    border: 1px solid #d1d3e2;
+    border-radius: 0.35rem;
+    padding: 0.75rem;
+}
+
+.form-control:focus {
+    border-color: #3a7bd5;
+    box-shadow: 0 0 0 0.2rem rgba(58, 123, 213, 0.25);
+}
+
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875em;
+    color: #e74a3b;
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('assignmentForm');
@@ -162,20 +197,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Disable button to prevent double submission
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> {% if action == "edit" %}Updating{% else %}Saving{% endif %}...';
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> {% if action == "edit" %}Updating{% else %}Creating{% endif %}...';
     });
-});
-</script>
 
-<!-- Add Select2 for better multi-select -->
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script>
-$(document).ready(function() {
-    $('.select2-multiple').select2({
-        placeholder: "Select students...",
-        allowClear: true
-    });
+    // Format datetime field for better UX
+    const dueDateField = document.getElementById('id_due_date');
+    if (dueDateField && dueDateField.value) {
+        // Convert the value to local datetime format
+        const date = new Date(dueDateField.value);
+        const localDateTime = date.toISOString().slice(0, 16);
+        dueDateField.value = localDateTime;
+    }
 });
 </script>
 {% endblock %}

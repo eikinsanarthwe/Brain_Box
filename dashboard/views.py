@@ -1114,6 +1114,7 @@ def assignment_create(request):
 def edit_assignment(request, id=None):
     assignment = get_object_or_404(Assignment, id=id) if id else None
 
+    # Check permissions for teachers
     if id and request.user.role == 'teacher' and assignment.teacher != request.user:
         messages.error(request, "You don't have permission to edit this assignment.")
         return redirect('dashboard:teacher_assignments')
@@ -1125,22 +1126,40 @@ def edit_assignment(request, id=None):
             if request.user.role == 'teacher':
                 assignment.teacher = request.user
             assignment.save()
-            messages.success(request, f'Assignment {"updated" if id else "created"} successfully!')
             form.save_m2m()
+            messages.success(request, f'Assignment {"updated" if id else "created"} successfully!')
 
+            # Redirect based on user role
             if request.user.role == 'teacher':
-                return redirect('dashboard:teacher_assignments')
+                return redirect('dashboard:teacher_assignment_detail', id=assignment.id)
             return redirect('dashboard:assignment_list')
         else:
             print(f"Form errors: {form.errors}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
     else:
         form = AssignmentForm(instance=assignment)
 
-    return render(request, 'dashboard/assignment_form.html', {
-        'form': form,
-        'title': 'Edit Assignment' if id else 'Add Assignment'
-    })
+        # Filter form fields for teachers
+        if request.user.role == 'teacher':
+            try:
+                teacher_obj = Teacher.objects.get(user=request.user)
+                form.fields['course'].queryset = Course.objects.filter(teachers=teacher_obj)
+                teacher_courses = Course.objects.filter(teachers=teacher_obj)
+                form.fields['students'].queryset = Student.objects.filter(courses__in=teacher_courses).distinct()
+            except Teacher.DoesNotExist:
+                form.fields['course'].queryset = Course.objects.none()
+                form.fields['students'].queryset = Student.objects.none()
 
+    template = 'dashboard/teacher_assignment_form.html' if request.user.role == 'teacher' else 'dashboard/assignment_form.html'
+
+    return render(request, template, {
+        'form': form,
+        'title': 'Edit Assignment' if id else 'Add Assignment',
+        'action': 'edit' if id else 'create',
+        'assignment': assignment if id else None
+    })
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_assignment_create(request):
@@ -2581,4 +2600,47 @@ def student_security_settings(request):
         'active_sessions': active_sessions,
         'two_factor_enabled': two_factor_enabled,
         'has_secret': has_secret
+    })
+@login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_edit_assignment(request, id):
+    """Edit assignment specifically for teachers"""
+    assignment = get_object_or_404(Assignment, id=id)
+
+    # Check if teacher owns this assignment
+    if assignment.teacher != request.user:
+        messages.error(request, "You don't have permission to edit this assignment.")
+        return redirect('dashboard:teacher_assignments')
+
+    if request.method == 'POST':
+        form = AssignmentForm(request.POST, instance=assignment)
+        if form.is_valid():
+            assignment = form.save()
+            messages.success(request, 'Assignment updated successfully!')
+            return redirect('dashboard:teacher_assignment_detail', id=assignment.id)
+        else:
+            print(f"Form errors: {form.errors}")
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")
+    else:
+        form = AssignmentForm(instance=assignment)
+
+        # Filter the form fields for teacher
+        try:
+            teacher_obj = Teacher.objects.get(user=request.user)
+            # Get courses taught by this teacher
+            form.fields['course'].queryset = Course.objects.filter(teachers=teacher_obj)
+            # Get students enrolled in teacher's courses
+            teacher_courses = Course.objects.filter(teachers=teacher_obj)
+            form.fields['students'].queryset = Student.objects.filter(courses__in=teacher_courses).distinct()
+        except Teacher.DoesNotExist:
+            form.fields['course'].queryset = Course.objects.none()
+            form.fields['students'].queryset = Student.objects.none()
+
+    return render(request, 'dashboard/teacher_assignment_form.html', {
+        'form': form,
+        'assignment': assignment,
+        'title': 'Edit Assignment',
+        'action': 'edit'
     })

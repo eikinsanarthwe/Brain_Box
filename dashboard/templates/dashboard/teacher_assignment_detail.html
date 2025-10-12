@@ -8,9 +8,9 @@
             <i class="fas fa-tasks me-2"></i>{{ assignment.title }}
         </h1>
         <div>
-            <a href="{% url 'dashboard:edit_assignment' assignment.id %}" class="btn btn-outline-primary">
-                <i class="fas fa-edit me-1"></i> Edit
-            </a>
+            <a href="{% url 'dashboard:teacher_edit_assignment' assignment.id %}" class="btn btn-outline-primary">
+    <i class="fas fa-edit me-1"></i> Edit
+</a>
             <a href="{% url 'dashboard:teacher_assignments' %}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-1"></i> Back to List
             </a>
