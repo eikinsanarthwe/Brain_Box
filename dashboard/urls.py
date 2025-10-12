@@ -44,7 +44,8 @@ urlpatterns = [
     path('teacher/courses/', views.teacher_courses, name='teacher_courses'),
     path('teacher/courses/add/', views.teacher_course_create, name='teacher_course_create'),
     path('teacher/courses/<int:course_id>/', views.teacher_course_detail, name='teacher_course_detail'),
-    path('teacher/courses/<int:course_id>/edit/', views.edit_course, name='teacher_course_edit'),
+    # Teacher edit course - separate view
+    path('teacher/course/<int:id>/edit/', views.teacher_edit_course, name='teacher_edit_course'),
     path('teacher/courses/<int:course_id>/delete/', views.delete_course, name='teacher_course_delete'),
 
     # Course Modules (NEW)

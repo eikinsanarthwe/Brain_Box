@@ -53,11 +53,16 @@ urlpatterns = [
     path('courses/<int:pk>/', views.course_detail, name='course_detail'),
     path('teacher/course/create/', views.teacher_course_create, name='teacher_course_create'),
     path('teacher/course/<int:course_id>/', views.teacher_course_detail, name='teacher_course_detail'),
-    path('teacher/course/<int:course_id>/edit/', views.edit_course, name='edit_course'),
     path('teacher/course/<int:course_id>/materials/', views.teacher_course_materials, name='teacher_course_materials'),
     path('teacher/course/<int:course_id>/materials/add/', views.add_course_material, name='add_course_material'),
     path('teacher/course/<int:course_id>/materials/<int:material_id>/delete/', views.delete_course_material, name='delete_course_material'),
     path('student/course/<int:course_id>/materials/', views.student_course_materials, name='student_course_materials'),
+    # Admin edit course
+    path('admin/course/<int:id>/edit/', views.edit_course, name='admin_edit_course'),
+
+    # Teacher edit course
+    # Teacher edit course URL
+path('teacher/course/<int:id>/edit/', views.edit_course, name='teacher_edit_course'),
 
     # Student Management URLs
     path('teacher/student/create/', views.teacher_student_create, name='teacher_student_create'),
@@ -107,7 +112,7 @@ urlpatterns = [
     path('courses/', views.course_list, name='course_list'),
     path('courses/create/', views.course_create, name='course_create'),
     path('courses/<int:id>/delete/', views.delete_course, name='delete_course'),
-    
+
 
 
     # Logout URL

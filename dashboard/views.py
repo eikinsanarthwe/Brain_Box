@@ -169,6 +169,42 @@ def student_course_detail(request, course_id):
     return render(request, 'dashboard/student_course_detail.html', context)
 
 @login_required
+@user_passes_test(lambda u: u.role == 'teacher')
+def teacher_edit_course(request, id):
+    course = get_object_or_404(Course, id=id)
+
+    # Check if teacher owns this course
+    try:
+        teacher = get_object_or_404(Teacher, user=request.user)
+        if teacher not in course.teachers.all():
+            messages.error(request, "You don't have permission to edit this course.")
+            return redirect('dashboard:teacher_courses')
+    except:
+        messages.error(request, "You don't have permission to edit courses.")
+        return redirect('dashboard:teacher_dashboard')
+
+    if request.method == 'POST':
+        # CHANGE: Use TeacherCourseForm instead of CourseForm
+        form = TeacherCourseForm(request.POST, request.FILES, instance=course)
+
+        # No need to remove teachers field since TeacherCourseForm doesn't have it
+        if form.is_valid():
+            course = form.save()
+            messages.success(request, f'Course "{course.name}" updated successfully!')
+            return redirect('dashboard:teacher_course_detail', course_id=course.id)
+        else:
+            messages.error(request, 'Please correct the errors below.')
+    else:
+        # CHANGE: Use TeacherCourseForm instead of CourseForm
+        form = TeacherCourseForm(instance=course)
+        # No need to remove teachers field since TeacherCourseForm doesn't have it
+
+    return render(request, 'dashboard/teacher_course_form.html', {
+        'form': form,
+        'course': course
+    })
+
+@login_required
 def student_assignments(request):
     """View all assignments for a student"""
     if not hasattr(request.user, 'student'):
