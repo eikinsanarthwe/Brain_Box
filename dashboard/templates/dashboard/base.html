@@ -12,13 +12,9 @@
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="{% static 'css/styles.css' %}" rel="stylesheet">
 
-
-
-
-
     <style>
         /* =============================
-           DEFAULT LIGHT THEME VARIABLES
+           THEME VARIABLES
         ============================== */
         :root {
             --primary-color: #4e73df;
@@ -44,9 +40,7 @@
             --dropdown-border: #e3e6f0;
         }
 
-        /* =============================
-           DARK THEME VARIABLES
-        ============================== */
+        /* Dark Theme */
         body[data-theme="dark"] {
             --bg-color: #0a3d49;
             --text-color: #ffffff;
@@ -266,6 +260,14 @@
         // Apply theme on page load
         document.addEventListener('DOMContentLoaded', function() {
             applyTheme();
+
+            // Mobile sidebar toggle
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            if (sidebarToggle) {
+                sidebarToggle.addEventListener('click', function() {
+                    document.querySelector('.sidebar').classList.toggle('show');
+                });
+            }
         });
 
         function applyTheme() {
@@ -300,16 +302,6 @@
             }
             return cookieValue;
         }
-
-        // Mobile sidebar toggle
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            if (sidebarToggle) {
-                sidebarToggle.addEventListener('click', function() {
-                    document.querySelector('.sidebar').classList.toggle('show');
-                });
-            }
-        });
     </script>
 </body>
 </html>

@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserCreationForm
+from django.core.exceptions import ValidationError
 from .models import Teacher, Student, Course, Assignment, CourseMaterial, Message, UserProfile, CourseModule, StudentProgress
 from django.db.models import Q
 
@@ -191,7 +192,7 @@ class StudentForm(forms.ModelForm):
 
 class CourseForm(forms.ModelForm):
     # Add a clear image field
-    clear_image = forms.BooleanField(required=False, widget=forms.CheckboxInput())
+    clear_image = forms.BooleanField(required=False, widget=forms.HiddenInput())
 
     class Meta:
         model = Course
@@ -207,12 +208,7 @@ class CourseForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['teachers'].queryset = Teacher.objects.all()
-
-        # Make image field not required
         self.fields['image'].required = False
-
-        # Hide the clear_image field as we'll handle it in the template
-        self.fields['clear_image'].widget = forms.HiddenInput()
 
     def save(self, commit=True):
         instance = super().save(commit=False)
@@ -353,23 +349,11 @@ class TeacherCourseForm(forms.ModelForm):
     def save(self, commit=True):
         instance = super().save(commit=False)
 
-        # Handle image clearing - this is the crucial part
+        # Handle image clearing
         if self.cleaned_data.get('clear_image'):
-            print("DEBUG: Clearing image...")
-            # Delete the current image file from storage
             if instance.image:
-                # Store the path before deletion for debugging
-                old_image_path = instance.image.path if instance.image else None
-                print(f"DEBUG: Deleting image at: {old_image_path}")
-
-                # Delete the file from storage
                 instance.image.delete(save=False)
-
-            # Set the image field to None/empty
             instance.image = None
-
-        # If a new image is uploaded, it will automatically replace the old one
-        # Django's FileField handles this automatically
 
         if commit:
             instance.save()

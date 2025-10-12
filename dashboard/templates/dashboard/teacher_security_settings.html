@@ -19,7 +19,6 @@
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
-                        <input type="hidden" name="password_change" value="true">
                         <div class="mb-3">
                             <label for="current_password" class="form-label">Current Password</label>
                             <input type="password" class="form-control" id="current_password" name="current_password" required>
@@ -28,7 +27,7 @@
                             <label for="new_password" class="form-label">New Password</label>
                             <input type="password" class="form-control" id="new_password" name="new_password" required>
                         </div>
-                        <button type="submit" class="btn btn-primary">Update Password</button>
+                        <button type="submit" class="btn btn-primary" name="password_change">Update Password</button>
                     </form>
                 </div>
             </div>
@@ -39,7 +38,7 @@
                     <h5 class="m-0">Two-Factor Authentication</h5>
                 </div>
                 <div class="card-body">
-                    {% if user.userprofile.two_factor_enabled %}
+                    {% if two_factor_enabled %}
                         <div class="alert alert-success">
                             <i class="fas fa-check-circle me-2"></i>
                             Two-factor authentication is enabled for your account.
@@ -50,33 +49,124 @@
                             <button type="submit" class="btn btn-danger">Disable Two-Factor Authentication</button>
                         </form>
                     {% else %}
-                        {% if user.userprofile.two_factor_secret %}
-                        <!-- QR Code and verification (shown after enabling but before verifying) -->
-                        <div id="2fa-setup">
-                            <div class="mb-3">
-                                <p>Scan this QR code with your authenticator app:</p>
-                                <img src="{% url 'dashboard:generate_qr_code' %}" alt="QR Code" class="img-fluid mb-3" style="max-width: 200px;">
-                                <p class="text-muted small">Or enter this secret key manually: <code>{{ user.userprofile.two_factor_secret }}</code></p>
+                        <form method="post">
+                            {% csrf_token %}
+                            <div class="form-check form-switch mb-3">
+                                <input class="form-check-input" type="checkbox" id="two_factor" name="two_factor">
+                                <label class="form-check-label" for="two_factor">
+                                    Enable Two-Factor Authentication
+                                </label>
                             </div>
-                            <form method="post">
-                                {% csrf_token %}
+
+                            {% if has_secret %}
+                            <!-- QR Code and verification (shown after enabling but before verifying) -->
+                            <div id="2fa-setup" style="display: none;">
+                                <div class="mb-3">
+                                    <p>Scan this QR code with your authenticator app:</p>
+                                    <img src="{% url 'dashboard:generate_qr_code' %}" alt="QR Code" class="img-fluid mb-3" style="max-width: 200px;">
+                                    <p class="text-muted small">Or enter this secret key manually: <code>{{ user.userprofile.two_factor_secret }}</code></p>
+                                </div>
                                 <div class="mb-3">
                                     <label for="verification_code" class="form-label">Enter verification code</label>
                                     <input type="text" class="form-control" id="verification_code" name="verification_code" placeholder="6-digit code" required>
                                 </div>
                                 <button type="submit" class="btn btn-success" name="verify_2fa">Verify and Enable</button>
-                            </form>
-                        </div>
-                        {% else %}
-                        <form method="post">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-primary" name="enable_2fa">Enable Two-Factor Authentication</button>
+                            </div>
+                            {% endif %}
+
+                            <button type="submit" class="btn btn-primary" name="enable_2fa" id="enable-btn">Enable Two-Factor</button>
                         </form>
-                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Active Sessions -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="m-0">Active Sessions ({{ active_sessions }})</h5>
+                </div>
+                <div class="card-body">
+                    {% if active_sessions > 1 %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            You're logged in on {{ active_sessions }} devices.
+                        </div>
+                    {% else %}
+                        <p class="text-muted">You're currently logged in on 1 device.</p>
+                    {% endif %}
+
+                    <!-- Session list -->
+                    {% if user_sessions %}
+                    <div class="table-responsive mt-3">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Device</th>
+                                    <th>Browser</th>
+                                    <th>IP Address</th>
+                                    <th>Last Activity</th>
+                                    <th>Current</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in user_sessions %}
+                                <tr>
+                                    <td>
+                                        <i class="fas fa-laptop me-2"></i>
+                                        {{ session.device_name }}
+                                    </td>
+                                    <td>{{ session.browser }}</td>
+                                    <td>{{ session.ip_address }}</td>
+                                    <td>{{ session.last_activity|timesince }} ago</td>
+                                    <td>
+                                        {% if session.is_current %}
+                                            <span class="badge bg-success">Current</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+
+                    <!-- Session key info -->
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Current session: {{ current_session_key|slice:":8" }}...
+                        </small>
+                    </div>
+
+                    {% if active_sessions > 1 %}
+                    <form method="post">
+                        {% csrf_token %}
+                        <input type="hidden" name="logout_other_sessions" value="true">
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="fas fa-sign-out-alt me-1"></i>
+                            Log out of all other sessions
+                        </button>
+                    </form>
                     {% endif %}
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<script>
+// Show/hide 2FA setup section when checkbox is toggled
+document.getElementById('two_factor').addEventListener('change', function(e) {
+    const setupSection = document.getElementById('2fa-setup');
+    const enableBtn = document.getElementById('enable-btn');
+
+    if (e.target.checked) {
+        if (setupSection) setupSection.style.display = 'block';
+        if (enableBtn) enableBtn.style.display = 'none';
+    } else {
+        if (setupSection) setupSection.style.display = 'none';
+        if (enableBtn) enableBtn.style.display = 'block';
+    }
+});
+</script>
 {% endblock %}

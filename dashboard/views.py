@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.contrib.auth import logout, get_user_model
+from django.contrib.auth import logout, get_user_model, update_session_auth_hash
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import models
 from django.db.models import Count, Avg
@@ -1167,6 +1167,7 @@ def teacher_assignment_create(request):
         'action': 'create'
     })
 
+
 @login_required
 def delete_assignment(request, id):
     assignment = get_object_or_404(Assignment, id=id)
@@ -1261,6 +1262,7 @@ def grade_submission(request, submission_id):
     }
     return render(request, 'dashboard/grade_submission.html', context)
 
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_courses(request):
@@ -1271,6 +1273,7 @@ def teacher_courses(request):
         'courses': courses,
     }
     return render(request, 'dashboard/teacher_courses.html', context)
+
 
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
@@ -1293,6 +1296,7 @@ def teacher_assignment_detail(request, id):
     }
     return render(request, 'dashboard/teacher_assignment_detail.html', context)
 
+
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
 def teacher_students(request):
@@ -1307,6 +1311,7 @@ def teacher_students(request):
         'students': students,
     }
     return render(request, 'dashboard/teacher_students.html', context)
+
 
 @csrf_exempt
 def get_teachers_by_course(request):
@@ -1328,6 +1333,7 @@ def get_teachers_by_course(request):
             print("No course_id provided")
 
     return JsonResponse([], safe=False)
+
 
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
@@ -1373,6 +1379,7 @@ def teacher_student_create(request):
         'form': form,
         'title': 'Add Student'
     })
+
 
 @login_required
 @user_passes_test(lambda u: u.role == 'teacher')
@@ -1525,42 +1532,43 @@ def appearance_settings(request):
         'themes': ['light', 'dark', 'auto'],
         'current_theme': current_theme
     })
-
 @user_passes_test(is_admin)
 def security_settings(request):
     if request.method == 'POST':
         current_password = request.POST.get('current_password')
         new_password = request.POST.get('new_password')
 
+        # Get or create user profile
+        profile, created = UserProfile.objects.get_or_create(user=request.user)
+
         if current_password and new_password and 'password_change' in request.POST:
             if request.user.check_password(current_password):
                 request.user.set_password(new_password)
                 request.user.save()
+                update_session_auth_hash(request, request.user)  # Important: keep user logged in
                 messages.success(request, 'Password updated successfully!')
             else:
                 messages.error(request, 'Current password is incorrect')
 
         elif 'enable_2fa' in request.POST:
             secret = pyotp.random_base32()
-            profile, created = UserProfile.objects.get_or_create(user=request.user)
             profile.two_factor_secret = secret
             profile.save()
             messages.info(request, 'Please scan the QR code with your authenticator app')
 
         elif 'verify_2fa' in request.POST:
             verification_code = request.POST.get('verification_code')
-            profile = UserProfile.objects.get(user=request.user)
 
             totp = pyotp.TOTP(profile.two_factor_secret)
             if totp.verify(verification_code):
                 profile.two_factor_enabled = True
                 profile.save()
                 messages.success(request, 'Two-factor authentication enabled successfully!')
+                return redirect('dashboard:security_settings')
             else:
                 messages.error(request, 'Invalid verification code')
 
         elif 'disable_2fa' in request.POST:
-            profile = UserProfile.objects.get(user=request.user)
             profile.two_factor_enabled = False
             profile.two_factor_secret = None
             profile.save()
@@ -1568,21 +1576,37 @@ def security_settings(request):
 
         return redirect('dashboard:security_settings')
 
-    active_sessions = 1
+    # Get or create user profile for GET requests
+    profile, created = UserProfile.objects.get_or_create(user=request.user)
 
-    try:
-        profile = UserProfile.objects.get(user=request.user)
-        two_factor_enabled = profile.two_factor_enabled
-        has_secret = bool(profile.two_factor_secret)
-    except UserProfile.DoesNotExist:
-        two_factor_enabled = False
-        has_secret = False
+    # Calculate active sessions count
+    from django.contrib.sessions.models import Session
+    from django.utils import timezone
+
+    active_sessions = Session.objects.filter(expire_date__gte=timezone.now())
+    active_sessions_count = 0
+    user_sessions = []
+
+    for session in active_sessions:
+        session_data = session.get_decoded()
+        if session_data.get('_auth_user_id') == str(request.user.id):
+            active_sessions_count += 1
+            user_sessions.append({
+                'session_key': session.session_key,
+                'expire_date': session.expire_date,
+                'user_agent': session_data.get('user_agent', 'Unknown'),
+                'ip_address': session_data.get('ip_address', 'Unknown'),
+                'is_current': session.session_key == request.session.session_key,
+            })
 
     return render(request, 'dashboard/security_settings.html', {
         'title': 'Security Settings',
-        'active_sessions': active_sessions,
-        'two_factor_enabled': two_factor_enabled,
-        'has_secret': has_secret
+        'active_sessions_count': active_sessions_count,  # Fixed variable name
+        'user_sessions': user_sessions,  # Now this variable is defined
+        'current_session_key': request.session.session_key,
+        'two_factor_enabled': profile.two_factor_enabled,
+        'has_secret': bool(profile.two_factor_secret),
+        'user': request.user
     })
 
 def generate_qr_code(request):

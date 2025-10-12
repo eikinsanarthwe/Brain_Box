@@ -1,0 +1,354 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrainBox - Two-Factor Authentication</title>
+  <style>
+    /* ===== Base Styles ===== */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: #ffffffff;
+      color: #474646ff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      line-height: 1.6;
+    }
+
+    /* ===== Container Styles ===== */
+    .container {
+      display: flex;
+      max-width: 1000px;
+      width: 90%;
+      background: linear-gradient(to right, #9fa6b2ff, #2183a9ff);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+      margin: 20px;
+    }
+
+    /* ===== Left Section ===== */
+    .left {
+      flex: 1;
+      padding: 40px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .left h1 {
+      font-size: 2.2rem;
+      margin-bottom: 20px;
+      color: #484a4fff;
+    }
+
+    .left p {
+      margin-bottom: 25px;
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+
+    .auth-steps {
+      list-style: none;
+      margin-top: 15px;
+    }
+
+    .auth-steps li {
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 1.1rem;
+    }
+
+    .step-number {
+      background: #667facff;
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    /* ===== Right Section ===== */
+    .right {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.15);
+      padding: 30px;
+    }
+
+    .card {
+      background: transparent;
+      padding: 40px;
+      border-radius: 10px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .card h2 {
+      font-size: 1.8rem;
+      margin-bottom: 5px;
+      color: #f4f5f7ff;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #aaa;
+      margin-bottom: 25px;
+    }
+
+    .username-display {
+      background: rgba(255,255,255,0.1);
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      text-align: center;
+      font-weight: bold;
+      color: #fff;
+    }
+
+    /* ===== Form Styles ===== */
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .form-group label {
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+
+    input {
+      padding: 14px;
+      border-radius: 6px;
+      border: 1px solid #214780ff;
+      outline: none;
+      background: #cdcfd6ff;
+      color: #706e6eff;
+      font-size: 1.2rem;
+      text-align: center;
+      letter-spacing: 8px;
+      transition: border 0.3s;
+    }
+
+    input:focus {
+      border-color: #5d9ef4ff;
+    }
+
+    input::placeholder {
+      color: #bbb;
+      letter-spacing: normal;
+    }
+
+    .alert {
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 15px;
+      font-size: 0.9rem;
+    }
+
+    .alert-error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+    }
+
+    .alert-success {
+      background: #d1edff;
+      color: #0c5460;
+      border: 1px solid #bee5eb;
+    }
+
+    button {
+      background: #667facff;
+      color: #fff;
+      padding: 14px;
+      border: none;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.3s;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background: #3f4d82ff;
+    }
+
+    .auth-links {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.9rem;
+    }
+
+    .auth-links a {
+      color: #bad0dfff;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    /* ===== Responsive Styles ===== */
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+
+      .left, .right {
+        padding: 30px;
+      }
+
+      .left {
+        text-align: center;
+      }
+
+      .auth-steps {
+        align-items: flex-start;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        padding: 30px 20px;
+      }
+
+      .left h1 {
+        font-size: 1.8rem;
+      }
+
+      input {
+        font-size: 1rem;
+        letter-spacing: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Left Section -->
+    <div class="left">
+      <h1>Two-Factor Authentication</h1>
+      <p><b>
+        For added security, please verify your identity using your authenticator app.
+      </p>
+      <ul class="auth-steps">
+        <li>
+          <span class="step-number">1</span>
+          Open your authenticator app
+        </li>
+        <li>
+          <span class="step-number">2</span>
+          Find the code for "BrainBox"
+        </li>
+        <li>
+          <span class="step-number">3</span>
+          Enter the 6-digit code below
+        </li>
+      </ul>
+    </div>
+
+    <!-- Right Section -->
+    <div class="right">
+      <div class="card">
+        <h2>Enter Verification Code</h2>
+        <p class="subtitle">6-digit code from your authenticator app</p>
+
+        <!-- Only show 2FA-related error messages -->
+        {% if messages %}
+          {% for message in messages %}
+            {% if "invalid" in message|lower or "wrong" in message|lower or "incorrect" in message|lower or "error" in message.tags and "verification" in message|lower or "code" in message|lower and "error" in message.tags %}
+            <div class="alert alert-error">
+              {{ message }}
+            </div>
+            {% endif %}
+          {% endfor %}
+        {% endif %}
+
+        {% if username %}
+          <div class="username-display">
+            Verifying for: {{ username }}
+          </div>
+        {% endif %}
+
+        <form method="POST" action="{% url 'two_factor_verify' %}">
+          {% csrf_token %}
+
+          <div class="form-group">
+            <label for="verification_code">Verification Code</label>
+            <input
+              type="text"
+              id="verification_code"
+              name="verification_code"
+              placeholder="000000"
+              maxlength="6"
+              pattern="[0-9]{6}"
+              required
+              autofocus
+              autocomplete="one-time-code"
+            >
+          </div>
+
+          <button type="submit">Verify and Continue</button>
+        </form>
+
+        <div class="auth-links">
+          <a href="{% url 'login' %}">← Back to Login</a>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Auto-format the verification code input
+    document.getElementById('verification_code').addEventListener('input', function(e) {
+      // Remove any non-digit characters
+      this.value = this.value.replace(/\D/g, '');
+
+      // Limit to 6 digits
+      if (this.value.length > 6) {
+        this.value = this.value.slice(0, 6);
+      }
+    });
+
+    // Additional cleanup to ensure only 2FA error messages are shown
+    document.addEventListener('DOMContentLoaded', function() {
+      const alerts = document.querySelectorAll('.alert');
+      alerts.forEach(alert => {
+        const text = alert.textContent.toLowerCase();
+        // Remove any alert that doesn't contain 2FA error keywords
+        if (!text.includes('invalid') &&
+            !text.includes('wrong') &&
+            !text.includes('incorrect') &&
+            !text.includes('verification') &&
+            !text.includes('code')) {
+          alert.remove();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

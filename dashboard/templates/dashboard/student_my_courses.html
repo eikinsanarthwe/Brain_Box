@@ -8,6 +8,18 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .course-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .course-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important;
+        }
+        .hidden {
+            display: none !important;
+        }
+    </style>
 </head>
 <body>
     <div class="container-fluid">
@@ -31,19 +43,29 @@
                 <div class="row mb-4">
                     <div class="col-md-8">
                         <div class="input-group">
-                            <input type="text" class="form-control" placeholder="Search courses...">
-                            <button class="btn btn-primary" type="button">
+                            <input type="text" id="courseSearch" class="form-control" placeholder="Search courses by name, description, instructor, or category...">
+                            <button class="btn btn-primary" type="button" onclick="searchCourses()">
                                 <i class="fas fa-search"></i>
                             </button>
                         </div>
                     </div>
-
+                    <div class="col-md-4 mt-2 mt-md-0">
+                        <div class="d-flex justify-content-end">
+                            <span class="text-muted" id="searchResultsCount">
+                                Showing {{ courses|length }} course{{ courses|length|pluralize }}
+                            </span>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Courses Grid -->
-                <div class="row">
+                <div class="row" id="coursesContainer">
                     {% for course in courses %}
-                    <div class="col-md-4 mb-4">
+                    <div class="col-md-4 mb-4 course-item"
+                         data-name="{{ course.name|default:''|lower }}"
+                         data-description="{{ course.description|default:''|lower }}"
+                         data-category="{{ course.category|default:''|lower }}"
+                         data-instructors="{% for teacher in course.teachers.all %}{{ teacher.user.get_full_name|default:teacher.user.username|lower }}{% if not forloop.last %} {% endif %}{% endfor %}">
                         <div class="card course-card h-100 shadow-sm border-0">
                             <div class="card-img-top bg-info bg-opacity-10 position-relative d-flex align-items-center justify-content-center" style="height: 160px;">
                                 <i class="fas fa-book-open fa-3x text-info"></i>
@@ -89,11 +111,20 @@
                         <div class="alert alert-info text-center" role="alert">
                             <i class="fas fa-info-circle me-2"></i>
                             You are not enrolled in any courses yet.
-                            <!-- FIXED: Removed the broken course_catalog URL -->
                             <a href="#" class="alert-link">Contact administrator</a> to get enrolled in courses.
                         </div>
                     </div>
                     {% endfor %}
+                </div>
+
+                <!-- No Results Message (Hidden by default) -->
+                <div class="row hidden" id="noResultsMessage">
+                    <div class="col-12">
+                        <div class="alert alert-warning text-center" role="alert">
+                            <i class="fas fa-search me-2"></i>
+                            No courses found matching your search criteria.
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -101,5 +132,108 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        function searchCourses() {
+            const searchInput = document.getElementById('courseSearch');
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const courseItems = document.querySelectorAll('.course-item');
+            const noResultsMessage = document.getElementById('noResultsMessage');
+            const searchResultsCount = document.getElementById('searchResultsCount');
+
+            let visibleCount = 0;
+
+            courseItems.forEach(item => {
+                const courseName = item.getAttribute('data-name');
+                const courseDescription = item.getAttribute('data-description');
+                const courseCategory = item.getAttribute('data-category');
+                const courseInstructors = item.getAttribute('data-instructors');
+
+                const matchesSearch =
+                    courseName.includes(searchTerm) ||
+                    courseDescription.includes(searchTerm) ||
+                    courseCategory.includes(searchTerm) ||
+                    courseInstructors.includes(searchTerm);
+
+                if (matchesSearch || searchTerm === '') {
+                    item.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    item.classList.add('hidden');
+                }
+            });
+
+            // Update results count
+            if (searchTerm === '') {
+                searchResultsCount.textContent = `Showing ${visibleCount} course${visibleCount !== 1 ? 's' : ''}`;
+            } else {
+                searchResultsCount.textContent = `Found ${visibleCount} course${visibleCount !== 1 ? 's' : ''} matching "${searchTerm}"`;
+            }
+
+            // Show/hide no results message
+            if (visibleCount === 0 && searchTerm !== '') {
+                noResultsMessage.classList.remove('hidden');
+            } else {
+                noResultsMessage.classList.add('hidden');
+            }
+        }
+
+        // Add event listener for Enter key
+        document.getElementById('courseSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchCourses();
+            }
+        });
+
+        // Add event listener for real-time search (optional)
+        document.getElementById('courseSearch').addEventListener('input', function(e) {
+            // Uncomment the line below for real-time search as you type
+            // searchCourses();
+        });
+
+        // Highlight search terms in results (optional enhancement)
+        function highlightSearchTerms() {
+            const searchTerm = document.getElementById('courseSearch').value.toLowerCase().trim();
+            if (searchTerm === '') return;
+
+            const courseItems = document.querySelectorAll('.course-item:not(.hidden)');
+
+            courseItems.forEach(item => {
+                const title = item.querySelector('.card-title');
+                const description = item.querySelector('.card-text');
+                const instructors = item.querySelector('.small.text-muted');
+
+                // Remove previous highlights
+                title.innerHTML = title.textContent;
+                description.innerHTML = description.textContent;
+                instructors.innerHTML = instructors.textContent;
+
+                // Highlight matching text
+                if (title.textContent.toLowerCase().includes(searchTerm)) {
+                    const regex = new RegExp(`(${searchTerm})`, 'gi');
+                    title.innerHTML = title.textContent.replace(regex, '<mark>$1</mark>');
+                }
+
+                if (description.textContent.toLowerCase().includes(searchTerm)) {
+                    const regex = new RegExp(`(${searchTerm})`, 'gi');
+                    description.innerHTML = description.textContent.replace(regex, '<mark>$1</mark>');
+                }
+            });
+        }
+
+        // Call highlight after search
+        function enhancedSearch() {
+            searchCourses();
+            setTimeout(highlightSearchTerms, 100);
+        }
+
+        // Update the search button to use enhanced search
+        document.querySelector('.btn-primary').addEventListener('click', enhancedSearch);
+        document.getElementById('courseSearch').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                enhancedSearch();
+            }
+        });
+    </script>
 </body>
 </html>
