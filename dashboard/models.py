@@ -8,6 +8,7 @@ import os
 import requests
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import FileExtensionValidator
 
 # -----------------------------
 # Custom User Model
@@ -183,15 +184,19 @@ class CourseModule(models.Model):
 # -----------------------------
 # Assignment Model
 # -----------------------------
+# -----------------------------
+# Assignment Model
+# -----------------------------
 class Assignment(models.Model):
     STATUS_CHOICES = [
         ('draft', 'Draft'),
         ('published', 'Published'),
         ('archived', 'Archived'),
     ]
-    students = models.ManyToManyField(Student)
+
+    students = models.ManyToManyField(Student, blank=True)
     title = models.CharField(max_length=200)
-    description = models.TextField()
+    description = models.TextField(blank=True)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     teacher = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -204,8 +209,27 @@ class Assignment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Assignment attachments field - THIS FIELD EXISTS
+    attachment = models.FileField(
+        upload_to='assignment_attachments/%Y/%m/%d/',
+        blank=True,
+        null=True,
+        verbose_name='Assignment Files',
+        validators=[
+            FileExtensionValidator([
+                'pdf', 'doc', 'docx', 'ppt', 'pptx',
+                'jpg', 'jpeg', 'png', 'gif', 'txt',
+                'zip', 'rar'
+            ])
+        ]
+    )
+
+    class Meta:
+        ordering = ['-created_at']
+
     def __str__(self):
         return f"{self.title} - {self.course.code}"
+        return self.status == 'published' and timezone.now() <= self.due_date
 
 # -----------------------------
 # Submission Model

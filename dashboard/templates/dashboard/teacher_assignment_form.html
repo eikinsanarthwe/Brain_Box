@@ -69,6 +69,71 @@
                     {% endif %}
                 </div>
 
+                <!-- FIXED File Upload Section -->
+                <div class="form-group mb-4">
+                    <label class="form-label">Assignment Files (Optional)</label>
+                    <div class="card border-0 bg-light">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label for="{{ form.attachment.id_for_label }}" class="form-label">
+                                    <i class="fas fa-paperclip me-1"></i>Attach File
+                                </label>
+
+                                <!-- Use Django's form field but with custom styling -->
+                                <div class="file-input-wrapper">
+                                    {{ form.attachment }}
+                                </div>
+
+                                <div id="file_feedback" class="mt-2 small"></div>
+
+                                {% if form.attachment.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.attachment.errors }}
+                                    </div>
+                                {% endif %}
+                                <small class="form-text text-muted">
+                                    Upload assignment instructions, templates, or reference materials (PDF, DOC, PPT, images, etc.) - Max 50MB
+                                </small>
+                            </div>
+
+                            <!-- File preview for existing files (edit mode) -->
+                            {% if action == 'edit' and assignment.attachment %}
+                            <div class="existing-files mt-3">
+                                <h6 class="text-muted mb-2">Current File:</h6>
+                                <div class="file-preview bg-white p-3 rounded border d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fas
+                                            {% if assignment.attachment.name|slice:'-4:'|lower == '.pdf' %}fa-file-pdf text-danger
+                                            {% elif assignment.attachment.name|slice:'-4:'|lower in '.doc,.docx' %}fa-file-word text-primary
+                                            {% elif assignment.attachment.name|slice:'-4:'|lower in '.ppt,.pptx' %}fa-file-powerpoint text-warning
+                                            {% elif assignment.attachment.name|slice:'-4:'|lower in '.jpg,.jpeg,.png,.gif' %}fa-file-image text-success
+                                            {% elif assignment.attachment.name|slice:'-4:'|lower in '.xls,.xlsx' %}fa-file-excel text-success
+                                            {% elif assignment.attachment.name|slice:'-4:'|lower in '.zip,.rar' %}fa-file-archive text-secondary
+                                            {% else %}fa-file text-muted{% endif %} me-3 fa-lg">
+                                        </i>
+                                        <div>
+                                            <div class="file-name fw-bold">{{ assignment.attachment.name|cut:"assignment_attachments/" }}</div>
+                                            <small class="text-muted">
+                                                {{ assignment.attachment.size|filesizeformat }} •
+                                                Uploaded: {{ assignment.created_at|date:"M d, Y" }}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="btn-group">
+                                        <a href="{{ assignment.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-primary" title="Download">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearFileInput()" title="Remove File">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row">
                     <div class="col-md-4">
                         <div class="form-group mb-3">
@@ -152,13 +217,146 @@
     font-size: 0.875em;
     color: #e74a3b;
 }
+<<<<<<< HEAD
+=======
+
+.file-preview {
+    transition: all 0.2s ease;
+}
+
+.file-preview:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.file-name {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Style the actual file input */
+#id_attachment {
+    width: 100%;
+    padding: 12px;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+#id_attachment:hover {
+    border-color: #3a7bd5;
+    background-color: #f8f9fa;
+}
+
+#id_attachment:focus {
+    outline: none;
+    border-color: #3a7bd5;
+    box-shadow: 0 0 0 0.2rem rgba(58, 123, 213, 0.25);
+}
+
+.file-success {
+    color: #28a745;
+    font-weight: 500;
+}
+
+.file-error {
+    color: #dc3545;
+    font-weight: 500;
+}
+
+/* Style the file input button */
+#id_attachment::file-selector-button {
+    background: #3a7bd5;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin-right: 12px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+#id_attachment::file-selector-button:hover {
+    background: #2c5da9;
+}
+>>>>>>> 7d73c14d6f72355eb0663a3d5d2970ae63817ecf
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('assignmentForm');
     const submitBtn = document.getElementById('submitBtn');
+    const fileInput = document.getElementById('id_attachment');
+    const fileFeedback = document.getElementById('file_feedback');
 
+    console.log('File input element:', fileInput);
+
+    // File input change handler
+    if (fileInput) {
+        fileInput.addEventListener('change', function(e) {
+            console.log('File input changed');
+            const file = e.target.files[0];
+
+            if (file) {
+                console.log('File selected:', file.name, file.size);
+
+                // Show file size validation
+                const maxSize = 50 * 1024 * 1024; // 50MB
+
+                if (file.size > maxSize) {
+                    fileFeedback.innerHTML = `<span class="file-error">File "${file.name}" is too large. Maximum file size is 50MB.</span>`;
+                    fileInput.value = '';
+                    return;
+                }
+
+                // Show file type validation
+                const validExtensions = ['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.jpg', '.jpeg', '.png', '.gif', '.txt', '.zip', '.rar'];
+                const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+
+                if (!validExtensions.includes(fileExtension)) {
+                    fileFeedback.innerHTML = `<span class="file-error">File type "${fileExtension}" is not supported. Please upload: ${validExtensions.join(', ')}</span>`;
+                    fileInput.value = '';
+                    return;
+                }
+
+                // Show success message
+                const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+                fileFeedback.innerHTML = `<span class="file-success">✓ "${file.name}" (${fileSizeMB} MB) selected successfully</span>`;
+
+            } else {
+                fileFeedback.innerHTML = '';
+            }
+        });
+
+        // Also add click event to verify it's working
+        fileInput.addEventListener('click', function() {
+            console.log('File input clicked');
+        });
+    } else {
+        console.error('File input not found!');
+    }
+
+    // Function to clear file input
+    window.clearFileInput = function() {
+        if (fileInput) {
+            fileInput.value = '';
+            fileFeedback.innerHTML = '';
+
+            // Hide the file preview
+            const filePreview = document.querySelector('.file-preview');
+            if (filePreview) {
+                filePreview.style.display = 'none';
+            }
+
+            alert('The current file will be removed when you save the assignment.');
+        }
+    };
+
+    // Form validation and submission
     form.addEventListener('submit', function(e) {
         // Basic validation
         const title = document.getElementById('id_title').value;

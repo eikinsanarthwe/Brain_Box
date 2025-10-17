@@ -38,7 +38,7 @@
                                 </span>
                             </td>
                             <td>
-                                <span class="badge 
+                                <span class="badge
                                     {% if assignment.status == 'published' %}bg-success
                                     {% elif assignment.status == 'draft' %}bg-secondary
                                     {% else %}bg-warning{% endif %}">
@@ -46,11 +46,11 @@
                                 </span>
                             </td>
                             <td>
-                                <a href="{% url 'dashboard:teacher_assignment_detail' assignment.id %}" 
+                                <a href="{% url 'dashboard:teacher_assignment_detail' assignment.id %}"
                                    class="btn btn-sm btn-outline-primary">
                                     <i class="fas fa-eye"></i> View
                                 </a>
-                                <a href="{% url 'dashboard:edit_assignment' assignment.id %}" 
+                                <a href="{% url 'dashboard:teacher_edit_assignment' assignment.id %}"
                                    class="btn btn-sm btn-outline-secondary">
                                     <i class="fas fa-edit"></i> Edit
                                 </a>

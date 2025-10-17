@@ -70,9 +70,46 @@
                         </div>
                     </div>
                     {% endif %}
+
+                    <!-- ADDED: Assignment Files Section -->
+                    {% if assignment.attachment %}
+                    <div class="mt-4">
+                        <strong><i class="fas fa-paperclip me-2"></i>Assignment Files:</strong>
+                        <div class="mt-2">
+                            <div class="card">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <i class="{{ assignment.get_file_icon_class }} fa-2x me-3"></i>
+                                            <span class="fw-bold">{{ assignment.attachment.name|cut:"assignment_attachments/" }}</span>
+                                            <small class="text-muted d-block">
+                                                {{ assignment.attachment.size|filesizeformat }} • 
+                                                Uploaded on {{ assignment.created_at|date:"M d, Y" }}
+                                            </small>
+                                        </div>
+                                        <div>
+                                            <a href="{{ assignment.attachment.url }}" 
+                                               class="btn btn-primary btn-sm" 
+                                               target="_blank"
+                                               download>
+                                                <i class="fas fa-download me-1"></i>Download
+                                            </a>
+                                            <a href="{{ assignment.attachment.url }}" 
+                                               class="btn btn-outline-primary btn-sm" 
+                                               target="_blank">
+                                                <i class="fas fa-eye me-1"></i>View
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
+            <!-- Rest of the template remains the same -->
             <!-- Submission Details -->
             {% if submission %}
             <div class="card shadow mt-4">
@@ -218,6 +255,44 @@
                 </div>
             </div>
 
+            <!-- Assignment Files Sidebar Card -->
+            {% if assignment.attachment %}
+            <div class="card shadow mt-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="m-0 font-weight-bold"><i class="fas fa-paperclip me-2"></i>Assignment Files</h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <strong>Question File:</strong>
+                        <div class="mt-2">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="{{ assignment.get_file_icon_class }} me-2"></i>
+                                <small>{{ assignment.attachment.name|cut:"assignment_attachments/" }}</small>
+                            </div>
+                            <div class="d-grid gap-1">
+                                <a href="{{ assignment.attachment.url }}" 
+                                   class="btn btn-sm btn-outline-primary" 
+                                   target="_blank">
+                                    <i class="fas fa-eye me-1"></i> View Questions
+                                </a>
+                                <a href="{{ assignment.attachment.url }}" 
+                                   class="btn btn-sm btn-outline-success" 
+                                   download>
+                                    <i class="fas fa-download me-1"></i> Download
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <small>
+                            <i class="fas fa-info-circle me-1"></i>
+                            Download the question file to read the assignment instructions and questions.
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- Course Information -->
             <div class="card shadow mt-4">
                 <div class="card-header bg-info text-white">
@@ -266,6 +341,9 @@
 }
 .badge {
     font-size: 0.75em;
+}
+.file-icon {
+    font-size: 1.5rem;
 }
 </style>
 {% endblock %}

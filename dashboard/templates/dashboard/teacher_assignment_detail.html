@@ -9,8 +9,13 @@
         </h1>
         <div>
             <a href="{% url 'dashboard:teacher_edit_assignment' assignment.id %}" class="btn btn-outline-primary">
+<<<<<<< HEAD
     <i class="fas fa-edit me-1"></i> Edit
 </a>
+=======
+                <i class="fas fa-edit me-1"></i> Edit
+            </a>
+>>>>>>> 7d73c14d6f72355eb0663a3d5d2970ae63817ecf
             <a href="{% url 'dashboard:teacher_assignments' %}" class="btn btn-outline-secondary">
                 <i class="fas fa-arrow-left me-1"></i> Back to List
             </a>
@@ -134,7 +139,7 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="{% url 'dashboard:edit_assignment' assignment.id %}" class="btn btn-outline-primary btn-sm">
+                        <a href="{% url 'dashboard:teacher_edit_assignment' assignment.id %}" class="btn btn-outline-primary btn-sm">
                             <i class="fas fa-edit me-1"></i> Edit Assignment
                         </a>
                         {% if submissions %}

@@ -117,13 +117,17 @@
                     <tbody>
                         {% for assignment_data in assignments %}
                         <tr>
-                            <td>
-                                <strong>{{ assignment_data.assignment.title }}</strong>
-                                {% if assignment_data.assignment.description %}
-                                <br>
-                                <small class="text-muted">{{ assignment_data.assignment.description|truncatewords:10 }}</small>
-                                {% endif %}
-                            </td>
+                           <!-- In the assignments table, modify the Assignment column -->
+<td>
+    <strong>{{ assignment_data.assignment.title }}</strong>
+    {% if assignment_data.assignment.attachment %}
+        <i class="fas fa-paperclip text-primary ms-1" title="Has attached file"></i>
+    {% endif %}
+    {% if assignment_data.assignment.description %}
+    <br>
+    <small class="text-muted">{{ assignment_data.assignment.description|truncatewords:10 }}</small>
+    {% endif %}
+</td>
                             <td>{{ assignment_data.assignment.course.code }}</td>
                             <td>
                                 {{ assignment_data.assignment.due_date|date:"M d, Y H:i" }}
